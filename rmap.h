@@ -34,7 +34,7 @@ typedef struct {
   struct {
     uint8_t *data;
     size_t length;
-  } target_spacewire_address;
+  } target_address;
   uint8_t target_logical_address;
   unsigned char command_codes;
   uint8_t key;
@@ -53,7 +53,7 @@ typedef struct {
   struct {
     uint8_t *data;
     size_t length;
-  } reply_spacewire_address;
+  } reply_address;
   uint8_t initiator_logical_address;
   unsigned char command_codes;
   uint8_t status;
@@ -65,7 +65,7 @@ typedef struct {
   struct {
     uint8_t *data;
     size_t length;
-  } reply_spacewire_address;
+  } reply_address;
   uint8_t initiator_logical_address;
   unsigned char command_codes;
   uint8_t status;

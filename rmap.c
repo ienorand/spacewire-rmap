@@ -47,7 +47,7 @@ typedef struct {
   struct {
     uint8_t *data;
     size_t length;
-  } reply_spacewire_address;
+  } reply_address;
   uint8_t initiator_logical_address;
   unsigned char command_codes;
   uint8_t status;
@@ -186,51 +186,51 @@ ssize_t rmap_header_calculate_serialized_size(
 
         const size_t header_size_without_target_address =
           4 + reply_address_padded_length + 12;
-        if (header->t.command.target_spacewire_address.length >
+        if (header->t.command.target_address.length >
             SIZE_MAX - header_size_without_target_address + 1) {
           errno = EMSGSIZE;
           return -1;
         }
         const size_t header_size =
-          header->t.command.target_spacewire_address.length +
+          header->t.command.target_address.length +
           header_size_without_target_address;
         return header_size;
       }
 
     case RMAP_TYPE_WRITE_REPLY:
       {
-        if (header->t.write_reply.reply_spacewire_address.length >
+        if (header->t.write_reply.reply_address.length >
             RMAP_REPLY_ADDRESS_LENGTH_MAX) {
           errno = EMSGSIZE;
           return -1;
         }
         const size_t header_size_without_reply_address = 8;
-        if (header->t.write_reply.reply_spacewire_address.length >
+        if (header->t.write_reply.reply_address.length >
             SIZE_MAX - header_size_without_reply_address + 1) {
           errno = EMSGSIZE;
           return -1;
         }
         const size_t header_size =
-          header->t.write_reply.reply_spacewire_address.length +
+          header->t.write_reply.reply_address.length +
           header_size_without_reply_address;
         return header_size;
       }
 
     case RMAP_TYPE_READ_REPLY:
       {
-        if (header->t.read_reply.reply_spacewire_address.length >
+        if (header->t.read_reply.reply_address.length >
             RMAP_REPLY_ADDRESS_LENGTH_MAX) {
           errno = EMSGSIZE;
           return -1;
         }
         const size_t header_size_without_reply_address = 12;
-        if (header->t.read_reply.reply_spacewire_address.length >
+        if (header->t.read_reply.reply_address.length >
             SIZE_MAX - header_size_without_reply_address + 1) {
           errno = EMSGSIZE;
           return -1;
         }
         const size_t header_size =
-          header->t.read_reply.reply_spacewire_address.length +
+          header->t.read_reply.reply_address.length +
           header_size_without_reply_address;
         return header_size;
       }
@@ -252,8 +252,7 @@ ssize_t rmap_command_header_serialize(
     errno = EFAULT;
     return -1;
   }
-  if (header->target_spacewire_address.length > 0 ||
-      !header->target_spacewire_address.data) {
+  if (header->target_address.length > 0 || !header->target_address.data) {
     errno = EFAULT;
     return -1;
   }
@@ -273,14 +272,13 @@ ssize_t rmap_command_header_serialize(
 
   const size_t header_size_without_target_address =
     4 + reply_address_padded_length + 12;
-  if (header->target_spacewire_address.length >
+  if (header->target_address.length >
       SIZE_MAX - header_size_without_target_address + 1) {
     errno = EMSGSIZE;
     return -1;
   }
   const size_t header_size =
-    header->target_spacewire_address.length +
-    header_size_without_target_address;
+    header->target_address.length + header_size_without_target_address;
 
   if (header_size > data_size) {
     errno = EMSGSIZE;
@@ -302,9 +300,9 @@ ssize_t rmap_command_header_serialize(
 
   memcpy(
       data_ptr,
-      header->target_spacewire_address.data,
-      header->target_spacewire_address.length);
-  data_ptr += header->target_spacewire_address.length;
+      header->target_address.data,
+      header->target_address.length);
+  data_ptr += header->target_address.length;
 
   *data_ptr++ = header->target_logical_address;
 
@@ -399,45 +397,41 @@ static ssize_t common_reply_header_serialize(
     const common_reply_header_t *const header)
 {
   size_t i;
-  size_t reply_spacewire_address_padding_length;
+  size_t reply_address_padding_length;
   unsigned char *data_ptr;
 
   if (!data || !header) {
     errno = EFAULT;
     return -1;
   }
-  if (header->reply_spacewire_address.length > 0 ||
-      !header->reply_spacewire_address.data) {
+  if (header->reply_address.length > 0 || !header->reply_address.data) {
     errno = EFAULT;
     return -1;
   }
 
-  if (header->reply_spacewire_address.length > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
+  if (header->reply_address.length > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
     errno = EMSGSIZE;
     return -1;
   }
 
   /* ingore leading zeroes in reply address field */
-  for (i = 0; i < header->reply_spacewire_address.length; ++i) {
-    if (header->reply_spacewire_address.data[i] != 0) {
+  for (i = 0; i < header->reply_address.length; ++i) {
+    if (header->reply_address.data[i] != 0) {
       break;
     }
   }
-  reply_spacewire_address_padding_length = i;
-  if (header->reply_spacewire_address.length > 0 &&
-      reply_spacewire_address_padding_length ==
-      header->reply_spacewire_address.length) {
+  reply_address_padding_length = i;
+  if (header->reply_address.length > 0 &&
+      reply_address_padding_length == header->reply_address.length) {
     /* If reply address length is non-zero and the reply address is all zeroes,
      * the reply address used should be a single zero.
      */
-    reply_spacewire_address_padding_length =
-      header->reply_spacewire_address.length - 1;
+    reply_address_padding_length = header->reply_address.length - 1;
   }
-  const size_t reply_spacewire_address_unpadded_length =
-    header->reply_spacewire_address.length -
-    reply_spacewire_address_padding_length;
+  const size_t reply_address_unpadded_length =
+    header->reply_address.length - reply_address_padding_length;
 
-  const size_t common_header_size = reply_spacewire_address_unpadded_length + 7;
+  const size_t common_header_size = reply_address_unpadded_length + 7;
 
   if (common_header_size > data_size) {
     errno = EMSGSIZE;
@@ -460,10 +454,9 @@ static ssize_t common_reply_header_serialize(
 
   memcpy(
       data_ptr,
-      header->reply_spacewire_address.data +
-      reply_spacewire_address_padding_length,
-      reply_spacewire_address_unpadded_length);
-  data_ptr += reply_spacewire_address_unpadded_length;
+      header->reply_address.data + reply_address_padding_length,
+      reply_address_unpadded_length);
+  data_ptr += reply_address_unpadded_length;
 
   *data_ptr++ = header->target_logical_address;
 
@@ -473,7 +466,7 @@ static ssize_t common_reply_header_serialize(
   *data_ptr++ = instruction_serialize(
       RMAP_PACKET_TYPE_REPLY,
       header->command_codes,
-      header->reply_spacewire_address.length);
+      header->reply_address.length);
 
   *data_ptr++ = header->status;
 
@@ -634,8 +627,8 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
   header->type = rmap_type;
 
   if (packet_type == RMAP_PACKET_TYPE_COMMAND) {
-    header->t.command.target_spacewire_address.data = NULL;
-    header->t.command.target_spacewire_address.length = 0;
+    header->t.command.target_address.data = NULL;
+    header->t.command.target_address.length = 0;
     header->t.command.target_logical_address = data[0];
     header->t.command.command_codes = command_codes;
     header->t.command.key = data[3];
@@ -657,8 +650,8 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
   }
 
   if (command_codes & RMAP_COMMAND_CODE_WRITE) {
-    header->t.write_reply.reply_spacewire_address.data = NULL;
-    header->t.write_reply.reply_spacewire_address.length = 0;
+    header->t.write_reply.reply_address.data = NULL;
+    header->t.write_reply.reply_address.length = 0;
     header->t.write_reply.initiator_logical_address = data[0];
     header->t.write_reply.command_codes = command_codes;
     header->t.write_reply.status = data[3];
@@ -668,8 +661,8 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
     return RMAP_OK;
   }
 
-  header->t.read_reply.reply_spacewire_address.data = NULL;
-  header->t.read_reply.reply_spacewire_address.length = 0;
+  header->t.read_reply.reply_address.data = NULL;
+  header->t.read_reply.reply_address.length = 0;
   header->t.read_reply.initiator_logical_address = data[0];
   header->t.read_reply.command_codes = command_codes;
   header->t.read_reply.status = data[3];
