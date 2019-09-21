@@ -264,6 +264,7 @@ ssize_t rmap_command_header_serialize(
     return -1;
   }
 
+  // TODO: Replace duplicated header size calculation with helper function.
   if (header->reply_address.length > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
     errno = EMSGSIZE;
     return -1;
