@@ -198,9 +198,11 @@ ssize_t rmap_command_header_serialize(
 
   const size_t header_size_without_target_address =
     4 + reply_address_padded_length + 12;
-  assert(
-      header->target_spacewire_address.length <
-      SIZE_MAX - header_size_without_target_address + 1);
+  if (header->target_spacewire_address.length >
+      SIZE_MAX - header_size_without_target_address + 1) {
+    errno = EMSGSIZE;
+    return -1;
+  }
   const size_t header_size =
     header->target_spacewire_address.length +
     header_size_without_target_address;
@@ -501,15 +503,16 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
   rmap_type_t rmap_type;
   size_t offset;
 
-  assert(header);
-  assert(data);
+  if (!data || !header) {
+    return RMAP_NULLPTR;
+  }
 
   if (data_size < 8) {
     return RMAP_INCOMPLETE_HEADER;
   }
 
   if (data[1] != 1) {
-    return RMAP_DESERIALIZE_NO_RMAP_PROTOCOL;
+    return RMAP_NO_RMAP_PROTOCOL;
   }
 
   const rmap_header_deserialize_status_t instruction_deserialize_status =
