@@ -166,6 +166,82 @@ static rmap_header_deserialize_status_t instruction_deserialize(
   return RMAP_OK;
 }
 
+ssize_t rmap_header_calculate_serialized_size(
+    const rmap_header_t *const header)
+{
+  if (!header) {
+    errno = EFAULT;
+    return -1;
+  }
+
+  switch (header->type) {
+    case RMAP_TYPE_COMMAND:
+      {
+        if (header->t.command.reply_address.length >
+            RMAP_REPLY_ADDRESS_LENGTH_MAX) {
+          errno = EMSGSIZE;
+          return -1;
+        }
+        const size_t reply_address_padded_length =
+          (header->t.command.reply_address.length + 4 - 1) / 4 * 4;
+
+        const size_t header_size_without_target_address =
+          4 + reply_address_padded_length + 12;
+        if (header->t.command.target_spacewire_address.length >
+            SIZE_MAX - header_size_without_target_address + 1) {
+          errno = EMSGSIZE;
+          return -1;
+        }
+        const size_t header_size =
+          header->t.command.target_spacewire_address.length +
+          header_size_without_target_address;
+        return header_size;
+      }
+
+    case RMAP_TYPE_WRITE_REPLY:
+      {
+        if (header->t.write_reply.reply_spacewire_address.length >
+            RMAP_REPLY_ADDRESS_LENGTH_MAX) {
+          errno = EMSGSIZE;
+          return -1;
+        }
+        const size_t header_size_without_reply_address = 8;
+        if (header->t.write_reply.reply_spacewire_address.length >
+            SIZE_MAX - header_size_without_reply_address + 1) {
+          errno = EMSGSIZE;
+          return -1;
+        }
+        const size_t header_size =
+          header->t.write_reply.reply_spacewire_address.length +
+          header_size_without_reply_address;
+        return header_size;
+      }
+
+    case RMAP_TYPE_READ_REPLY:
+      {
+        if (header->t.read_reply.reply_spacewire_address.length >
+            RMAP_REPLY_ADDRESS_LENGTH_MAX) {
+          errno = EMSGSIZE;
+          return -1;
+        }
+        const size_t header_size_without_reply_address = 12;
+        if (header->t.read_reply.reply_spacewire_address.length >
+            SIZE_MAX - header_size_without_reply_address + 1) {
+          errno = EMSGSIZE;
+          return -1;
+        }
+        const size_t header_size =
+          header->t.read_reply.reply_spacewire_address.length +
+          header_size_without_reply_address;
+        return header_size;
+      }
+
+    default:
+      errno = EINVAL;
+      return -1;
+  }
+}
+
 ssize_t rmap_command_header_serialize(
     unsigned char *const data,
     const size_t data_size,

@@ -83,6 +83,8 @@ typedef struct {
   } t;
 } rmap_header_t;
 
+ssize_t rmap_header_calculate_serialized_size(const rmap_header_t *header);
+
 ssize_t rmap_command_header_serialize(
     unsigned char *data,
     size_t data_size,
