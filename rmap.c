@@ -9,6 +9,10 @@
 #define RMAP_REPLY_ADDRESS_LENGTH_MAX 12
 #define RMAP_DATA_LENGTH_MAX ((1 << 24) - 1)
 
+#define RMAP_COMMAND_HEADER_STATIC_SIZE 16
+#define RMAP_WRITE_REPLY_HEADER_STATIC_SIZE 8
+#define RMAP_READ_REPLY_HEADER_STATIC_SIZE 12
+
 #define RMAP_INSTRUCTION_PACKET_TYPE_SHIFT 6
 #define RMAP_INSTRUCTION_PACKET_TYPE_MASK \
   (3 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT)
@@ -185,7 +189,7 @@ ssize_t rmap_header_calculate_serialized_size(
           (header->t.command.reply_address.length + 4 - 1) / 4 * 4;
 
         const size_t header_size_without_target_address =
-          4 + reply_address_padded_length + 12;
+          RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_padded_length;
         if (header->t.command.target_address.length >
             SIZE_MAX - header_size_without_target_address + 1) {
           errno = EMSGSIZE;
@@ -204,15 +208,14 @@ ssize_t rmap_header_calculate_serialized_size(
           errno = EMSGSIZE;
           return -1;
         }
-        const size_t header_size_without_reply_address = 8;
         if (header->t.write_reply.reply_address.length >
-            SIZE_MAX - header_size_without_reply_address + 1) {
+            SIZE_MAX - RMAP_WRITE_REPLY_HEADER_STATIC_SIZE + 1) {
           errno = EMSGSIZE;
           return -1;
         }
         const size_t header_size =
-          header->t.write_reply.reply_address.length +
-          header_size_without_reply_address;
+          RMAP_WRITE_REPLY_HEADER_STATIC_SIZE +
+          header->t.write_reply.reply_address.length;
         return header_size;
       }
 
@@ -223,15 +226,14 @@ ssize_t rmap_header_calculate_serialized_size(
           errno = EMSGSIZE;
           return -1;
         }
-        const size_t header_size_without_reply_address = 12;
         if (header->t.read_reply.reply_address.length >
-            SIZE_MAX - header_size_without_reply_address + 1) {
+            SIZE_MAX - RMAP_READ_REPLY_HEADER_STATIC_SIZE + 1) {
           errno = EMSGSIZE;
           return -1;
         }
         const size_t header_size =
-          header->t.read_reply.reply_address.length +
-          header_size_without_reply_address;
+          RMAP_READ_REPLY_HEADER_STATIC_SIZE +
+          header->t.read_reply.reply_address.length;
         return header_size;
       }
 
@@ -271,7 +273,7 @@ ssize_t rmap_command_header_serialize(
     (header->reply_address.length + 4 - 1) / 4 * 4;
 
   const size_t header_size_without_target_address =
-    4 + reply_address_padded_length + 12;
+    RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_padded_length;
   if (header->target_address.length >
       SIZE_MAX - header_size_without_target_address + 1) {
     errno = EMSGSIZE;
@@ -601,14 +603,14 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
 
   if (packet_type == RMAP_PACKET_TYPE_COMMAND) {
     rmap_type = RMAP_TYPE_COMMAND;
-    header_size = 4 + reply_address_length + 12;
+    header_size = RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_length;
   } else {
     if (command_codes & RMAP_COMMAND_CODE_WRITE) {
       rmap_type = RMAP_TYPE_WRITE_REPLY;
-      header_size = 8;
+      header_size = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
     } else {
       rmap_type = RMAP_TYPE_READ_REPLY;
-      header_size = 12;
+      header_size = RMAP_READ_REPLY_HEADER_STATIC_SIZE;
     }
   }
 
