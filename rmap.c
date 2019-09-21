@@ -174,15 +174,18 @@ ssize_t rmap_command_header_serialize(
   unsigned char *data_ptr;
 
   if (!data || !header) {
-    return EFAULT;
+    errno = EFAULT;
+    return -1;
   }
   if (header->target_spacewire_address.length > 0 ||
       !header->target_spacewire_address.data) {
-    return EFAULT;
+    errno = EFAULT;
+    return -1;
   }
   if (header->reply_address.length > 0 ||
       !header->reply_address.data) {
-    return EFAULT;
+    errno = EFAULT;
+    return -1;
   }
 
   if (header->reply_address.length > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
@@ -323,11 +326,13 @@ static ssize_t common_reply_header_serialize(
   unsigned char *data_ptr;
 
   if (!data || !header) {
-    return EFAULT;
+    errno = EFAULT;
+    return -1;
   }
   if (header->reply_spacewire_address.length > 0 ||
       !header->reply_spacewire_address.data) {
-    return EFAULT;
+    errno = EFAULT;
+    return -1;
   }
 
   if (header->reply_spacewire_address.length > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
@@ -415,7 +420,8 @@ ssize_t rmap_write_reply_header_serialize(
   common_reply_header_t common_header;
 
   if (!header) {
-    return EFAULT;
+    errno = EFAULT;
+    return -1;
   }
 
   make_common_from_write_reply_header(&common_header, header);
@@ -447,7 +453,8 @@ ssize_t rmap_read_reply_header_serialize(
   common_reply_header_t common_header;
 
   if (!header) {
-    return EFAULT;
+    errno = EFAULT;
+    return -1;
   }
 
   make_common_from_read_reply_header(&common_header, header);
