@@ -244,69 +244,7 @@ static ssize_t calculate_reply_address_unpadded_size(
   return size - padding_size;
 }
 
-ssize_t calculate_serialized_header_size(
-    const rmap_header_t *const header)
-{
-  common_reply_header_t reply_header;
-  size_t reply_header_static_size;
-
-  if (!header) {
-    errno = EFAULT;
-    return -1;
-  }
-
-  if (header->type == RMAP_TYPE_COMMAND) {
-    if (header->t.command.reply_address.length >
-        RMAP_REPLY_ADDRESS_LENGTH_MAX) {
-      errno = EMSGSIZE;
-      return -1;
-    }
-    const size_t reply_address_padded_length =
-      (header->t.command.reply_address.length + 4 - 1) / 4 * 4;
-
-    const size_t header_size_without_target_address =
-      RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_padded_length;
-    if (header->t.command.target_address.length >
-        SIZE_MAX - header_size_without_target_address + 1) {
-      errno = EMSGSIZE;
-      return -1;
-    }
-    const size_t header_size =
-      header->t.command.target_address.length +
-      header_size_without_target_address;
-    return header_size;
-  }
-
-  if (header->type == RMAP_TYPE_WRITE_REPLY) {
-    reply_header_static_size = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
-    make_common_from_write_reply_header(
-        &reply_header,
-        &header->t.write_reply);
-  } else if (header->type == RMAP_TYPE_READ_REPLY) {
-    reply_header_static_size = RMAP_READ_REPLY_HEADER_STATIC_SIZE;
-    make_common_from_write_reply_header(
-        &reply_header,
-        &header->t.write_reply);
-  } else {
-    errno = EINVAL;
-    return -1;
-  }
-
-  const ssize_t reply_address_unpadded_size =
-    calculate_reply_address_unpadded_size(
-        reply_header.reply_address.data,
-        reply_header.reply_address.length);
-  if (reply_address_unpadded_size == -1) {
-    const int errsv = errno;
-    assert(errno == EFAULT || errno == EMSGSIZE);
-    errno = errsv ;
-    return -1;
-  }
-
-  return reply_address_unpadded_size + reply_header_static_size;
-}
-
-ssize_t rmap_command_header_serialize(
+static ssize_t serialize_command_header(
     unsigned char *const data,
     const size_t data_size,
     const rmap_command_header_t *const header)
@@ -492,7 +430,7 @@ static ssize_t serialize_common_reply_header(
   return (ssize_t)size;
 }
 
-ssize_t rmap_write_reply_header_serialize(
+static ssize_t serialize_write_reply_header(
     unsigned char *const data,
     const size_t data_size,
     const rmap_write_reply_header_t *const header)
@@ -525,7 +463,7 @@ ssize_t rmap_write_reply_header_serialize(
   return common_header_size + 1;
 }
 
-ssize_t rmap_read_reply_header_serialize(
+static ssize_t serialize_read_reply_header(
     unsigned char *const data,
     const size_t data_size,
     const rmap_read_reply_header_t *const header)
@@ -564,6 +502,111 @@ ssize_t rmap_read_reply_header_serialize(
   data[common_header_size + 4] = rmap_crc_calculate(data, common_header_size);
 
   return common_header_size + 5;
+}
+
+ssize_t rmap_header_calculate_serialized_size(
+    const rmap_header_t *const header)
+{
+  common_reply_header_t reply_header;
+  size_t reply_header_static_size;
+
+  if (!header) {
+    errno = EFAULT;
+    return -1;
+  }
+
+  if (header->type == RMAP_TYPE_COMMAND) {
+    if (header->t.command.reply_address.length >
+        RMAP_REPLY_ADDRESS_LENGTH_MAX) {
+      errno = EMSGSIZE;
+      return -1;
+    }
+    const size_t reply_address_padded_length =
+      (header->t.command.reply_address.length + 4 - 1) / 4 * 4;
+
+    const size_t header_size_without_target_address =
+      RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_padded_length;
+    if (header->t.command.target_address.length >
+        SIZE_MAX - header_size_without_target_address + 1) {
+      errno = EMSGSIZE;
+      return -1;
+    }
+    const size_t header_size =
+      header->t.command.target_address.length +
+      header_size_without_target_address;
+    return header_size;
+  }
+
+  if (header->type == RMAP_TYPE_WRITE_REPLY) {
+    reply_header_static_size = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
+    make_common_from_write_reply_header(
+        &reply_header,
+        &header->t.write_reply);
+  } else if (header->type == RMAP_TYPE_READ_REPLY) {
+    reply_header_static_size = RMAP_READ_REPLY_HEADER_STATIC_SIZE;
+    make_common_from_write_reply_header(
+        &reply_header,
+        &header->t.write_reply);
+  } else {
+    errno = EINVAL;
+    return -1;
+  }
+
+  const ssize_t reply_address_unpadded_size =
+    calculate_reply_address_unpadded_size(
+        reply_header.reply_address.data,
+        reply_header.reply_address.length);
+  if (reply_address_unpadded_size == -1) {
+    const int errsv = errno;
+    assert(errno == EFAULT || errno == EMSGSIZE);
+    errno = errsv ;
+    return -1;
+  }
+
+  return reply_address_unpadded_size + reply_header_static_size;
+}
+
+ssize_t rmap_header_serialize(
+    unsigned char *const data,
+    const size_t data_size,
+    const rmap_header_t *const header)
+{
+  ssize_t header_size;
+
+  if (!header) {
+    errno = EFAULT;
+    return -1;
+  }
+
+  switch (header->type) {
+    case RMAP_TYPE_COMMAND:
+      header_size =
+        serialize_command_header(data, data_size, &header->t.command);
+      break;
+
+    case RMAP_TYPE_WRITE_REPLY:
+      header_size =
+        serialize_write_reply_header(data, data_size, &header->t.write_reply);
+      break;
+
+    case RMAP_TYPE_READ_REPLY:
+      header_size =
+        serialize_read_reply_header(data, data_size, &header->t.read_reply);
+      break;
+
+    default:
+      /* invalid type */
+      errno = EINVAL;
+      return -1;
+  }
+
+  if (header_size == -1) {
+    const int errsv = errno;
+    assert(errno == EFAULT || errno == EMSGSIZE || errno == EINVAL);
+    errno = errsv;
+    return -1;
+  }
+  return header_size;
 }
 
 /* TODO: How can const correctness be achived when deserializing? Should there

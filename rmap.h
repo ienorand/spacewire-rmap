@@ -85,20 +85,10 @@ typedef struct {
 
 ssize_t rmap_header_calculate_serialized_size(const rmap_header_t *header);
 
-ssize_t rmap_command_header_serialize(
+ssize_t rmap_header_serialize(
     unsigned char *data,
     size_t data_size,
-    const rmap_command_header_t *header);
-
-ssize_t rmap_write_reply_header_serialize(
-    unsigned char *data,
-    size_t data_size,
-    const rmap_write_reply_header_t *header);
-
-ssize_t rmap_read_reply_header_serialize(
-    unsigned char *data,
-    size_t data_size,
-    const rmap_read_reply_header_t *header);
+    const rmap_header_t *header);
 
 rmap_header_deserialize_status_t rmap_header_deserialize(
     rmap_header_t *header,
