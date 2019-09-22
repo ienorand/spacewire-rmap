@@ -18,18 +18,20 @@ enum {
   RMAP_COMMAND_CODE_INCREMENT = 1 << 3
 };
 
-// TODO: Could map to errno instead?
 typedef enum {
   RMAP_OK,
-  RMAP_NULLPTR, // EFAULT
-  RMAP_NO_RMAP_PROTOCOL, // EPROTONOSUPPORT
-  RMAP_INCOMPLETE_HEADER, // ENODATA
-  RMAP_ERROR_END_OF_PACKET, // ENETRESET
-  RMAP_HEADER_CRC_ERROR, // EIO
-  RMAP_UNUSED_PACKET_TYPE, // EFTYPE
-  RMAP_INVALID_COMMAND_CODE, // EBADMSG
-  RMAP_TOO_MUCH_DATA // EMSGSIZE
-} rmap_header_deserialize_status_t;
+  RMAP_NULLPTR,
+  RMAP_NOT_ENOUGH_SPACE,
+  RMAP_REPLY_ADDRESS_TOO_LONG,
+  RMAP_NO_RMAP_PROTOCOL,
+  /* errors which correspond to errors from the ecss rmap specification */
+  RMAP_ECSS_INCOMPLETE_HEADER,
+  RMAP_ECSS_ERROR_END_OF_PACKET,
+  RMAP_ECSS_HEADER_CRC_ERROR,
+  RMAP_ECSS_UNUSED_PACKET_TYPE,
+  RMAP_ECSS_INVALID_COMMAND_CODE,
+  RMAP_ECSS_TOO_MUCH_DATA
+} rmap_status_t;
 
 typedef struct {
   struct {
@@ -84,20 +86,23 @@ typedef struct {
   } t;
 } rmap_header_t;
 
-ssize_t rmap_header_calculate_serialized_size(const rmap_header_t *header);
+rmap_status_t rmap_header_calculate_serialized_size(
+    size_t *size,
+    const rmap_header_t *header);
 
-ssize_t rmap_header_serialize(
+rmap_status_t rmap_header_serialize(
+    size_t *serialized_header_size,
     unsigned char *data,
     size_t data_size,
     const rmap_header_t *header);
 
-rmap_header_deserialize_status_t rmap_header_deserialize(
+rmap_status_t rmap_header_deserialize(
+    size_t *serialized_header_size,
     rmap_header_t *header,
     unsigned char *data,
     size_t data_size);
 
-char *rmap_header_deserialize_status_text(
-    rmap_header_deserialize_status_t status);
+char *rmap_status_text(rmap_status_t status);
 
 uint8_t rmap_crc_calculate(const unsigned char *data, size_t data_size);
 void rmap_data_crc_put(unsigned char *data, size_t data_size);

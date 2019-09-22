@@ -102,7 +102,7 @@ static uint8_t serialize_instruction(
   return instruction;
 }
 
-static rmap_header_deserialize_status_t deserialize_instruction(
+static rmap_status_t deserialize_instruction(
     packet_type_t *const packet_type,
     unsigned char *const command_codes,
     size_t *const reply_address_length,
@@ -128,7 +128,7 @@ static rmap_header_deserialize_status_t deserialize_instruction(
       break;
 
     default:
-      return RMAP_UNUSED_PACKET_TYPE;
+      return RMAP_ECSS_UNUSED_PACKET_TYPE;
   }
 
   command_codes_tmp = 0;
@@ -156,7 +156,7 @@ static rmap_header_deserialize_status_t deserialize_instruction(
     case RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT:
     case RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY:
       /* invalid combination */
-      return RMAP_INVALID_COMMAND_CODE;
+      return RMAP_ECSS_INVALID_COMMAND_CODE;
   }
 
   const unsigned char reply_address_length_serialized =
@@ -208,24 +208,24 @@ static void make_common_from_read_reply_header(
   *common = converter.common;
 }
 
-static ssize_t calculate_reply_address_unpadded_size(
+static rmap_status_t calculate_reply_address_unpadded_size(
+    size_t *const unpadded_size,
     const uint8_t *const address,
     const size_t size)
 {
   size_t padding_size;
 
   if (size == 0) {
-    return 0;
+    *unpadded_size = 0;
+    return RMAP_OK;
   }
 
   if (!address) {
-    errno = EFAULT;
-    return -1;
+    return RMAP_NULLPTR;
   }
 
   if (size > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
-    errno = EMSGSIZE;
-    return -1;
+    return RMAP_REPLY_ADDRESS_TOO_LONG;
   }
 
   /* ignore leading zeroes in reply address field */
@@ -242,56 +242,54 @@ static ssize_t calculate_reply_address_unpadded_size(
     padding_size = size - 1;
   }
 
-  return size - padding_size;
+  *unpadded_size = size - padding_size;
+  return RMAP_OK;
 }
 
-static ssize_t serialize_command_header(
+static rmap_status_t serialize_command_header(
+    size_t *const serialized_size,
     unsigned char *const data,
     const size_t data_size,
     const rmap_command_header_t *const header)
 {
+  size_t calculated_serialized_size;
   unsigned char *data_ptr;
 
-  if (!data || !header) {
-    errno = EFAULT;
-    return -1;
+  if (!data || !header || !serialized_size) {
+    return RMAP_NULLPTR;
   }
   if (header->target_address.length > 0 && !header->target_address.data) {
-    errno = EFAULT;
-    return -1;
+    return RMAP_NULLPTR;
   }
   if (header->reply_address.length > 0 && !header->reply_address.data) {
-    errno = EFAULT;
-    return -1;
+    return RMAP_NULLPTR;
   }
 
   const rmap_header_t header_wrapper = {
     RMAP_TYPE_COMMAND,
     { *header }
   };
-  const ssize_t header_size = rmap_header_calculate_serialized_size(&header_wrapper);
-  if (header_size == -1) {
-    const int errsv = errno;
-    assert(errno == EMSGSIZE || errno == EINVAL);
-    errno = errsv;
-    return -1;
+  const rmap_status_t rmap_status =
+    rmap_header_calculate_serialized_size(
+        &calculated_serialized_size,
+        &header_wrapper);
+  if (rmap_status != RMAP_OK) {
+    assert(
+        rmap_status == RMAP_ECSS_TOO_MUCH_DATA ||
+        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE);
+    return rmap_status;
   }
 
-  assert(header_size >= 0);
-  if ((size_t)header_size > data_size) {
-    errno = EMSGSIZE;
-    return -1;
+  if (calculated_serialized_size > data_size) {
+    return RMAP_NOT_ENOUGH_SPACE;
   }
 
   if (header->data_length > RMAP_DATA_LENGTH_MAX) {
-    errno = EMSGSIZE;
-    return -1;
+    return RMAP_ECSS_TOO_MUCH_DATA;
   }
 
   if (header->command_codes & ~(RMAP_COMMAND_CODES_ALL)) {
-    /* invalid command codes */
-    errno = EINVAL;
-    return -1;
+    return RMAP_ECSS_INVALID_COMMAND_CODE;
   }
 
   data_ptr = data;
@@ -315,7 +313,7 @@ static ssize_t serialize_command_header(
   *data_ptr++ = header->key;
 
   const size_t reply_address_padding_size =
-    header_size - RMAP_COMMAND_HEADER_STATIC_SIZE -
+    calculated_serialized_size - RMAP_COMMAND_HEADER_STATIC_SIZE -
     header->target_address.length - header->reply_address.length;
   assert(reply_address_padding_size <= 3);
   memset(data_ptr, 0, reply_address_padding_size);
@@ -343,55 +341,58 @@ static ssize_t serialize_command_header(
     data + header->target_address.length;
   const ptrdiff_t crc_range_size = data_ptr - crc_range_start;
   assert(crc_range_size >= 0);
+  for (ptrdiff_t i = 0; i < crc_range_size; ++i) {
+    printf("%02X ", data[i]);
+  }
+  printf("\n");
 
   *data_ptr++ = rmap_crc_calculate(crc_range_start, crc_range_size);
 
   const ptrdiff_t size = data_ptr - data;
   assert(size >= 0);
-  assert(size == header_size);
+  assert((size_t)size == calculated_serialized_size);
 
-  return (ssize_t)size;
+  *serialized_size = (size_t)size;
+  return RMAP_OK;
 }
 
-static ssize_t serialize_common_reply_header(
+static rmap_status_t serialize_common_reply_header(
+    size_t *const serialized_size,
     unsigned char *const data,
     const size_t data_size,
     const common_reply_header_t *const header)
 {
+  size_t reply_address_unpadded_size;
   unsigned char *data_ptr;
 
   if (!data || !header) {
-    errno = EFAULT;
-    return -1;
+    return RMAP_NULLPTR;
   }
 
-  const ssize_t reply_address_unpadded_size =
+  const rmap_status_t rmap_status =
     calculate_reply_address_unpadded_size(
+        &reply_address_unpadded_size,
         header->reply_address.data,
         header->reply_address.length);
-  if (reply_address_unpadded_size == -1) {
-    const int errsv = errno;
-    assert(errno == EFAULT || errno == EMSGSIZE);
-    errno = errsv ;
-    return -1;
+  if (rmap_status != RMAP_OK) {
+    assert(
+        rmap_status == RMAP_NULLPTR ||
+        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG);
+    return rmap_status;
   }
 
   const size_t common_header_size = reply_address_unpadded_size + 7;
 
   if (common_header_size > data_size) {
-    errno = EMSGSIZE;
-    return -1;
+    return RMAP_NOT_ENOUGH_SPACE;
   }
 
   if (header->command_codes & ~(RMAP_COMMAND_CODES_ALL)) {
-    /* invalid command codes */
-    errno = EINVAL;
-    return -1;
+    return RMAP_ECSS_INVALID_COMMAND_CODE;
   }
   if (!(header->command_codes & RMAP_COMMAND_CODE_REPLY)) {
     /* must have reply command code */
-    errno  = EINVAL;
-    return -1;
+    return RMAP_ECSS_INVALID_COMMAND_CODE;
   }
 
   data_ptr = data;
@@ -426,139 +427,153 @@ static ssize_t serialize_common_reply_header(
   assert(size >= 0);
   assert((size_t)size == common_header_size);
 
-  return (ssize_t)size;
+  *serialized_size = (size_t)size;
+  return RMAP_OK;
 }
 
-static ssize_t serialize_write_reply_header(
+static rmap_status_t serialize_write_reply_header(
+    size_t *const serialized_size,
     unsigned char *const data,
     const size_t data_size,
     const rmap_write_reply_header_t *const header)
 {
   common_reply_header_t common_header;
+  rmap_status_t rmap_status;
+  size_t common_serialized_size;
+  size_t reply_address_unpadded_size;
 
   if (!header) {
-    errno = EFAULT;
-    return -1;
+    return RMAP_NULLPTR;
   }
 
   if (!(header->command_codes & RMAP_COMMAND_CODE_WRITE)) {
     /* must have write command code */
-    errno  = EINVAL;
-    return -1;
+    return RMAP_ECSS_INVALID_COMMAND_CODE;
   }
 
   make_common_from_write_reply_header(&common_header, header);
 
-  const ssize_t common_header_size =
-    serialize_common_reply_header(data, data_size, &common_header);
-  if (common_header_size == -1) {
-    const int errsv = errno;
-    assert(errno == EFAULT || errno == EMSGSIZE || errno == EINVAL);
-    errno = errsv;
-    return -1;
+  rmap_status = serialize_common_reply_header(
+      &common_serialized_size,
+      data,
+      data_size,
+      &common_header);
+  if (rmap_status != RMAP_OK) {
+    assert(
+        rmap_status == RMAP_NULLPTR ||
+        rmap_status == RMAP_NOT_ENOUGH_SPACE ||
+        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
+        rmap_status == RMAP_ECSS_INVALID_COMMAND_CODE);
+    return rmap_status;
   }
 
-  assert(common_header_size > 0);
-  if (data_size < (size_t)common_header_size + 1) {
-    errno = EMSGSIZE;
-    return -1;
+  if (data_size < common_serialized_size + 1) {
+    return RMAP_NOT_ENOUGH_SPACE;
   }
 
-  ssize_t reply_address_unpadded_size =
-    calculate_reply_address_unpadded_size(
+  rmap_status = calculate_reply_address_unpadded_size(
+        &reply_address_unpadded_size,
         header->reply_address.data,
         header->reply_address.length);
   assert(
-      reply_address_unpadded_size != -1 &&
-      "Errors should have been caught by serialize_common_reply_header().");
-
-  const unsigned char *const crc_range_start =
-    data + reply_address_unpadded_size;
-  const ptrdiff_t crc_range_size =  data + common_header_size - crc_range_start;
-  assert(crc_range_size >= 0);
-  data[common_header_size] =
-    rmap_crc_calculate(crc_range_start, crc_range_size);
-
-  return common_header_size + 1;
-}
-
-static ssize_t serialize_read_reply_header(
-    unsigned char *const data,
-    const size_t data_size,
-    const rmap_read_reply_header_t *const header)
-{
-  common_reply_header_t common_header;
-
-  if (!header) {
-    errno = EFAULT;
-    return -1;
-  }
-
-  if (header->command_codes & RMAP_COMMAND_CODE_WRITE) {
-    /* must not have write command code */
-    errno  = EINVAL;
-    return -1;
-  }
-
-  make_common_from_read_reply_header(&common_header, header);
-
-  const ssize_t common_header_size =
-    serialize_common_reply_header(data, data_size, &common_header);
-  if (common_header_size == -1) {
-    const int errsv = errno;
-    assert(errno == EFAULT || errno == EMSGSIZE || errno == EINVAL);
-    errno = errsv;
-    return -1;
-  }
-
-  assert(common_header_size > 0);
-  if (data_size < (size_t)common_header_size + 5) {
-    errno = EMSGSIZE;
-    return -1;
-  }
-
-  const uint8_t reserved = 0;
-  data[common_header_size] = reserved;
-
-  data[common_header_size + 1] = (uint8_t)(header->data_length >> 16);
-  data[common_header_size + 2] = (uint8_t)(header->data_length >> 8);
-  data[common_header_size + 3] = (uint8_t)(header->data_length);
-
-  ssize_t reply_address_unpadded_size =
-    calculate_reply_address_unpadded_size(
-        header->reply_address.data,
-        header->reply_address.length);
-  assert(
-      reply_address_unpadded_size != -1 &&
+      rmap_status == RMAP_OK &&
       "Errors should have been caught by serialize_common_reply_header().");
 
   const unsigned char *const crc_range_start =
     data + reply_address_unpadded_size;
   const ptrdiff_t crc_range_size =
-    data + common_header_size + 4 - crc_range_start;
+    data + common_serialized_size - crc_range_start;
   assert(crc_range_size >= 0);
-  data[common_header_size + 4] =
+  data[common_serialized_size] =
     rmap_crc_calculate(crc_range_start, crc_range_size);
 
-  return common_header_size + 5;
+  *serialized_size = common_serialized_size + 1;
+  return RMAP_OK;
 }
 
-ssize_t rmap_header_calculate_serialized_size(
+static rmap_status_t serialize_read_reply_header(
+    size_t *const serialized_size,
+    unsigned char *const data,
+    const size_t data_size,
+    const rmap_read_reply_header_t *const header)
+{
+  common_reply_header_t common_header;
+  rmap_status_t rmap_status;
+  size_t common_serialized_size;
+  size_t reply_address_unpadded_size;
+
+  if (!header) {
+    return RMAP_NULLPTR;
+  }
+
+  if (header->command_codes & RMAP_COMMAND_CODE_WRITE) {
+    /* must not have write command code */
+    return RMAP_ECSS_INVALID_COMMAND_CODE;
+  }
+
+  make_common_from_read_reply_header(&common_header, header);
+
+  rmap_status = serialize_common_reply_header(
+      &common_serialized_size,
+      data,
+      data_size,
+      &common_header);
+  if (rmap_status != RMAP_OK) {
+    assert(
+        rmap_status == RMAP_NULLPTR ||
+        rmap_status == RMAP_NOT_ENOUGH_SPACE ||
+        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
+        rmap_status == RMAP_ECSS_INVALID_COMMAND_CODE);
+    return rmap_status;
+  }
+
+  if (data_size < common_serialized_size + 1) {
+    return RMAP_NOT_ENOUGH_SPACE;
+  }
+
+  const uint8_t reserved = 0;
+  data[common_serialized_size] = reserved;
+
+  data[common_serialized_size + 1] = (uint8_t)(header->data_length >> 16);
+  data[common_serialized_size + 2] = (uint8_t)(header->data_length >> 8);
+  data[common_serialized_size + 3] = (uint8_t)(header->data_length);
+
+  rmap_status = calculate_reply_address_unpadded_size(
+        &reply_address_unpadded_size,
+        header->reply_address.data,
+        header->reply_address.length);
+  assert(
+      rmap_status == RMAP_OK &&
+      "Errors should have been caught by serialize_common_reply_header().");
+
+  const unsigned char *const crc_range_start =
+    data + reply_address_unpadded_size;
+  const ptrdiff_t crc_range_size =
+    data + common_serialized_size + 4 - crc_range_start;
+  assert(crc_range_size >= 0);
+  data[common_serialized_size + 4] =
+    rmap_crc_calculate(crc_range_start, crc_range_size);
+
+  *serialized_size = common_serialized_size + 5;
+  return RMAP_OK;
+}
+
+rmap_status_t rmap_header_calculate_serialized_size(
+    size_t *const serialized_size,
     const rmap_header_t *const header)
 {
   common_reply_header_t reply_header;
   size_t reply_header_static_size;
+  size_t reply_address_unpadded_size;
 
-  if (!header) {
-    errno = EFAULT;
-    return -1;
+  if (!header || !serialized_size) {
+    return RMAP_NULLPTR;
   }
 
   if (header->type == RMAP_TYPE_COMMAND) {
     if (header->t.command.reply_address.length >
         RMAP_REPLY_ADDRESS_LENGTH_MAX) {
-      errno = EMSGSIZE;
-      return -1;
+      return RMAP_REPLY_ADDRESS_TOO_LONG;
     }
     const size_t reply_address_padded_length =
       (header->t.command.reply_address.length + 4 - 1) / 4 * 4;
@@ -567,13 +582,13 @@ ssize_t rmap_header_calculate_serialized_size(
       RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_padded_length;
     if (header->t.command.target_address.length >
         SIZE_MAX - header_size_without_target_address + 1) {
-      errno = EMSGSIZE;
-      return -1;
+      return RMAP_NOT_ENOUGH_SPACE;
     }
-    const size_t header_size =
-      header->t.command.target_address.length +
+
+    *serialized_size = header->t.command.target_address.length +
       header_size_without_target_address;
-    return header_size;
+
+    return RMAP_OK;
   }
 
   if (header->type == RMAP_TYPE_WRITE_REPLY) {
@@ -587,71 +602,87 @@ ssize_t rmap_header_calculate_serialized_size(
         &reply_header,
         &header->t.write_reply);
   } else {
-    errno = EINVAL;
-    return -1;
+    return RMAP_ECSS_UNUSED_PACKET_TYPE;
   }
 
-  const ssize_t reply_address_unpadded_size =
+  const rmap_status_t rmap_status =
     calculate_reply_address_unpadded_size(
+        &reply_address_unpadded_size,
         reply_header.reply_address.data,
         reply_header.reply_address.length);
-  if (reply_address_unpadded_size == -1) {
-    const int errsv = errno;
-    assert(errno == EFAULT || errno == EMSGSIZE);
-    errno = errsv ;
-    return -1;
+  if (rmap_status != RMAP_OK) {
+    assert(
+        rmap_status == RMAP_NULLPTR ||
+        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG);
+    return rmap_status;
   }
 
-  return reply_address_unpadded_size + reply_header_static_size;
+  *serialized_size = reply_address_unpadded_size + reply_header_static_size;
+  return RMAP_OK;
 }
 
-ssize_t rmap_header_serialize(
+rmap_status_t rmap_header_serialize(
+    size_t *const serialized_size,
     unsigned char *const data,
     const size_t data_size,
     const rmap_header_t *const header)
 {
-  ssize_t header_size;
+  rmap_status_t rmap_status;
+  size_t serialized_size_tmp;
 
   if (!header) {
-    errno = EFAULT;
-    return -1;
+    return RMAP_NULLPTR;
   }
 
+  serialized_size_tmp = 0;
   switch (header->type) {
     case RMAP_TYPE_COMMAND:
-      header_size =
-        serialize_command_header(data, data_size, &header->t.command);
+      rmap_status = serialize_command_header(
+            &serialized_size_tmp,
+            data,
+            data_size,
+            &header->t.command);
       break;
 
     case RMAP_TYPE_WRITE_REPLY:
-      header_size =
-        serialize_write_reply_header(data, data_size, &header->t.write_reply);
+      rmap_status = serialize_write_reply_header(
+            &serialized_size_tmp,
+            data,
+            data_size,
+            &header->t.write_reply);
       break;
 
     case RMAP_TYPE_READ_REPLY:
-      header_size =
-        serialize_read_reply_header(data, data_size, &header->t.read_reply);
+      rmap_status = serialize_read_reply_header(
+            &serialized_size_tmp,
+            data,
+            data_size,
+            &header->t.read_reply);
       break;
 
     default:
-      /* invalid type */
-      errno = EINVAL;
-      return -1;
+      return RMAP_ECSS_UNUSED_PACKET_TYPE;
   }
 
-  if (header_size == -1) {
-    const int errsv = errno;
-    assert(errno == EFAULT || errno == EMSGSIZE || errno == EINVAL);
-    errno = errsv;
-    return -1;
+  if (rmap_status != RMAP_OK) {
+    assert(
+        rmap_status == RMAP_NULLPTR ||
+        rmap_status == RMAP_NOT_ENOUGH_SPACE ||
+        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
+        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE ||
+        rmap_status == RMAP_ECSS_INVALID_COMMAND_CODE);
+    return rmap_status;
   }
-  return header_size;
+
+  *serialized_size = serialized_size_tmp;
+  return RMAP_OK;
 }
 
 /* TODO: How can const correctness be achived when deserializing? Should there
  * be separate structs for serializing and deserializing?
  */
-rmap_header_deserialize_status_t rmap_header_deserialize(
+rmap_status_t rmap_header_deserialize(
+    size_t *const serialized_size,
     rmap_header_t *const header,
     unsigned char *const data,
     const size_t data_size)
@@ -668,22 +699,22 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
   }
 
   if (data_size < 8) {
-    return RMAP_INCOMPLETE_HEADER;
+    return RMAP_ECSS_INCOMPLETE_HEADER;
   }
 
   if (data[1] != 1) {
     return RMAP_NO_RMAP_PROTOCOL;
   }
 
-  const rmap_header_deserialize_status_t deserialize_instruction_status =
+  const rmap_status_t deserialize_instruction_status =
     deserialize_instruction(
         &packet_type,
         &command_codes,
         &reply_address_length,
         data[2]);
   switch (deserialize_instruction_status) {
-    case RMAP_UNUSED_PACKET_TYPE:
-    case RMAP_INVALID_COMMAND_CODE:
+    case RMAP_ECSS_UNUSED_PACKET_TYPE:
+    case RMAP_ECSS_INVALID_COMMAND_CODE:
       return deserialize_instruction_status;
 
     default:
@@ -705,7 +736,7 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
   }
 
   if (header_size > data_size) {
-    return RMAP_INCOMPLETE_HEADER;
+    return RMAP_ECSS_INCOMPLETE_HEADER;
   }
 
   const uint8_t crc = rmap_crc_calculate(data, header_size);
@@ -713,9 +744,10 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
    * be 0.
    */
   if (crc != 0) {
-    return RMAP_HEADER_CRC_ERROR;
+    return RMAP_ECSS_HEADER_CRC_ERROR;
   }
 
+  *serialized_size = header_size;
   header->type = rmap_type;
 
   if (packet_type == RMAP_PACKET_TYPE_COMMAND) {
@@ -767,8 +799,7 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
   return RMAP_OK;
 }
 
-char *rmap_header_deserialize_status_text(
-    rmap_header_deserialize_status_t status)
+char *rmap_status_text(const rmap_status_t status)
 {
   switch (status) {
     case RMAP_OK:
@@ -777,26 +808,32 @@ char *rmap_header_deserialize_status_text(
     case RMAP_NULLPTR:
       return "RMAP_NULLPTR";
 
+    case RMAP_NOT_ENOUGH_SPACE:
+      return "RMAP_NOT_ENOUGH_SPACE";
+
+    case RMAP_REPLY_ADDRESS_TOO_LONG:
+      return "RMAP_REPLY_ADDRESS_TOO_LONG";
+
     case RMAP_NO_RMAP_PROTOCOL:
       return "RMAP_NO_RMAP_PROTOCOL";
 
-    case RMAP_INCOMPLETE_HEADER:
-      return "RMAP_INCOMPLETE_HEADER";
+    case RMAP_ECSS_INCOMPLETE_HEADER:
+      return "RMAP_ECSS_INCOMPLETE_HEADER";
 
-    case RMAP_ERROR_END_OF_PACKET:
-      return "RMAP_ERROR_END_OF_PACKET";
+    case RMAP_ECSS_ERROR_END_OF_PACKET:
+      return "RMAP_ECSS_ERROR_END_OF_PACKET";
 
-    case RMAP_HEADER_CRC_ERROR:
-      return "RMAP_HEADER_CRC_ERROR";
+    case RMAP_ECSS_HEADER_CRC_ERROR:
+      return "RMAP_ECSS_HEADER_CRC_ERROR";
 
-    case RMAP_UNUSED_PACKET_TYPE:
-      return "RMAP_UNUSED_PACKET_TYPE";
+    case RMAP_ECSS_UNUSED_PACKET_TYPE:
+      return "RMAP_ECSS_UNUSED_PACKET_TYPE";
 
-    case RMAP_INVALID_COMMAND_CODE:
-      return "RMAP_INVALID_COMMAND_CODE";
+    case RMAP_ECSS_INVALID_COMMAND_CODE:
+      return "RMAP_ECSS_INVALID_COMMAND_CODE";
 
-    case RMAP_TOO_MUCH_DATA:
-      return "RMAP_TOO_MUCH_DATA";
+    case RMAP_ECSS_TOO_MUCH_DATA:
+      return "RMAP_ECSS_TOO_MUCH_DATA";
 
     default:
       return "INVALID_STATUS";
