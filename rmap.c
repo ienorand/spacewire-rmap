@@ -207,6 +207,43 @@ static void make_common_from_read_reply_header(
   *common = converter.common;
 }
 
+static ssize_t reply_address_calculate_unpadded_size(
+    const uint8_t *const address,
+    const size_t size)
+{
+  size_t padding_size;
+
+  if (size == 0) {
+    return 0;
+  }
+
+  if (!address) {
+    errno = EFAULT;
+    return -1;
+  }
+
+  if (size > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
+    errno = EMSGSIZE;
+    return -1;
+  }
+
+  /* ignore leading zeroes in reply address field */
+  padding_size = 0;
+  for (size_t i = 0; i < size; ++i) {
+    if (address[i] == 0) {
+      ++padding_size;
+    }
+  }
+  if (size > 0 && padding_size == size) {
+    /* If reply address length is non-zero and the reply address is all zeroes,
+     * the reply address used should be a single zero.
+     */
+    padding_size = size - 1;
+  }
+
+  return size - padding_size;
+}
+
 ssize_t rmap_header_calculate_serialized_size(
     const rmap_header_t *const header)
 {
@@ -255,22 +292,18 @@ ssize_t rmap_header_calculate_serialized_size(
     return -1;
   }
 
-  /* reply header */
-
-  if (reply_header.reply_address.length >
-      RMAP_REPLY_ADDRESS_LENGTH_MAX) {
-    errno = EMSGSIZE;
+  const ssize_t reply_address_unpadded_size =
+    reply_address_calculate_unpadded_size(
+        reply_header.reply_address.data,
+        reply_header.reply_address.length);
+  if (reply_address_unpadded_size == -1) {
+    const int errsv = errno;
+    assert(errno == EFAULT || errno == EMSGSIZE);
+    errno = errsv ;
     return -1;
   }
 
-  if (reply_header.reply_address.length >
-      SIZE_MAX - reply_header_static_size + 1) {
-    errno = EMSGSIZE;
-    return -1;
-  }
-  const size_t header_size =
-    reply_header_static_size + reply_header.reply_address.length;
-  return header_size;
+  return reply_address_unpadded_size + reply_header_static_size;
 }
 
 ssize_t rmap_command_header_serialize(
@@ -387,42 +420,25 @@ static ssize_t common_reply_header_serialize(
     const size_t data_size,
     const common_reply_header_t *const header)
 {
-  size_t i;
-  size_t reply_address_padding_length;
   unsigned char *data_ptr;
 
   if (!data || !header) {
     errno = EFAULT;
     return -1;
   }
-  if (header->reply_address.length > 0 || !header->reply_address.data) {
-    errno = EFAULT;
+
+  const ssize_t reply_address_unpadded_size =
+    reply_address_calculate_unpadded_size(
+        header->reply_address.data,
+        header->reply_address.length);
+  if (reply_address_unpadded_size == -1) {
+    const int errsv = errno;
+    assert(errno == EFAULT || errno == EMSGSIZE);
+    errno = errsv ;
     return -1;
   }
 
-  if (header->reply_address.length > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
-    errno = EMSGSIZE;
-    return -1;
-  }
-
-  /* ingore leading zeroes in reply address field */
-  for (i = 0; i < header->reply_address.length; ++i) {
-    if (header->reply_address.data[i] != 0) {
-      break;
-    }
-  }
-  reply_address_padding_length = i;
-  if (header->reply_address.length > 0 &&
-      reply_address_padding_length == header->reply_address.length) {
-    /* If reply address length is non-zero and the reply address is all zeroes,
-     * the reply address used should be a single zero.
-     */
-    reply_address_padding_length = header->reply_address.length - 1;
-  }
-  const size_t reply_address_unpadded_length =
-    header->reply_address.length - reply_address_padding_length;
-
-  const size_t common_header_size = reply_address_unpadded_length + 7;
+  const size_t common_header_size = reply_address_unpadded_size + 7;
 
   if (common_header_size > data_size) {
     errno = EMSGSIZE;
@@ -443,11 +459,14 @@ static ssize_t common_reply_header_serialize(
 
   data_ptr = data;
 
+  /* Padding stripped from reply address when sending. */
+  const size_t reply_address_offset =
+    header->reply_address.length - reply_address_unpadded_size;
   memcpy(
       data_ptr,
-      header->reply_address.data + reply_address_padding_length,
-      reply_address_unpadded_length);
-  data_ptr += reply_address_unpadded_length;
+      header->reply_address.data + reply_address_offset,
+      reply_address_unpadded_size);
+  data_ptr += reply_address_unpadded_size;
 
   *data_ptr++ = header->target_logical_address;
 
