@@ -38,6 +38,7 @@
   (3 << RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT)
 
 #define RMAP_COMMAND_CODES_ALL (\
+    RMAP_COMMAND_CODE_WRITE | \
     RMAP_COMMAND_CODE_VERIFY | \
     RMAP_COMMAND_CODE_REPLY | \
     RMAP_COMMAND_CODE_INCREMENT)
@@ -255,12 +256,11 @@ static ssize_t serialize_command_header(
     errno = EFAULT;
     return -1;
   }
-  if (header->target_address.length > 0 || !header->target_address.data) {
+  if (header->target_address.length > 0 && !header->target_address.data) {
     errno = EFAULT;
     return -1;
   }
-  if (header->reply_address.length > 0 ||
-      !header->reply_address.data) {
+  if (header->reply_address.length > 0 && !header->reply_address.data) {
     errno = EFAULT;
     return -1;
   }
@@ -320,10 +320,7 @@ static ssize_t serialize_command_header(
   assert(reply_address_padding_size <= 3);
   memset(data_ptr, 0, reply_address_padding_size);
   data_ptr += reply_address_padding_size;
-  memcpy(
-      data_ptr,
-      header->reply_address.data,
-      header->reply_address.length);
+  memcpy(data_ptr, header->reply_address.data, header->reply_address.length);
   data_ptr += header->reply_address.length;
 
   *data_ptr++ = header->initiator_logical_address;
@@ -388,9 +385,8 @@ static ssize_t serialize_common_reply_header(
     errno = EINVAL;
     return -1;
   }
-  if (!((header->command_codes & RMAP_COMMAND_CODE_WRITE) &&
-        (header->command_codes & RMAP_COMMAND_CODE_REPLY))) {
-    /* must have write reply command codes */
+  if (!(header->command_codes & RMAP_COMMAND_CODE_REPLY)) {
+    /* must have reply command code */
     errno  = EINVAL;
     return -1;
   }
@@ -442,6 +438,12 @@ static ssize_t serialize_write_reply_header(
     return -1;
   }
 
+  if (!(header->command_codes & RMAP_COMMAND_CODE_WRITE)) {
+    /* must have write command code */
+    errno  = EINVAL;
+    return -1;
+  }
+
   make_common_from_write_reply_header(&common_header, header);
 
   const ssize_t common_header_size =
@@ -472,6 +474,12 @@ static ssize_t serialize_read_reply_header(
 
   if (!header) {
     errno = EFAULT;
+    return -1;
+  }
+
+  if (header->command_codes & RMAP_COMMAND_CODE_WRITE) {
+    /* must not have write command code */
+    errno  = EINVAL;
     return -1;
   }
 
