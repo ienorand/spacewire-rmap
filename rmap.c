@@ -264,26 +264,20 @@ ssize_t rmap_command_header_serialize(
     return -1;
   }
 
-  // TODO: Replace duplicated header size calculation with helper function.
-  if (header->reply_address.length > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
-    errno = EMSGSIZE;
+  const rmap_header_t header_wrapper = {
+    RMAP_TYPE_COMMAND,
+    { *header }
+  };
+  const ssize_t header_size = rmap_header_calculate_serialized_size(&header_wrapper);
+  if (header_size == -1) {
+    const int errsv = errno;
+    assert(errno == EMSGSIZE || errno == EINVAL);
+    errno = errsv;
     return -1;
   }
 
-  const size_t reply_address_padded_length =
-    (header->reply_address.length + 4 - 1) / 4 * 4;
-
-  const size_t header_size_without_target_address =
-    RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_padded_length;
-  if (header->target_address.length >
-      SIZE_MAX - header_size_without_target_address + 1) {
-    errno = EMSGSIZE;
-    return -1;
-  }
-  const size_t header_size =
-    header->target_address.length + header_size_without_target_address;
-
-  if (header_size > data_size) {
+  assert(header_size >= 0);
+  if ((size_t)header_size > data_size) {
     errno = EMSGSIZE;
     return -1;
   }
@@ -319,6 +313,8 @@ ssize_t rmap_command_header_serialize(
 
   *data_ptr++ = header->key;
 
+  const size_t reply_address_padded_length =
+    (header->reply_address.length + 4 - 1) / 4 * 4;
   const size_t padding_size =
     reply_address_padded_length - header->reply_address.length;
   memset(data_ptr, 0, padding_size);
@@ -351,7 +347,7 @@ ssize_t rmap_command_header_serialize(
 
   const ptrdiff_t size = data_ptr - data;
   assert(size >= 0);
-  assert((size_t)size == header_size);
+  assert(size == header_size);
 
   return (ssize_t)size;
 }
