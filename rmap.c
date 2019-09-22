@@ -634,6 +634,14 @@ rmap_status_t rmap_header_serialize(
     return RMAP_NULLPTR;
   }
 
+  /* Unless serialized_size_tmp is explicitly initialized before the calls to
+   * serialize_write_reply_header() or serialize_read_reply_header() this will
+   * generate a maybe-uninitialized compiler warning.
+   *
+   * This seems to be a false positive since it goes away when making all
+   * non-RMAP_OK return values explicit after the call to
+   * serialize_command_header(), or when testing with gcc version 7.1 or later.
+   */
   serialized_size_tmp = 0;
   switch (header->type) {
     case RMAP_TYPE_COMMAND:
