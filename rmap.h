@@ -100,21 +100,6 @@ ssize_t rmap_read_reply_header_serialize(
     size_t data_size,
     const rmap_read_reply_header_t *header);
 
-rmap_header_deserialize_status_t rmap_command_header_deserialize(
-    rmap_command_header_t *header,
-    const unsigned char *data,
-    size_t data_size);
-
-rmap_header_deserialize_status_t rmap_write_reply_header_deserialize(
-    rmap_write_reply_header_t *header,
-    const unsigned char *data,
-    size_t data_size);
-
-rmap_header_deserialize_status_t rmap_read_reply_header_deserialize(
-    rmap_read_reply_header_t *header,
-    const unsigned char *data,
-    size_t data_size);
-
 rmap_header_deserialize_status_t rmap_header_deserialize(
     rmap_header_t *header,
     unsigned char *data,
