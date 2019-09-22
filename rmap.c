@@ -59,7 +59,7 @@ typedef struct {
   uint16_t transaction_identifier;
 } common_reply_header_t;
 
-static uint8_t instruction_serialize(
+static uint8_t serialize_instruction(
     const packet_type_t packet_type,
     const unsigned char command_codes,
     const size_t reply_address_length)
@@ -101,7 +101,7 @@ static uint8_t instruction_serialize(
   return instruction;
 }
 
-static rmap_header_deserialize_status_t instruction_deserialize(
+static rmap_header_deserialize_status_t deserialize_instruction(
     packet_type_t *const packet_type,
     unsigned char *const command_codes,
     size_t *const reply_address_length,
@@ -207,7 +207,7 @@ static void make_common_from_read_reply_header(
   *common = converter.common;
 }
 
-static ssize_t reply_address_calculate_unpadded_size(
+static ssize_t calculate_reply_address_unpadded_size(
     const uint8_t *const address,
     const size_t size)
 {
@@ -244,7 +244,7 @@ static ssize_t reply_address_calculate_unpadded_size(
   return size - padding_size;
 }
 
-ssize_t rmap_header_calculate_serialized_size(
+ssize_t calculate_serialized_header_size(
     const rmap_header_t *const header)
 {
   common_reply_header_t reply_header;
@@ -293,7 +293,7 @@ ssize_t rmap_header_calculate_serialized_size(
   }
 
   const ssize_t reply_address_unpadded_size =
-    reply_address_calculate_unpadded_size(
+    calculate_reply_address_unpadded_size(
         reply_header.reply_address.data,
         reply_header.reply_address.length);
   if (reply_address_unpadded_size == -1) {
@@ -369,7 +369,7 @@ ssize_t rmap_command_header_serialize(
   const uint8_t protocol_identifier = 1;
   *data_ptr++ = protocol_identifier;
 
-  *data_ptr++ = instruction_serialize(
+  *data_ptr++ = serialize_instruction(
       RMAP_PACKET_TYPE_COMMAND,
       header->command_codes,
       header->reply_address.length);
@@ -415,7 +415,7 @@ ssize_t rmap_command_header_serialize(
   return (ssize_t)size;
 }
 
-static ssize_t common_reply_header_serialize(
+static ssize_t serialize_common_reply_header(
     unsigned char *const data,
     const size_t data_size,
     const common_reply_header_t *const header)
@@ -428,7 +428,7 @@ static ssize_t common_reply_header_serialize(
   }
 
   const ssize_t reply_address_unpadded_size =
-    reply_address_calculate_unpadded_size(
+    calculate_reply_address_unpadded_size(
         header->reply_address.data,
         header->reply_address.length);
   if (reply_address_unpadded_size == -1) {
@@ -473,7 +473,7 @@ static ssize_t common_reply_header_serialize(
   const uint8_t protocol_identifier = 1;
   *data_ptr++ = protocol_identifier;
 
-  *data_ptr++ = instruction_serialize(
+  *data_ptr++ = serialize_instruction(
       RMAP_PACKET_TYPE_REPLY,
       header->command_codes,
       header->reply_address.length);
@@ -507,7 +507,7 @@ ssize_t rmap_write_reply_header_serialize(
   make_common_from_write_reply_header(&common_header, header);
 
   const ssize_t common_header_size =
-    common_reply_header_serialize(data, data_size, &common_header);
+    serialize_common_reply_header(data, data_size, &common_header);
   if (common_header_size == -1) {
     const int errsv = errno;
     assert(errno == EFAULT || errno == EMSGSIZE || errno == EINVAL);
@@ -540,7 +540,7 @@ ssize_t rmap_read_reply_header_serialize(
   make_common_from_read_reply_header(&common_header, header);
 
   const ssize_t common_header_size =
-    common_reply_header_serialize(data, data_size, &common_header);
+    serialize_common_reply_header(data, data_size, &common_header);
   if (common_header_size == -1) {
     const int errsv = errno;
     assert(errno == EFAULT || errno == EMSGSIZE || errno == EINVAL);
@@ -593,19 +593,19 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
     return RMAP_NO_RMAP_PROTOCOL;
   }
 
-  const rmap_header_deserialize_status_t instruction_deserialize_status =
-    instruction_deserialize(
+  const rmap_header_deserialize_status_t deserialize_instruction_status =
+    deserialize_instruction(
         &packet_type,
         &command_codes,
         &reply_address_length,
         data[2]);
-  switch (instruction_deserialize_status) {
+  switch (deserialize_instruction_status) {
     case RMAP_UNUSED_PACKET_TYPE:
     case RMAP_INVALID_COMMAND_CODE:
-      return instruction_deserialize_status;
+      return deserialize_instruction_status;
 
     default:
-      assert(instruction_deserialize_status == RMAP_OK);
+      assert(deserialize_instruction_status == RMAP_OK);
       break;
   }
 
