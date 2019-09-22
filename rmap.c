@@ -736,6 +736,42 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
   return RMAP_OK;
 }
 
+char *rmap_header_deserialize_status_text(
+    rmap_header_deserialize_status_t status)
+{
+  switch (status) {
+    case RMAP_OK:
+      return "RMAP_OK";
+
+    case RMAP_NULLPTR:
+      return "RMAP_NULLPTR";
+
+    case RMAP_NO_RMAP_PROTOCOL:
+      return "RMAP_NO_RMAP_PROTOCOL";
+
+    case RMAP_INCOMPLETE_HEADER:
+      return "RMAP_INCOMPLETE_HEADER";
+
+    case RMAP_ERROR_END_OF_PACKET:
+      return "RMAP_ERROR_END_OF_PACKET";
+
+    case RMAP_HEADER_CRC_ERROR:
+      return "RMAP_HEADER_CRC_ERROR";
+
+    case RMAP_UNUSED_PACKET_TYPE:
+      return "RMAP_UNUSED_PACKET_TYPE";
+
+    case RMAP_INVALID_COMMAND_CODE:
+      return "RMAP_INVALID_COMMAND_CODE";
+
+    case RMAP_TOO_MUCH_DATA:
+      return "RMAP_TOO_MUCH_DATA";
+
+    default:
+      return "INVALID_STATUS";
+  }
+}
+
 uint8_t rmap_crc_calculate(
     const unsigned char *const data,
     const size_t data_size)

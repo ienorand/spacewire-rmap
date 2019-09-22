@@ -95,6 +95,9 @@ rmap_header_deserialize_status_t rmap_header_deserialize(
     unsigned char *data,
     size_t data_size);
 
+char *rmap_header_deserialize_status_text(
+    rmap_header_deserialize_status_t status);
+
 uint8_t rmap_crc_calculate(const unsigned char *data, size_t data_size);
 void rmap_data_crc_put(unsigned char *data, size_t data_size);
 
