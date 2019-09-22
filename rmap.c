@@ -313,12 +313,12 @@ ssize_t rmap_command_header_serialize(
 
   *data_ptr++ = header->key;
 
-  const size_t reply_address_padded_length =
-    (header->reply_address.length + 4 - 1) / 4 * 4;
-  const size_t padding_size =
-    reply_address_padded_length - header->reply_address.length;
-  memset(data_ptr, 0, padding_size);
-  data_ptr += padding_size;
+  const size_t reply_address_padding_size =
+    header_size - RMAP_COMMAND_HEADER_STATIC_SIZE -
+    header->target_address.length - header->reply_address.length;
+  assert(reply_address_padding_size <= 3);
+  memset(data_ptr, 0, reply_address_padding_size);
+  data_ptr += reply_address_padding_size;
   memcpy(
       data_ptr,
       header->reply_address.data,
