@@ -339,9 +339,12 @@ static ssize_t serialize_command_header(
   *data_ptr++ = (uint8_t)(header->data_length >> 8);
   *data_ptr++ = (uint8_t)(header->data_length);
 
-  const ptrdiff_t size_without_crc = data_ptr - data;
-  assert(size_without_crc >= 0);
-  *data_ptr++ = rmap_crc_calculate(data, size_without_crc);
+  const unsigned char *const crc_range_start =
+    data + header->target_address.length;
+  const ptrdiff_t crc_range_size = data_ptr - crc_range_start;
+  assert(crc_range_size >= 0);
+
+  *data_ptr++ = rmap_crc_calculate(crc_range_start, crc_range_size);
 
   const ptrdiff_t size = data_ptr - data;
   assert(size >= 0);
@@ -460,7 +463,21 @@ static ssize_t serialize_write_reply_header(
     errno = EMSGSIZE;
     return -1;
   }
-  data[common_header_size] = rmap_crc_calculate(data, common_header_size);
+
+  ssize_t reply_address_unpadded_size =
+    calculate_reply_address_unpadded_size(
+        header->reply_address.data,
+        header->reply_address.length);
+  assert(
+      reply_address_unpadded_size != -1 &&
+      "Errors should have been caught by serialize_common_reply_header().");
+
+  const unsigned char *const crc_range_start =
+    data + reply_address_unpadded_size;
+  const ptrdiff_t crc_range_size =  data + common_header_size - crc_range_start;
+  assert(crc_range_size >= 0);
+  data[common_header_size] =
+    rmap_crc_calculate(crc_range_start, crc_range_size);
 
   return common_header_size + 1;
 }
@@ -507,7 +524,21 @@ static ssize_t serialize_read_reply_header(
   data[common_header_size + 2] = (uint8_t)(header->data_length >> 8);
   data[common_header_size + 3] = (uint8_t)(header->data_length);
 
-  data[common_header_size + 4] = rmap_crc_calculate(data, common_header_size);
+  ssize_t reply_address_unpadded_size =
+    calculate_reply_address_unpadded_size(
+        header->reply_address.data,
+        header->reply_address.length);
+  assert(
+      reply_address_unpadded_size != -1 &&
+      "Errors should have been caught by serialize_common_reply_header().");
+
+  const unsigned char *const crc_range_start =
+    data + reply_address_unpadded_size;
+  const ptrdiff_t crc_range_size =
+    data + common_header_size + 4 - crc_range_start;
+  assert(crc_range_size >= 0);
+  data[common_header_size + 4] =
+    rmap_crc_calculate(crc_range_start, crc_range_size);
 
   return common_header_size + 5;
 }
