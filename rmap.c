@@ -169,78 +169,108 @@ static rmap_header_deserialize_status_t instruction_deserialize(
   return RMAP_OK;
 }
 
+static void make_common_from_write_reply_header(
+    common_reply_header_t *const common,
+    const rmap_write_reply_header_t *const write_reply)
+{
+  assert(common);
+  assert(write_reply);
+
+  /* The common reply header struct is a subset of the write reply header
+   * struct ("common initial sequence" C99 (6.5.2.3/5)) hence conversion like
+   * this is allowed.
+   */
+  const union {
+    rmap_write_reply_header_t write_reply;
+    common_reply_header_t common;
+  } converter = { *write_reply };
+
+  *common = converter.common;
+}
+
+static void make_common_from_read_reply_header(
+    common_reply_header_t *const common,
+    const rmap_read_reply_header_t *const read_reply)
+{
+  assert(common);
+  assert(read_reply);
+
+  /* The common reply header struct is a subset of the read reply header struct
+   * ("common initial sequence" C99 (6.5.2.3/5)) hence conversion like this is
+   * allowed.
+   */
+  const union {
+    rmap_read_reply_header_t read_reply;
+    common_reply_header_t common;
+  } converter = { *read_reply };
+
+  *common = converter.common;
+}
+
 ssize_t rmap_header_calculate_serialized_size(
     const rmap_header_t *const header)
 {
+  common_reply_header_t reply_header;
+  size_t reply_header_static_size;
+
   if (!header) {
     errno = EFAULT;
     return -1;
   }
 
-  switch (header->type) {
-    case RMAP_TYPE_COMMAND:
-      {
-        if (header->t.command.reply_address.length >
-            RMAP_REPLY_ADDRESS_LENGTH_MAX) {
-          errno = EMSGSIZE;
-          return -1;
-        }
-        const size_t reply_address_padded_length =
-          (header->t.command.reply_address.length + 4 - 1) / 4 * 4;
-
-        const size_t header_size_without_target_address =
-          RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_padded_length;
-        if (header->t.command.target_address.length >
-            SIZE_MAX - header_size_without_target_address + 1) {
-          errno = EMSGSIZE;
-          return -1;
-        }
-        const size_t header_size =
-          header->t.command.target_address.length +
-          header_size_without_target_address;
-        return header_size;
-      }
-
-    case RMAP_TYPE_WRITE_REPLY:
-      {
-        if (header->t.write_reply.reply_address.length >
-            RMAP_REPLY_ADDRESS_LENGTH_MAX) {
-          errno = EMSGSIZE;
-          return -1;
-        }
-        if (header->t.write_reply.reply_address.length >
-            SIZE_MAX - RMAP_WRITE_REPLY_HEADER_STATIC_SIZE + 1) {
-          errno = EMSGSIZE;
-          return -1;
-        }
-        const size_t header_size =
-          RMAP_WRITE_REPLY_HEADER_STATIC_SIZE +
-          header->t.write_reply.reply_address.length;
-        return header_size;
-      }
-
-    case RMAP_TYPE_READ_REPLY:
-      {
-        if (header->t.read_reply.reply_address.length >
-            RMAP_REPLY_ADDRESS_LENGTH_MAX) {
-          errno = EMSGSIZE;
-          return -1;
-        }
-        if (header->t.read_reply.reply_address.length >
-            SIZE_MAX - RMAP_READ_REPLY_HEADER_STATIC_SIZE + 1) {
-          errno = EMSGSIZE;
-          return -1;
-        }
-        const size_t header_size =
-          RMAP_READ_REPLY_HEADER_STATIC_SIZE +
-          header->t.read_reply.reply_address.length;
-        return header_size;
-      }
-
-    default:
-      errno = EINVAL;
+  if (header->type == RMAP_TYPE_COMMAND) {
+    if (header->t.command.reply_address.length >
+        RMAP_REPLY_ADDRESS_LENGTH_MAX) {
+      errno = EMSGSIZE;
       return -1;
+    }
+    const size_t reply_address_padded_length =
+      (header->t.command.reply_address.length + 4 - 1) / 4 * 4;
+
+    const size_t header_size_without_target_address =
+      RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_padded_length;
+    if (header->t.command.target_address.length >
+        SIZE_MAX - header_size_without_target_address + 1) {
+      errno = EMSGSIZE;
+      return -1;
+    }
+    const size_t header_size =
+      header->t.command.target_address.length +
+      header_size_without_target_address;
+    return header_size;
   }
+
+  if (header->type == RMAP_TYPE_WRITE_REPLY) {
+    reply_header_static_size = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
+    make_common_from_write_reply_header(
+        &reply_header,
+        &header->t.write_reply);
+  } else if (header->type == RMAP_TYPE_READ_REPLY) {
+    reply_header_static_size = RMAP_READ_REPLY_HEADER_STATIC_SIZE;
+    make_common_from_write_reply_header(
+        &reply_header,
+        &header->t.write_reply);
+  } else {
+    errno = EINVAL;
+    return -1;
+  }
+
+  /* reply header */
+
+  if (reply_header.reply_address.length >
+      RMAP_REPLY_ADDRESS_LENGTH_MAX) {
+    errno = EMSGSIZE;
+    return -1;
+  }
+
+  if (reply_header.reply_address.length >
+      SIZE_MAX - reply_header_static_size + 1) {
+    errno = EMSGSIZE;
+    return -1;
+  }
+  const size_t header_size =
+    reply_header_static_size + reply_header.reply_address.length;
+  return header_size;
 }
 
 ssize_t rmap_command_header_serialize(
@@ -350,44 +380,6 @@ ssize_t rmap_command_header_serialize(
   assert(size == header_size);
 
   return (ssize_t)size;
-}
-
-static void make_common_from_write_reply_header(
-    common_reply_header_t *const common,
-    const rmap_write_reply_header_t *const write_reply)
-{
-  assert(common);
-  assert(write_reply);
-
-  /* The common reply header struct is a subset of the write reply header
-   * struct ("common initial sequence" C99 (6.5.2.3/5)) hence conversion like
-   * this is allowed.
-   */
-  const union {
-    rmap_write_reply_header_t write_reply;
-    common_reply_header_t common;
-  } converter = { *write_reply };
-
-  *common = converter.common;
-}
-
-static void make_common_from_read_reply_header(
-    common_reply_header_t *const common,
-    const rmap_read_reply_header_t *const read_reply)
-{
-  assert(common);
-  assert(read_reply);
-
-  /* The common reply header struct is a subset of the read reply header struct
-   * ("common initial sequence" C99 (6.5.2.3/5)) hence conversion like this is
-   * allowed.
-   */
-  const union {
-    rmap_read_reply_header_t read_reply;
-    common_reply_header_t common;
-  } converter = { *read_reply };
-
-  *common = converter.common;
 }
 
 static ssize_t common_reply_header_serialize(
