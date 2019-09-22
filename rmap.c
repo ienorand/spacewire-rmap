@@ -472,9 +472,9 @@ static rmap_status_t serialize_write_reply_header(
   }
 
   rmap_status = calculate_reply_address_unpadded_size(
-        &reply_address_unpadded_size,
-        header->reply_address.data,
-        header->reply_address.length);
+      &reply_address_unpadded_size,
+      header->reply_address.data,
+      header->reply_address.length);
   assert(
       rmap_status == RMAP_OK &&
       "Errors should have been caught by serialize_common_reply_header().");
@@ -539,9 +539,9 @@ static rmap_status_t serialize_read_reply_header(
   data[common_serialized_size + 3] = (uint8_t)(header->data_length);
 
   rmap_status = calculate_reply_address_unpadded_size(
-        &reply_address_unpadded_size,
-        header->reply_address.data,
-        header->reply_address.length);
+      &reply_address_unpadded_size,
+      header->reply_address.data,
+      header->reply_address.length);
   assert(
       rmap_status == RMAP_OK &&
       "Errors should have been caught by serialize_common_reply_header().");
@@ -646,26 +646,26 @@ rmap_status_t rmap_header_serialize(
   switch (header->type) {
     case RMAP_TYPE_COMMAND:
       rmap_status = serialize_command_header(
-            &serialized_size_tmp,
-            data,
-            data_size,
-            &header->t.command);
+          &serialized_size_tmp,
+          data,
+          data_size,
+          &header->t.command);
       break;
 
     case RMAP_TYPE_WRITE_REPLY:
       rmap_status = serialize_write_reply_header(
-            &serialized_size_tmp,
-            data,
-            data_size,
-            &header->t.write_reply);
+          &serialized_size_tmp,
+          data,
+          data_size,
+          &header->t.write_reply);
       break;
 
     case RMAP_TYPE_READ_REPLY:
       rmap_status = serialize_read_reply_header(
-            &serialized_size_tmp,
-            data,
-            data_size,
-            &header->t.read_reply);
+          &serialized_size_tmp,
+          data,
+          data_size,
+          &header->t.read_reply);
       break;
 
     default:
