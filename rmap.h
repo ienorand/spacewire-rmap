@@ -126,7 +126,7 @@ rmap_status_t rmap_header_calculate_serialized_size(
  *
  * @param[out] serialized_size Size of the serialized header.
  * @param[in] data Destination for the serialized header.
- * @param[in] data_size Maximum size available in @p data for the serialized
+ * @param data_size Maximum size available in @p data for the serialized
  *            header.
  * @param[in] header RMAP header object.
  *
@@ -149,15 +149,49 @@ rmap_status_t rmap_header_serialize(
     size_t data_size,
     const rmap_header_t *header);
 
+/** Deserialize an RMAP header.
+ *
+ * @param[out] serialized_size Size of the serialized header.
+ * @param[in] header Destination for the deserialized header.
+ * @param[in] data Location of the serialized header.
+ * @param data_size Size available in @p data for the serialized header.
+ *
+ * @retval RMAP_NULLPTR @p serialized_size, @p header or @p data was NULL.
+ * @retval RMAP_ECSS_INCOMPLETE_HEADER @p data_size is not large enough to
+ *         contain the RMAP header.
+ * @retval RMAP_NO_RMAP_PROTOCOL The protocol identifier was not the identifier
+ *         for the RMAP protocol.
+ * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The packet type was invalid.
+ * @retval RMAP_ECSS_INVALID_COMMAND_CODE The command code combination was
+ *         invalid for the packet type.
+ * @retval RMAP_ECSS_HEADER_CRC_ERROR The header CRC was invalid.
+ * @retval RMAP_OK Success, the header has been deserialized in @p header and
+ *         its serialized size is given in @p serialized_size.
+ */
 rmap_status_t rmap_header_deserialize(
     size_t *serialized_size,
     rmap_header_t *header,
     unsigned char *data,
     size_t data_size);
 
+/** Get string representation of an RMAP status or error constant.
+ *
+ * @param status RMAP status or error constant.
+ *
+ * @return RMAP status or error string.
+ */
 char *rmap_status_text(rmap_status_t status);
 
+/** Calculate RMAP crc.
+ *
+ * @param[in] data Start of data to CRC.
+ * @param data_size Size of data to CRC.
+ *
+ * @return CRC of data.
+ */
 uint8_t rmap_crc_calculate(const unsigned char *data, size_t data_size);
+
+/* TODO: Implement or remove. */
 void rmap_data_crc_put(unsigned char *data, size_t data_size);
 
 #endif /* RMAP_H */
