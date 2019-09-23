@@ -5,12 +5,14 @@
 #include <stddef.h>
 #include <sys/types.h>
 
+/** Deserialized representation of RMAP header type. */
 typedef enum {
   RMAP_TYPE_COMMAND,
   RMAP_TYPE_WRITE_REPLY,
   RMAP_TYPE_READ_REPLY
 } rmap_type_t;
 
+/** Deserialized representation of RMAP command codes. */
 enum {
   RMAP_COMMAND_CODE_WRITE = 1 << 0,
   RMAP_COMMAND_CODE_VERIFY = 1 << 1,
@@ -18,13 +20,20 @@ enum {
   RMAP_COMMAND_CODE_INCREMENT = 1 << 3
 };
 
+/** RMAP status and error constants.
+ *
+ * RMAP status and error constants which can be returned by the RMAP functions.
+ *
+ * Constants which corresponds to standardized errors in the ECSS RMAP
+ * specification use a "RMAP_ECSS_" prefix.
+ */
 typedef enum {
   RMAP_OK,
   RMAP_NULLPTR,
   RMAP_NOT_ENOUGH_SPACE,
   RMAP_REPLY_ADDRESS_TOO_LONG,
   RMAP_NO_RMAP_PROTOCOL,
-  /* errors which correspond to errors from the ecss rmap specification */
+
   RMAP_ECSS_INCOMPLETE_HEADER,
   RMAP_ECSS_ERROR_END_OF_PACKET,
   RMAP_ECSS_HEADER_CRC_ERROR,
@@ -33,7 +42,10 @@ typedef enum {
   RMAP_ECSS_TOO_MUCH_DATA
 } rmap_status_t;
 
+/** Common deserialized representation of RMAP write and read command headers.
+ */
 typedef struct {
+  /** Target address, empty after deserialization. */
   struct {
     uint8_t *data;
     size_t length;
@@ -52,7 +64,9 @@ typedef struct {
   uint32_t data_length;
 } rmap_command_header_t;
 
+/** Deserialized representation of RMAP write reply header. */
 typedef struct {
+  /** Reply address, empty after deserialization. */
   struct {
     uint8_t *data;
     size_t length;
@@ -64,7 +78,9 @@ typedef struct {
   uint16_t transaction_identifier;
 } rmap_write_reply_header_t;
 
+/** Deserialized representation of RMAP read reply header. */
 typedef struct {
+  /** Reply address, empty after deserialization. */
   struct {
     uint8_t *data;
     size_t length;
@@ -77,7 +93,9 @@ typedef struct {
   uint32_t data_length;
 } rmap_read_reply_header_t;
 
+/** Tagged union representation of all deserialized RMAP headers. */
 typedef struct {
+  /** Tag indicating the valid RMAP header type. */
   rmap_type_t type;
   union {
     rmap_command_header_t command;
@@ -86,6 +104,20 @@ typedef struct {
   } t;
 } rmap_header_t;
 
+/** Calculate the size of a header if serialized.
+ *
+ * @param[out] size Header size if serialized.
+ * @param[in] header RMAP header object.
+ *
+ * @retval RMAP_NULLPTR @p serialized_size, @p header or the reply_address
+ *         member of the reply header object was NULL.
+ * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length was greater
+ *         than 12.
+ * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The value of @p header->type was
+ *         invalid.
+ * @ertval RMAP_OK Success, the calculated serialized size is returned in @p
+ *         serialized_size.
+ */
 rmap_status_t rmap_header_calculate_serialized_size(
     size_t *serialized_size,
     const rmap_header_t *header);
