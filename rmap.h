@@ -106,7 +106,7 @@ typedef struct {
 
 /** Calculate the size of a header if serialized.
  *
- * @param[out] size Header size if serialized.
+ * @param[out] serialized_size Size of the header if serialized.
  * @param[in] header RMAP header object.
  *
  * @retval RMAP_NULLPTR @p serialized_size, @p header or the reply_address
@@ -122,6 +122,27 @@ rmap_status_t rmap_header_calculate_serialized_size(
     size_t *serialized_size,
     const rmap_header_t *header);
 
+/** Serialize an RMAP header.
+ *
+ * @param[out] serialized_size Size of the serialized header.
+ * @param[in] data Destination for the serialized header.
+ * @param[in] data_size Maximum size available in @p data for the serialized
+ *            header.
+ * @param[in] header RMAP header object.
+ *
+ * @retval RMAP_NULLPTR @p serialized_size, @p data or @p header was NULL. Or
+ *         the target_address or reply_address member of the header object was
+ *         NULL with a non-zero length set.
+ * @retval RMAP_NOT_ENOUGH_SPACE The serialized header would be larger than @p
+ *         data_size.
+ * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length was greater
+ *         than 12.
+ * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The value of @p header->type was
+ *         invalid.
+ * @retval RMAP_ECSS_INVALID_COMMAND_CODE Invalid command code or invalid
+ *         command code combination for the given packet type.
+ * @retval RMAP_OK Success, the header has been serialized in @p data.
+ */
 rmap_status_t rmap_header_serialize(
     size_t *serialized_size,
     unsigned char *data,
