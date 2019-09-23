@@ -359,7 +359,7 @@ static rmap_status_t serialize_common_reply_header(
   size_t reply_address_unpadded_size;
   unsigned char *data_ptr;
 
-  if (!data || !header) {
+  if (!data || !header || !serialized_size) {
     return RMAP_NULLPTR;
   }
 
@@ -696,7 +696,7 @@ rmap_status_t rmap_header_deserialize(
   rmap_type_t rmap_type;
   size_t offset;
 
-  if (!data || !header) {
+  if (!data || !header || !serialized_size) {
     return RMAP_NULLPTR;
   }
 
