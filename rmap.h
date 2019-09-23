@@ -36,7 +36,11 @@ typedef enum {
 
   RMAP_ECSS_INCOMPLETE_HEADER,
   RMAP_ECSS_ERROR_END_OF_PACKET,
+  /* TODO: Header CRC error is not a standardized error. */
   RMAP_ECSS_HEADER_CRC_ERROR,
+  /* TODO: The actual error code in the standard is "Unused RMAP Packet Type or
+   * Command Code".
+   */
   RMAP_ECSS_UNUSED_PACKET_TYPE,
   RMAP_ECSS_INVALID_COMMAND_CODE,
   RMAP_ECSS_TOO_MUCH_DATA
