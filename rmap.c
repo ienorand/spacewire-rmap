@@ -340,12 +340,6 @@ static rmap_status_t serialize_command_header(
   const unsigned char *const crc_range_start =
     data + header->target_address.length;
   const ptrdiff_t crc_range_size = data_ptr - crc_range_start;
-  assert(crc_range_size >= 0);
-  for (ptrdiff_t i = 0; i < crc_range_size; ++i) {
-    printf("%02X ", data[i]);
-  }
-  printf("\n");
-
   *data_ptr++ = rmap_crc_calculate(crc_range_start, crc_range_size);
 
   const ptrdiff_t size = data_ptr - data;
