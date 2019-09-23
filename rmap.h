@@ -87,17 +87,17 @@ typedef struct {
 } rmap_header_t;
 
 rmap_status_t rmap_header_calculate_serialized_size(
-    size_t *size,
+    size_t *serialized_size,
     const rmap_header_t *header);
 
 rmap_status_t rmap_header_serialize(
-    size_t *serialized_header_size,
+    size_t *serialized_size,
     unsigned char *data,
     size_t data_size,
     const rmap_header_t *header);
 
 rmap_status_t rmap_header_deserialize(
-    size_t *serialized_header_size,
+    size_t *serialized_size,
     rmap_header_t *header,
     unsigned char *data,
     size_t data_size);
