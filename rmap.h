@@ -115,7 +115,7 @@ typedef struct {
  *         than 12.
  * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The value of @p header->type was
  *         invalid.
- * @ertval RMAP_OK Success, the calculated serialized size is returned in @p
+ * @retval RMAP_OK Success, the calculated serialized size is returned in @p
  *         serialized_size.
  */
 rmap_status_t rmap_header_calculate_serialized_size(
