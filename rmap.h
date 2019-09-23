@@ -42,7 +42,7 @@ typedef struct {
   unsigned char command_codes;
   uint8_t key;
   struct {
-    uint8_t *data;
+    const uint8_t *data;
     size_t length;
   } reply_address;
   uint8_t initiator_logical_address;
