@@ -114,10 +114,10 @@ typedef struct {
  * @param[in] header RMAP header object.
  *
  * @retval RMAP_NULLPTR @p serialized_size, @p header or the reply_address
- *         member of the reply header object was NULL.
- * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length was greater
- *         than 12.
- * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The value of @p header->type was
+ *         member of the reply header object is NULL.
+ * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
+ *         12.
+ * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The value of @p header->type is
  *         invalid.
  * @retval RMAP_OK Success, the calculated serialized size is returned in @p
  *         serialized_size.
@@ -134,17 +134,17 @@ rmap_status_t rmap_header_calculate_serialized_size(
  *            header.
  * @param[in] header RMAP header object.
  *
- * @retval RMAP_NULLPTR @p serialized_size, @p data or @p header was NULL. Or
- *         the target_address or reply_address member of the header object was
+ * @retval RMAP_NULLPTR @p serialized_size, @p data or @p header is NULL, or
+ *         the target_address or reply_address member of the header object is
  *         NULL with a non-zero length set.
  * @retval RMAP_NOT_ENOUGH_SPACE The serialized header would be larger than @p
  *         data_size.
- * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length was greater
- *         than 12.
- * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The value of @p header->type was
+ * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
+ *         12.
+ * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The value of @p header->type is
  *         invalid.
- * @retval RMAP_ECSS_INVALID_COMMAND_CODE Invalid command code or invalid
- *         command code combination for the given packet type.
+ * @retval RMAP_ECSS_INVALID_COMMAND_CODE The command codes contain an invalid
+ *         command code or an invalid combination for the given packet type.
  * @retval RMAP_OK Success, the header has been serialized in @p data.
  */
 rmap_status_t rmap_header_serialize(
@@ -160,15 +160,15 @@ rmap_status_t rmap_header_serialize(
  * @param[in] data Location of the serialized header.
  * @param data_size Size available in @p data for the serialized header.
  *
- * @retval RMAP_NULLPTR @p serialized_size, @p header or @p data was NULL.
+ * @retval RMAP_NULLPTR @p serialized_size, @p header or @p data is NULL.
  * @retval RMAP_ECSS_INCOMPLETE_HEADER @p data_size is not large enough to
  *         contain the RMAP header.
- * @retval RMAP_NO_RMAP_PROTOCOL The protocol identifier was not the identifier
+ * @retval RMAP_NO_RMAP_PROTOCOL The protocol identifier is not the identifier
  *         for the RMAP protocol.
- * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The packet type was invalid.
- * @retval RMAP_ECSS_INVALID_COMMAND_CODE The command code combination was
+ * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The packet type is invalid.
+ * @retval RMAP_ECSS_INVALID_COMMAND_CODE The command code combination is
  *         invalid for the packet type.
- * @retval RMAP_ECSS_HEADER_CRC_ERROR The header CRC was invalid.
+ * @retval RMAP_ECSS_HEADER_CRC_ERROR The header CRC is invalid.
  * @retval RMAP_OK Success, the header has been deserialized in @p header and
  *         its serialized size is given in @p serialized_size.
  */
