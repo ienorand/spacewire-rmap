@@ -146,6 +146,37 @@ rmap_status_t rmap_header_serialize(
     size_t data_size,
     const rmap_header_t *header);
 
+/** Serialize an RMAP packet around an existing payload.
+ *
+ * @param[out] serialized_size Size of the serialized header.
+ * @param[in] data Destination for the serialized header.
+ * @param data_size Maximum size available in @p data for the serialized
+ *            header.
+ * @param[in] header RMAP header object.
+ *
+ * @retval RMAP_NULLPTR @p serialized_size, @p serialized_offset, @p data or @p
+ *         header is NULL, or the target_address or reply_address member of the
+ *         header object is NULL with a non-zero length set.
+ * @retval RMAP_NOT_ENOUGH_SPACE The serialized header would not fit before the
+ *         payload offset or there is no space after the payload end for the
+ *         RMAP CRC.
+ * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
+ *         12.
+ * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The value of @p
+ *         header->type is invalid or the command codes either contain an
+ *         invalid value or an invalid combination for the given packet type.
+ * @retval RMAP_OK Success, the header has been serialized before the payload
+ *         offset and the RMAP CRC has been appended after the payload end.
+ */
+rmap_status_t rmap_packet_serialize_inplace(
+    size_t *serialized_offset,
+    size_t *serialized_size,
+    unsigned char *data,
+    size_t data_size,
+    size_t payload_offset,
+    size_t payload_size,
+    const rmap_header_t *header);
+
 /** Deserialize an RMAP header.
  *
  * @param[out] serialized_size Size of the serialized header.

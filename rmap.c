@@ -680,6 +680,63 @@ rmap_status_t rmap_header_serialize(
   return RMAP_OK;
 }
 
+rmap_status_t rmap_packet_serialize_inplace(
+    size_t *const serialized_offset,
+    size_t *const serialized_size,
+    unsigned char *const data,
+    const size_t data_size,
+    const size_t payload_offset,
+    const size_t payload_size,
+    const rmap_header_t *const header)
+{
+  rmap_status_t rmap_status;
+  size_t calculated_header_serialized_size;
+  size_t header_serialized_size;
+
+  if (!serialized_offset || !serialized_size || !data) {
+    return RMAP_NULLPTR;
+  }
+
+  if (payload_offset + payload_size + 1 > data_size) {
+    /* no space for crc */
+    return RMAP_NOT_ENOUGH_SPACE;
+  }
+
+  rmap_status = rmap_header_calculate_serialized_size(
+        &calculated_header_serialized_size,
+        header);
+  if (rmap_status != RMAP_OK) {
+    assert(
+        rmap_status == RMAP_NULLPTR ||
+        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
+        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
+    return rmap_status;
+  }
+
+  if (calculated_header_serialized_size > payload_offset) {
+    return RMAP_NOT_ENOUGH_SPACE;
+  }
+
+  rmap_status = rmap_header_serialize(
+      &header_serialized_size,
+      data + payload_offset - calculated_header_serialized_size,
+      payload_offset,
+      header);
+  if (rmap_status != RMAP_OK) {
+    assert(
+        rmap_status == RMAP_NULLPTR ||
+        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
+        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
+    return rmap_status;
+  }
+  assert(header_serialized_size == calculated_header_serialized_size);
+
+  *serialized_offset = payload_offset - header_serialized_size;
+  *serialized_size = header_serialized_size + payload_size + 1;
+
+  return RMAP_OK;
+}
+
 /* TODO: How can const correctness be achived when deserializing? Should there
  * be separate structs for serializing and deserializing?
  */
