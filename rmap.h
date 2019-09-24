@@ -33,16 +33,10 @@ typedef enum {
   RMAP_NOT_ENOUGH_SPACE,
   RMAP_REPLY_ADDRESS_TOO_LONG,
   RMAP_NO_RMAP_PROTOCOL,
-
+  RMAP_HEADER_CRC_ERROR,
   RMAP_ECSS_INCOMPLETE_HEADER,
   RMAP_ECSS_ERROR_END_OF_PACKET,
-  /* TODO: Header CRC error is not a standardized error. */
-  RMAP_ECSS_HEADER_CRC_ERROR,
-  /* TODO: The actual error code in the standard is "Unused RMAP Packet Type or
-   * Command Code".
-   */
-  RMAP_ECSS_UNUSED_PACKET_TYPE,
-  RMAP_ECSS_INVALID_COMMAND_CODE,
+  RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE,
   RMAP_ECSS_TOO_MUCH_DATA
 } rmap_status_t;
 
@@ -117,8 +111,8 @@ typedef struct {
  *         member of the reply header object is NULL.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
  *         12.
- * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The value of @p header->type is
- *         invalid.
+ * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The value of @p
+ *         header->type is invalid.
  * @retval RMAP_OK Success, the calculated serialized size is returned in @p
  *         serialized_size.
  */
@@ -141,10 +135,9 @@ rmap_status_t rmap_header_calculate_serialized_size(
  *         data_size.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
  *         12.
- * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The value of @p header->type is
- *         invalid.
- * @retval RMAP_ECSS_INVALID_COMMAND_CODE The command codes contain an invalid
- *         command code or an invalid combination for the given packet type.
+ * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The value of @p
+ *         header->type is invalid or the command codes either contain an
+ *         invalid value or an invalid combination for the given packet type.
  * @retval RMAP_OK Success, the header has been serialized in @p data.
  */
 rmap_status_t rmap_header_serialize(
@@ -165,10 +158,10 @@ rmap_status_t rmap_header_serialize(
  *         contain the RMAP header.
  * @retval RMAP_NO_RMAP_PROTOCOL The protocol identifier is not the identifier
  *         for the RMAP protocol.
- * @retval RMAP_ECSS_UNUSED_PACKET_TYPE The packet type is invalid.
- * @retval RMAP_ECSS_INVALID_COMMAND_CODE The command code combination is
- *         invalid for the packet type.
- * @retval RMAP_ECSS_HEADER_CRC_ERROR The header CRC is invalid.
+ * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The packet type is
+ *         invalid or the command code combination is invalid for the packet
+ *         type.
+ * @retval RMAP_HEADER_CRC_ERROR The header CRC is invalid.
  * @retval RMAP_OK Success, the header has been deserialized in @p header and
  *         its serialized size is given in @p serialized_size.
  */
