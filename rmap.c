@@ -731,6 +731,9 @@ rmap_status_t rmap_packet_serialize_inplace(
   }
   assert(header_serialized_size == calculated_header_serialized_size);
 
+  data[payload_offset + payload_size] =
+    rmap_crc_calculate(data + payload_offset, payload_size);
+
   *serialized_offset = payload_offset - header_serialized_size;
   *serialized_size = header_serialized_size + payload_size + 1;
 
