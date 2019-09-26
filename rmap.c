@@ -795,10 +795,20 @@ rmap_status_t rmap_header_deserialize(
   if (packet_type == RMAP_PACKET_TYPE_COMMAND) {
     rmap_type = RMAP_TYPE_COMMAND;
     header_size = RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_length;
+
+    if (!(command_codes & RMAP_COMMAND_CODE_WRITE) &&
+        data_size > header_size) {
+      /* Data characters in read command are invalid. */
+      return RMAP_ECSS_TOO_MUCH_DATA;
+    }
   } else {
     if (command_codes & RMAP_COMMAND_CODE_WRITE) {
       rmap_type = RMAP_TYPE_WRITE_REPLY;
       header_size = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
+      if (data_size > header_size) {
+        /* Data characters in write reply are invalid. */
+        return RMAP_ECSS_TOO_MUCH_DATA;
+      }
     } else {
       rmap_type = RMAP_TYPE_READ_REPLY;
       header_size = RMAP_READ_REPLY_HEADER_STATIC_SIZE;
