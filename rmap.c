@@ -693,8 +693,17 @@ rmap_status_t rmap_packet_serialize_inplace(
   size_t calculated_header_serialized_size;
   size_t header_serialized_size;
 
-  if (!serialized_offset || !serialized_size || !data) {
+  if (!serialized_offset || !serialized_size || !data || !header) {
     return RMAP_NULLPTR;
+  }
+
+  if ((header->type == RMAP_TYPE_COMMAND &&
+      !(header->t.command.command_codes & RMAP_COMMAND_CODE_WRITE)) ||
+      header->type == RMAP_TYPE_WRITE_REPLY) {
+    /* Read command and write reply does not have payload, hence are not
+     * supported types. rmap_header_serialize() creates the full packet for
+     * these types and should be used instead. */
+    return RMAP_ECSS_TOO_MUCH_DATA;
   }
 
   if (payload_offset + payload_size + 1 > data_size) {

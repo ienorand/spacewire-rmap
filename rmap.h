@@ -148,6 +148,12 @@ rmap_status_t rmap_header_serialize(
 
 /** Serialize an RMAP packet around an existing payload.
  *
+ * Serialize an RMAP header before, and an RMAP data CRC after, an existing
+ * payload.
+ *
+ * RMAP read commands and write replies are not valid input to this function,
+ * since they do not contain a payload.
+ *
  * @param[out] serialized_size Size of the serialized header.
  * @param[in] data Destination for the serialized header.
  * @param data_size Maximum size available in @p data for the serialized
@@ -157,6 +163,8 @@ rmap_status_t rmap_header_serialize(
  * @retval RMAP_NULLPTR @p serialized_size, @p serialized_offset, @p data or @p
  *         header is NULL, or the target_address or reply_address member of the
  *         header object is NULL with a non-zero length set.
+ * @retval RMAP_ECSS_TOO_MUCH_DATA The packet type and command codes indicated
+ *         that this was a read command or a write reply.
  * @retval RMAP_NOT_ENOUGH_SPACE The serialized header would not fit before the
  *         payload offset or there is no space after the payload end for the
  *         RMAP CRC.
