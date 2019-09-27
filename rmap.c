@@ -58,7 +58,19 @@ typedef struct {
   uint8_t status;
   uint8_t target_logical_address;
   uint16_t transaction_identifier;
-} common_reply_header_t;
+} common_send_reply_header_t;
+
+typedef struct {
+  struct {
+    uint8_t *data;
+    size_t length;
+  } reply_address;
+  uint8_t initiator_logical_address;
+  unsigned char command_codes;
+  uint8_t status;
+  uint8_t target_logical_address;
+  uint16_t transaction_identifier;
+} common_receive_reply_header_t;
 
 static uint8_t serialize_instruction(
     const packet_type_t packet_type,
@@ -170,9 +182,9 @@ static rmap_status_t deserialize_instruction(
   return RMAP_OK;
 }
 
-static void make_common_from_write_reply_header(
-    common_reply_header_t *const common,
-    const rmap_write_reply_header_t *const write_reply)
+static void make_common_from_send_write_reply_header(
+    common_send_reply_header_t *const common,
+    const rmap_send_write_reply_header_t *const write_reply)
 {
   assert(common);
   assert(write_reply);
@@ -182,16 +194,16 @@ static void make_common_from_write_reply_header(
    * this is allowed.
    */
   const union {
-    rmap_write_reply_header_t write_reply;
-    common_reply_header_t common;
+    rmap_send_write_reply_header_t write_reply;
+    common_send_reply_header_t common;
   } converter = { *write_reply };
 
   *common = converter.common;
 }
 
-static void make_common_from_read_reply_header(
-    common_reply_header_t *const common,
-    const rmap_read_reply_header_t *const read_reply)
+static void make_common_from_send_read_reply_header(
+    common_send_reply_header_t *const common,
+    const rmap_send_read_reply_header_t *const read_reply)
 {
   assert(common);
   assert(read_reply);
@@ -201,8 +213,8 @@ static void make_common_from_read_reply_header(
    * allowed.
    */
   const union {
-    rmap_read_reply_header_t read_reply;
-    common_reply_header_t common;
+    rmap_send_read_reply_header_t read_reply;
+    common_send_reply_header_t common;
   } converter = { *read_reply };
 
   *common = converter.common;
@@ -250,7 +262,7 @@ static rmap_status_t serialize_command_header(
     size_t *const serialized_size,
     unsigned char *const data,
     const size_t data_size,
-    const rmap_command_header_t *const header)
+    const rmap_send_command_header_t *const header)
 {
   size_t calculated_serialized_size;
   unsigned char *data_ptr;
@@ -265,7 +277,7 @@ static rmap_status_t serialize_command_header(
     return RMAP_NULLPTR;
   }
 
-  const rmap_header_t header_wrapper = {
+  const rmap_send_header_t header_wrapper = {
     RMAP_TYPE_COMMAND,
     { *header }
   };
@@ -354,7 +366,7 @@ static rmap_status_t serialize_common_reply_header(
     size_t *const serialized_size,
     unsigned char *const data,
     const size_t data_size,
-    const common_reply_header_t *const header)
+    const common_send_reply_header_t *const header)
 {
   size_t reply_address_unpadded_size;
   unsigned char *data_ptr;
@@ -429,9 +441,9 @@ static rmap_status_t serialize_write_reply_header(
     size_t *const serialized_size,
     unsigned char *const data,
     const size_t data_size,
-    const rmap_write_reply_header_t *const header)
+    const rmap_send_write_reply_header_t *const header)
 {
-  common_reply_header_t common_header;
+  common_send_reply_header_t common_header;
   rmap_status_t rmap_status;
   size_t common_serialized_size;
   size_t reply_address_unpadded_size;
@@ -445,7 +457,7 @@ static rmap_status_t serialize_write_reply_header(
     return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
   }
 
-  make_common_from_write_reply_header(&common_header, header);
+  make_common_from_send_write_reply_header(&common_header, header);
 
   rmap_status = serialize_common_reply_header(
       &common_serialized_size,
@@ -489,9 +501,9 @@ static rmap_status_t serialize_read_reply_header(
     size_t *const serialized_size,
     unsigned char *const data,
     const size_t data_size,
-    const rmap_read_reply_header_t *const header)
+    const rmap_send_read_reply_header_t *const header)
 {
-  common_reply_header_t common_header;
+  common_send_reply_header_t common_header;
   rmap_status_t rmap_status;
   size_t common_serialized_size;
   size_t reply_address_unpadded_size;
@@ -505,7 +517,7 @@ static rmap_status_t serialize_read_reply_header(
     return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
   }
 
-  make_common_from_read_reply_header(&common_header, header);
+  make_common_from_send_read_reply_header(&common_header, header);
 
   rmap_status = serialize_common_reply_header(
       &common_serialized_size,
@@ -554,9 +566,9 @@ static rmap_status_t serialize_read_reply_header(
 
 rmap_status_t rmap_header_calculate_serialized_size(
     size_t *const serialized_size,
-    const rmap_header_t *const header)
+    const rmap_send_header_t *const header)
 {
-  common_reply_header_t reply_header;
+  common_send_reply_header_t reply_header;
   size_t reply_header_static_size;
   size_t reply_address_unpadded_size;
 
@@ -587,12 +599,12 @@ rmap_status_t rmap_header_calculate_serialized_size(
 
   if (header->type == RMAP_TYPE_WRITE_REPLY) {
     reply_header_static_size = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
-    make_common_from_write_reply_header(
+    make_common_from_send_write_reply_header(
         &reply_header,
         &header->t.write_reply);
   } else if (header->type == RMAP_TYPE_READ_REPLY) {
     reply_header_static_size = RMAP_READ_REPLY_HEADER_STATIC_SIZE;
-    make_common_from_write_reply_header(
+    make_common_from_send_write_reply_header(
         &reply_header,
         &header->t.write_reply);
   } else {
@@ -619,7 +631,7 @@ rmap_status_t rmap_header_serialize(
     size_t *const serialized_size,
     unsigned char *const data,
     const size_t data_size,
-    const rmap_header_t *const header)
+    const rmap_send_header_t *const header)
 {
   rmap_status_t rmap_status;
   size_t serialized_size_tmp;
@@ -687,7 +699,7 @@ rmap_status_t rmap_packet_serialize_inplace(
     const size_t data_size,
     const size_t payload_offset,
     const size_t payload_size,
-    const rmap_header_t *const header)
+    const rmap_send_header_t *const header)
 {
   rmap_status_t rmap_status;
   size_t calculated_header_serialized_size;
@@ -754,7 +766,7 @@ rmap_status_t rmap_packet_serialize_inplace(
  */
 rmap_status_t rmap_header_deserialize(
     size_t *const serialized_size,
-    rmap_header_t *const header,
+    rmap_receive_header_t *const header,
     unsigned char *const data,
     const size_t data_size)
 {
@@ -831,8 +843,6 @@ rmap_status_t rmap_header_deserialize(
   header->type = rmap_type;
 
   if (packet_type == RMAP_PACKET_TYPE_COMMAND) {
-    header->t.command.target_address.data = NULL;
-    header->t.command.target_address.length = 0;
     header->t.command.target_logical_address = data[0];
     header->t.command.command_codes = command_codes;
     header->t.command.key = data[3];
@@ -854,8 +864,6 @@ rmap_status_t rmap_header_deserialize(
   }
 
   if (command_codes & RMAP_COMMAND_CODE_WRITE) {
-    header->t.write_reply.reply_address.data = NULL;
-    header->t.write_reply.reply_address.length = 0;
     header->t.write_reply.initiator_logical_address = data[0];
     header->t.write_reply.command_codes = command_codes;
     header->t.write_reply.status = data[3];
@@ -865,8 +873,6 @@ rmap_status_t rmap_header_deserialize(
     return RMAP_OK;
   }
 
-  header->t.read_reply.reply_address.data = NULL;
-  header->t.read_reply.reply_address.length = 0;
   header->t.read_reply.initiator_logical_address = data[0];
   header->t.read_reply.command_codes = command_codes;
   header->t.read_reply.status = data[3];
