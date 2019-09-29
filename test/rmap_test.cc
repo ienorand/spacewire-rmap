@@ -449,3 +449,57 @@ TEST(RmapCrcCalculate, TestPattern1Reply)
     rmap_crc_calculate(pattern + header_length, pattern_length - header_length);
   EXPECT_EQ(data_calculated_including_received_crc, 0);
 }
+
+TEST(RmapHeaderDeserialize, Nullptr)
+{
+  size_t serialized_size;
+  rmap_receive_header_t header;
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        NULL,
+        &header,
+        (unsigned char *)test_pattern1_incrementing_read,
+        sizeof(test_pattern1_incrementing_read)),
+      RMAP_NULLPTR);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        NULL,
+        (unsigned char *)test_pattern1_incrementing_read,
+        sizeof(test_pattern1_incrementing_read)),
+      RMAP_NULLPTR);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        NULL,
+        sizeof(test_pattern1_incrementing_read)),
+      RMAP_NULLPTR);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        NULL,
+        NULL,
+        (unsigned char *)test_pattern1_incrementing_read,
+        sizeof(test_pattern1_incrementing_read)),
+      RMAP_NULLPTR);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        NULL,
+        NULL,
+        sizeof(test_pattern1_incrementing_read)),
+      RMAP_NULLPTR);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        NULL,
+        NULL,
+        NULL,
+        sizeof(test_pattern1_incrementing_read)),
+      RMAP_NULLPTR);
+}
