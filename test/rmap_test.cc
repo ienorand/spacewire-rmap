@@ -559,3 +559,59 @@ TEST(RmapHeaderDeserialize, TestPattern0Reply)
   EXPECT_EQ(header.t.write_reply.target_logical_address, 0xFE);
   EXPECT_EQ(header.t.write_reply.transaction_identifier, 0x0000);
 }
+
+TEST(RmapHeaderDeserialize, TestPattern1Command)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        (unsigned char *)test_pattern1_incrementing_read,
+      sizeof(test_pattern1_incrementing_read)),
+      RMAP_OK);
+
+  EXPECT_EQ(serialized_size, 16);
+
+  ASSERT_EQ(header.type, RMAP_TYPE_COMMAND);
+  EXPECT_EQ(header.t.command.target_logical_address, 0xFE);
+  EXPECT_FALSE(header.t.command.command_codes & RMAP_COMMAND_CODE_WRITE);
+  EXPECT_FALSE(header.t.command.command_codes & RMAP_COMMAND_CODE_VERIFY);
+  EXPECT_TRUE(header.t.command.command_codes & RMAP_COMMAND_CODE_REPLY);
+  EXPECT_TRUE(header.t.command.command_codes & RMAP_COMMAND_CODE_INCREMENT);
+  EXPECT_EQ(header.t.command.key, 0x00);
+  EXPECT_EQ(header.t.command.reply_address.length, 0);
+  EXPECT_EQ(header.t.command.initiator_logical_address, 0x67);
+  EXPECT_EQ(header.t.command.transaction_identifier, 0x0001);
+  EXPECT_EQ(header.t.command.extended_address, 0x00);
+  EXPECT_EQ(header.t.command.address, 0xA0000000);
+  EXPECT_EQ(header.t.command.data_length, 0x0010);
+}
+
+TEST(RmapHeaderDeserialize, TestPattern1Reply)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        (unsigned char *)test_pattern1_expected_read_reply,
+        sizeof(test_pattern1_expected_read_reply)),
+      RMAP_OK);
+
+  EXPECT_EQ(serialized_size, 12);
+
+  ASSERT_EQ(header.type, RMAP_TYPE_READ_REPLY);
+  EXPECT_EQ(header.t.read_reply.initiator_logical_address, 0x67);
+  EXPECT_FALSE(header.t.read_reply.command_codes & RMAP_COMMAND_CODE_WRITE);
+  EXPECT_FALSE(header.t.read_reply.command_codes & RMAP_COMMAND_CODE_VERIFY);
+  EXPECT_TRUE(header.t.read_reply.command_codes & RMAP_COMMAND_CODE_REPLY);
+  EXPECT_TRUE(header.t.read_reply.command_codes & RMAP_COMMAND_CODE_INCREMENT);
+  EXPECT_EQ(header.t.read_reply.status, 0x00);
+  EXPECT_EQ(header.t.read_reply.target_logical_address, 0xFE);
+  EXPECT_EQ(header.t.read_reply.transaction_identifier, 0x0001);
+}
