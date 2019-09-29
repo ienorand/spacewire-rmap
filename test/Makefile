@@ -17,27 +17,29 @@
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file, or if you want to use
 # a copy of Google Test at a different location.
-GTEST_DIR = $(dir $(lastword $(MAKEFILE_LIST)))../../googletest
+GTEST_DIR = /usr/src/googletest/googletest
 
 # Points to the root of Google Mock, relative to where this file is.
 # Remember to tweak this if you move this file.
-GMOCK_DIR = $(dir $(lastword $(MAKEFILE_LIST)))..
+GMOCK_DIR = /usr/src/googletest/googlemock
 
 # Where to find user code.
-USER_DIR = $(dir $(lastword $(MAKEFILE_LIST)))../test
+USER_DIR = $(CURDIR)/..
 
 # Flags passed to the preprocessor.
 # Set Google Test and Google Mock's header directories as system
 # directories, such that the compiler doesn't generate warnings in
 # these headers.
-CPPFLAGS += -isystem $(GTEST_DIR)/include -isystem $(GMOCK_DIR)/include
+CPPFLAGS += -isystem $(GTEST_DIR)/include -isystem $(GMOCK_DIR)/include -I$(USER_DIR)
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -pthread
 
+LDLIBS += -pthread
+
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = gmock_test
+TESTS = rmap_test
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -92,10 +94,14 @@ gmock.a : gmock-all.o gtest-all.o
 gmock_main.a : gmock-all.o gtest-all.o gmock_main.o
 	$(AR) $(ARFLAGS) $@ $^
 
-# Builds a sample test.
+rmap_test: rmap_test.o rmap.o gmock_main.a
+	$(LINK.cc) $(OUTPUT_OPTION) $^
 
-gmock_test.o : $(USER_DIR)/gmock_test.cc $(GMOCK_HEADERS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/gmock_test.cc
+rmap_test.o: rmap_test.cc $(USER_DIR)/rmap.h
+	$(COMPILE.cc) $(OUTPUT_OPTION) $<
 
-gmock_test : gmock_test.o gmock_main.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
+rmap.o: $(USER_DIR)/rmap.c $(USER_DIR)/rmap.h
+	$(COMPILE.c) $(OUTPUT_OPTION) $<
+
+test: all
+	./rmap_test
