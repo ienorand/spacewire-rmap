@@ -615,3 +615,73 @@ TEST(RmapHeaderDeserialize, TestPattern1Reply)
   EXPECT_EQ(header.t.read_reply.target_logical_address, 0xFE);
   EXPECT_EQ(header.t.read_reply.transaction_identifier, 0x0001);
 }
+
+TEST(RmapHeaderSerialize, Nullptr)
+{
+  size_t serialized_size;
+  rmap_send_header_t header_tmp;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x1 };
+  const uint8_t reply_address[] = { 0x2 };
+
+  header_tmp.type = RMAP_TYPE_COMMAND;
+  header_tmp.t.command.target_address.length = sizeof(target_address);
+  header_tmp.t.command.target_address.data = target_address;
+  header_tmp.t.command.target_logical_address = 0xFE;
+  header_tmp.t.command.command_codes = RMAP_COMMAND_CODE_WRITE;
+  header_tmp.t.command.key = 0x00;
+  header_tmp.t.command.reply_address.length = sizeof(reply_address);
+  header_tmp.t.command.reply_address.data = reply_address;
+  header_tmp.t.command.initiator_logical_address = 0x67;
+  header_tmp.t.command.extended_address = 0x00;
+  header_tmp.t.command.address = 0xA0000000;
+  header_tmp.t.command.data_length = 0x10;
+
+  const rmap_send_header_t valid_header = header_tmp;
+
+  header_tmp.t.command.target_address.data = NULL;
+  const rmap_send_header_t invalid_header_null_target_address = header_tmp;
+
+  header_tmp.t.command.target_address.data = target_address;
+  header_tmp.t.command.reply_address.data = NULL;
+  const rmap_send_header_t invalid_header_null_reply_address = header_tmp;
+
+  header_tmp.t.command.target_address.data = NULL;
+  const rmap_send_header_t invalid_header_null_addresses = header_tmp;
+
+  EXPECT_EQ(
+      rmap_header_serialize(NULL, data, sizeof(data), &valid_header),
+      RMAP_NULLPTR);
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        NULL,
+        sizeof(data),
+        &valid_header),
+      RMAP_NULLPTR);
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &invalid_header_null_target_address),
+      RMAP_NULLPTR);
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &invalid_header_null_reply_address),
+      RMAP_NULLPTR);
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &invalid_header_null_addresses),
+      RMAP_NULLPTR);
+  EXPECT_EQ(
+      rmap_header_serialize(NULL, NULL, sizeof(data), NULL),
+      RMAP_NULLPTR);
+}
