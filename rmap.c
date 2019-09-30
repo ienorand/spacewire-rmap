@@ -227,6 +227,10 @@ static rmap_status_t calculate_reply_address_unpadded_size(
 {
   size_t padding_size;
 
+  if (!unpadded_size) {
+    return RMAP_NULLPTR;
+  }
+
   if (size == 0) {
     *unpadded_size = 0;
     return RMAP_OK;
@@ -448,7 +452,7 @@ static rmap_status_t serialize_write_reply_header(
   size_t common_serialized_size;
   size_t reply_address_unpadded_size;
 
-  if (!header) {
+  if (!serialized_size || !header) {
     return RMAP_NULLPTR;
   }
 
@@ -508,7 +512,7 @@ static rmap_status_t serialize_read_reply_header(
   size_t common_serialized_size;
   size_t reply_address_unpadded_size;
 
-  if (!header) {
+  if (!serialized_size || !header) {
     return RMAP_NULLPTR;
   }
 
@@ -636,7 +640,7 @@ rmap_status_t rmap_header_serialize(
   rmap_status_t rmap_status;
   size_t serialized_size_tmp;
 
-  if (!header) {
+  if (!header || !serialized_size) {
     return RMAP_NULLPTR;
   }
 
