@@ -44,7 +44,7 @@ typedef enum {
  */
 typedef struct {
   struct {
-    uint8_t *data;
+    const uint8_t *data;
     size_t length;
   } target_address;
   uint8_t target_logical_address;
@@ -82,7 +82,7 @@ typedef struct {
 /** Representation of an RMAP write reply header for sending. */
 typedef struct {
   struct {
-    uint8_t *data;
+    const uint8_t *data;
     size_t length;
   } reply_address;
   uint8_t initiator_logical_address;
@@ -106,7 +106,7 @@ typedef struct {
 /** Representation of an RMAP read reply header for sending. */
 typedef struct {
   struct {
-    uint8_t *data;
+    const uint8_t *data;
     size_t length;
   } reply_address;
   uint8_t initiator_logical_address;
