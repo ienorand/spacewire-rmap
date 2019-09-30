@@ -271,7 +271,7 @@ static rmap_status_t serialize_command_header(
   size_t calculated_serialized_size;
   unsigned char *data_ptr;
 
-  if (!data || !header || !serialized_size) {
+  if (!serialized_size || !data || !header) {
     return RMAP_NULLPTR;
   }
   if (header->target_address.length > 0 && !header->target_address.data) {
@@ -375,7 +375,7 @@ static rmap_status_t serialize_common_reply_header(
   size_t reply_address_unpadded_size;
   unsigned char *data_ptr;
 
-  if (!data || !header || !serialized_size) {
+  if (!serialized_size || !data || !header) {
     return RMAP_NULLPTR;
   }
 
@@ -781,7 +781,7 @@ rmap_status_t rmap_header_deserialize(
   rmap_type_t rmap_type;
   size_t offset;
 
-  if (!data || !header || !serialized_size) {
+  if (!serialized_size || !header || !data) {
     return RMAP_NULLPTR;
   }
 
