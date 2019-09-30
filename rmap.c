@@ -765,13 +765,10 @@ rmap_status_t rmap_packet_serialize_inplace(
   return RMAP_OK;
 }
 
-/* TODO: How can const correctness be achived when deserializing? Should there
- * be separate structs for serializing and deserializing?
- */
 rmap_status_t rmap_header_deserialize(
     size_t *const serialized_size,
     rmap_receive_header_t *const header,
-    unsigned char *const data,
+    const unsigned char *const data,
     const size_t data_size)
 {
   packet_type_t packet_type;

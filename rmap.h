@@ -258,7 +258,7 @@ rmap_status_t rmap_packet_serialize_inplace(
 rmap_status_t rmap_header_deserialize(
     size_t *serialized_size,
     rmap_receive_header_t *header,
-    unsigned char *data,
+    const unsigned char *data,
     size_t data_size);
 
 /** Get string representation of an RMAP status or error constant.
