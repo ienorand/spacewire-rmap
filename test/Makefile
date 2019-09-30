@@ -35,6 +35,9 @@ CPPFLAGS += -isystem $(GTEST_DIR)/include -isystem $(GMOCK_DIR)/include -I$(USER
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -pthread
 
+# Flags passed to the C compiler.
+CFLAGS += -g -Wall -Wextra -std=c99 -Wpedantic -pthread
+
 LDLIBS += -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
