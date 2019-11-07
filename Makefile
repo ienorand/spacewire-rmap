@@ -1,4 +1,4 @@
-CFLAGS += -Wall -Wextra -Wpedantic -std=c99
+CFLAGS += -O2 -Wall -Wextra -Wpedantic -std=c99
 LDFLAGS += -Wl,--warn-common
 
 .PHONY: all
