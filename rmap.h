@@ -267,7 +267,7 @@ rmap_status_t rmap_header_deserialize(
  *
  * @return RMAP status or error string.
  */
-char *rmap_status_text(rmap_status_t status);
+const char *rmap_status_text(rmap_status_t status);
 
 /** Calculate RMAP crc.
  *

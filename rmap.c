@@ -886,7 +886,7 @@ rmap_status_t rmap_header_deserialize(
   return RMAP_OK;
 }
 
-char *rmap_status_text(const rmap_status_t status)
+const char *rmap_status_text(const rmap_status_t status)
 {
   switch (status) {
     case RMAP_OK:
