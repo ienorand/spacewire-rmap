@@ -205,10 +205,13 @@ rmap_status_t rmap_header_serialize(
  * RMAP read commands and write replies are not valid input to this function,
  * since they do not contain a payload.
  *
+ * @param[out] serialized_offset Offset of the serialized header in @p data.
  * @param[out] serialized_size Size of the serialized header.
  * @param[in] data Destination for the serialized header.
  * @param data_size Maximum size available in @p data for the serialized
  *            header.
+ * @param[in] payload_offset Offset of the payload in @p data.
+ * @param[in] payload_size Size of the payload in @p data.
  * @param[in] header RMAP header object.
  *
  * @retval RMAP_NULLPTR @p serialized_size, @p serialized_offset, @p data or @p
