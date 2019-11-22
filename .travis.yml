@@ -8,9 +8,9 @@ addons:
       - google-mock
 
 before_script:
-        sudo ln -s /usr/src/gmock/src /usr/src/googletest/googlemock/src
-        sudo ln -s /usr/include/gmock /usr/src/googletest/googlemock/include/gmock
+  - sudo ln -s /usr/src/gmock/src /usr/src/googletest/googlemock/src
+  - sudo ln -s /usr/include/gmock /usr/src/googletest/googlemock/include/gmock
 
 script:
-        - make
-        - make -C test test
+  - make
+  - make -C test test
