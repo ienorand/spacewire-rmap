@@ -1,0 +1,11 @@
+sudo: false
+language: c
+
+addons:
+  apt:
+    packages:
+      - libgtest-dev
+
+script:
+        - make
+        - make -C test test
