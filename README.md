@@ -1,6 +1,6 @@
 # spacewire-rmap
 
-spacewire-rmap is a C library for serializing and deserailizing SpaceWire RMAP
+spacewire-rmap is a C library for serializing and deserializing SpaceWire RMAP
 commands and replies, it is intended to be useful when handling SpaceWire RMAP
 in software.
 
