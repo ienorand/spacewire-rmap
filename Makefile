@@ -8,5 +8,6 @@ librmap.a: librmap.a(rmap.o)
 
 rmap.o: rmap.h
 
+.PHONY: clean
 clean:
 	rm -f rmap.o librmap.a
