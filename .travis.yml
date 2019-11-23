@@ -1,20 +1,27 @@
 language: c
 
-addons:
-  apt:
-    packages:
-      - libgtest-dev
-      - google-mock
-
-before_script:
-  - sudo mkdir -p /usr/src/googletest/googletest
-  - sudo ln -s /usr/src/gtest/src /usr/src/googletest/googletest/src
-  - sudo mkdir -p /usr/src/googletest/googletest/include
-  - sudo ln -s /usr/include/gtest /usr/src/googletest/googletest/include/gtest
-  - sudo mkdir -p /usr/src/googletest/googlemock
-  - sudo ln -s /usr/src/gmock/src /usr/src/googletest/googlemock/src
-  - sudo mkdir -p /usr/src/googletest/googlemock/include
-  - sudo ln -s /usr/include/gmock /usr/src/googletest/googlemock/include/gmock
+jobs:
+  include:
+    - dist: xenial
+      addons:
+        apt:
+          packages:
+            - libgtest-dev
+            - google-mock
+      before_script:
+        - sudo mkdir -p /usr/src/googletest/googletest
+        - sudo ln -s /usr/src/gtest/src /usr/src/googletest/googletest/src
+        - sudo mkdir -p /usr/src/googletest/googletest/include
+        - sudo ln -s /usr/include/gtest /usr/src/googletest/googletest/include/gtest
+        - sudo mkdir -p /usr/src/googletest/googlemock
+        - sudo ln -s /usr/src/gmock/src /usr/src/googletest/googlemock/src
+        - sudo mkdir -p /usr/src/googletest/googlemock/include
+        - sudo ln -s /usr/include/gmock /usr/src/googletest/googlemock/include/gmock
+    - dist: bionic
+      addons:
+        apt:
+          packages:
+            - googletest
 
 script:
   - make
