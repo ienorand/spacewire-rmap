@@ -779,7 +779,7 @@ TEST(RmapHeaderSerialize, ReadCommandNotEnoughSpace)
   header.t.command.initiator_logical_address = 0x67;
   header.t.command.extended_address = 0x00;
   header.t.command.address = 0xA0000000;
-  header.t.command.data_length = 0;
+  header.t.command.data_length = 0x10;
 
   /* Read command header is target addres plus 16 bytes fixed header plus 4
    * bytes reply address (padded from 1 to a multiple of 4 bytes).
