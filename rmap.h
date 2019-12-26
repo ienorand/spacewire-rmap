@@ -159,7 +159,8 @@ typedef struct {
  * @param[in] header RMAP header object.
  *
  * @retval RMAP_NULLPTR @p serialized_size, @p header or the reply_address
- *         member of the reply header object is NULL.
+ *         member of the reply header object is NULL with a non-zero length
+ *         set.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
  *         12.
  * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The value of @p
