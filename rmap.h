@@ -211,8 +211,8 @@ rmap_status_t rmap_header_serialize(
  * @param[in] data Destination for the serialized header.
  * @param data_size Maximum size available in @p data for the serialized
  *        header, the payload, and the RMAP CRC.
- * @param[in] payload_offset Offset of the payload in @p data.
- * @param[in] payload_size Size of the payload in @p data.
+ * @param payload_offset Offset of the payload in @p data.
+ * @param payload_size Size of the payload in @p data.
  * @param[in] header RMAP header object.
  *
  * @retval RMAP_NULLPTR @p serialized_size, @p serialized_offset, @p data or @p
