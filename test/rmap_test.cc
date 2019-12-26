@@ -686,3 +686,145 @@ TEST(RmapHeaderSerialize, Nullptr)
       rmap_header_serialize(NULL, NULL, sizeof(data), NULL),
       RMAP_NULLPTR);
 }
+
+TEST(RmapHeaderSerialize, WriteCommandNotEnoughSpace)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x1 };
+  const uint8_t reply_address[] = { 0x2 };
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.length = sizeof(target_address);
+  header.t.command.target_address.data = target_address;
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.command_codes =
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY;
+  header.t.command.key = 0x00;
+  header.t.command.reply_address.length = sizeof(reply_address);
+  header.t.command.reply_address.data = reply_address;
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000000;
+  header.t.command.data_length = 0x10;
+
+  /* Write command header is target addres plus 16 bytes fixed header plus 4
+   * bytes reply address (padded from 1 to a multiple of 4 bytes).
+   */
+  const size_t one_less_than_needed_size = sizeof(target_address) + 16 + 4 - 1;
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        one_less_than_needed_size,
+        &header),
+      RMAP_NOT_ENOUGH_SPACE);
+}
+
+TEST(RmapHeaderSerialize, WriteCommandExactlyEnoughSpace)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x1 };
+  const uint8_t reply_address[] = { 0x2 };
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.length = sizeof(target_address);
+  header.t.command.target_address.data = target_address;
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.command_codes =
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY;
+  header.t.command.key = 0x00;
+  header.t.command.reply_address.length = sizeof(reply_address);
+  header.t.command.reply_address.data = reply_address;
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000000;
+  header.t.command.data_length = 0x10;
+
+  /* Write command header is target addres plus 16 bytes fixed header plus 4
+   * bytes reply address (padded from 1 to a multiple of 4 bytes).
+   */
+  const size_t exactly_needed_size = sizeof(target_address) + 16 + 4;
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        exactly_needed_size,
+        &header),
+      RMAP_OK);
+}
+
+TEST(RmapHeaderSerialize, ReadCommandNotEnoughSpace)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x1 };
+  const uint8_t reply_address[] = { 0x2 };
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.length = sizeof(target_address);
+  header.t.command.target_address.data = target_address;
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.command_codes = RMAP_COMMAND_CODE_REPLY;
+  header.t.command.key = 0x00;
+  header.t.command.reply_address.length = sizeof(reply_address);
+  header.t.command.reply_address.data = reply_address;
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000000;
+  header.t.command.data_length = 0;
+
+  /* Read command header is target addres plus 16 bytes fixed header plus 4
+   * bytes reply address (padded from 1 to a multiple of 4 bytes).
+   */
+  const size_t one_less_than_needed_size = sizeof(target_address) + 16 + 4 - 1;
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        one_less_than_needed_size,
+        &header),
+      RMAP_NOT_ENOUGH_SPACE);
+}
+
+TEST(RmapHeaderSerialize, ReadCommandExactlyEnoughSpace)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x1 };
+  const uint8_t reply_address[] = { 0x2 };
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.length = sizeof(target_address);
+  header.t.command.target_address.data = target_address;
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.command_codes = RMAP_COMMAND_CODE_REPLY;
+  header.t.command.key = 0x00;
+  header.t.command.reply_address.length = sizeof(reply_address);
+  header.t.command.reply_address.data = reply_address;
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000000;
+  header.t.command.data_length = 0x10;
+
+  /* Read command header is target addres plus 16 bytes fixed header plus 4
+   * bytes reply address (padded from 1 to a multiple of 4 bytes).
+   */
+  const size_t exactly_needed_size = sizeof(target_address) + 16 + 4;
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        exactly_needed_size,
+        &header),
+      RMAP_OK);
+}
