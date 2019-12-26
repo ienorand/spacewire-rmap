@@ -635,6 +635,7 @@ TEST(RmapHeaderSerialize, Nullptr)
   header_tmp.t.command.reply_address.length = sizeof(reply_address);
   header_tmp.t.command.reply_address.data = reply_address;
   header_tmp.t.command.initiator_logical_address = 0x67;
+  header_tmp.t.command.transaction_identifier = 0x0000;
   header_tmp.t.command.extended_address = 0x00;
   header_tmp.t.command.address = 0xA0000000;
   header_tmp.t.command.data_length = 0x10;
@@ -706,6 +707,7 @@ TEST(RmapHeaderSerialize, WriteCommandNotEnoughSpace)
   header.t.command.reply_address.length = sizeof(reply_address);
   header.t.command.reply_address.data = reply_address;
   header.t.command.initiator_logical_address = 0x67;
+  header.t.command.transaction_identifier = 0x0000;
   header.t.command.extended_address = 0x00;
   header.t.command.address = 0xA0000000;
   header.t.command.data_length = 0x10;
@@ -742,6 +744,7 @@ TEST(RmapHeaderSerialize, WriteCommandExactlyEnoughSpace)
   header.t.command.reply_address.length = sizeof(reply_address);
   header.t.command.reply_address.data = reply_address;
   header.t.command.initiator_logical_address = 0x67;
+  header.t.command.transaction_identifier = 0x0000;
   header.t.command.extended_address = 0x00;
   header.t.command.address = 0xA0000000;
   header.t.command.data_length = 0x10;
@@ -777,6 +780,7 @@ TEST(RmapHeaderSerialize, ReadCommandNotEnoughSpace)
   header.t.command.reply_address.length = sizeof(reply_address);
   header.t.command.reply_address.data = reply_address;
   header.t.command.initiator_logical_address = 0x67;
+  header.t.command.transaction_identifier = 0x0000;
   header.t.command.extended_address = 0x00;
   header.t.command.address = 0xA0000000;
   header.t.command.data_length = 0x10;
@@ -812,6 +816,7 @@ TEST(RmapHeaderSerialize, ReadCommandExactlyEnoughSpace)
   header.t.command.reply_address.length = sizeof(reply_address);
   header.t.command.reply_address.data = reply_address;
   header.t.command.initiator_logical_address = 0x67;
+  header.t.command.transaction_identifier = 0x0000;
   header.t.command.extended_address = 0x00;
   header.t.command.address = 0xA0000000;
   header.t.command.data_length = 0x10;
