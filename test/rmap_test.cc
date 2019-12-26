@@ -712,7 +712,7 @@ TEST(RmapHeaderSerialize, WriteCommandNotEnoughSpace)
   header.t.command.address = 0xA0000000;
   header.t.command.data_length = 0x10;
 
-  /* Write command header is target addres plus 16 bytes fixed header plus 4
+  /* Write command header is target address plus 16 bytes fixed header plus 4
    * bytes reply address (padded from 1 to a multiple of 4 bytes).
    */
   const size_t one_less_than_needed_size = sizeof(target_address) + 16 + 4 - 1;
@@ -749,7 +749,7 @@ TEST(RmapHeaderSerialize, WriteCommandExactlyEnoughSpace)
   header.t.command.address = 0xA0000000;
   header.t.command.data_length = 0x10;
 
-  /* Write command header is target addres plus 16 bytes fixed header plus 4
+  /* Write command header is target address plus 16 bytes fixed header plus 4
    * bytes reply address (padded from 1 to a multiple of 4 bytes).
    */
   const size_t exactly_needed_size = sizeof(target_address) + 16 + 4;
@@ -785,7 +785,7 @@ TEST(RmapHeaderSerialize, ReadCommandNotEnoughSpace)
   header.t.command.address = 0xA0000000;
   header.t.command.data_length = 0x10;
 
-  /* Read command header is target addres plus 16 bytes fixed header plus 4
+  /* Read command header is target address plus 16 bytes fixed header plus 4
    * bytes reply address (padded from 1 to a multiple of 4 bytes).
    */
   const size_t one_less_than_needed_size = sizeof(target_address) + 16 + 4 - 1;
@@ -821,7 +821,7 @@ TEST(RmapHeaderSerialize, ReadCommandExactlyEnoughSpace)
   header.t.command.address = 0xA0000000;
   header.t.command.data_length = 0x10;
 
-  /* Read command header is target addres plus 16 bytes fixed header plus 4
+  /* Read command header is target address plus 16 bytes fixed header plus 4
    * bytes reply address (padded from 1 to a multiple of 4 bytes).
    */
   const size_t exactly_needed_size = sizeof(target_address) + 16 + 4;
