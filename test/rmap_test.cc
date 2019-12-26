@@ -629,7 +629,8 @@ TEST(RmapHeaderSerialize, Nullptr)
   header_tmp.t.command.target_address.length = sizeof(target_address);
   header_tmp.t.command.target_address.data = target_address;
   header_tmp.t.command.target_logical_address = 0xFE;
-  header_tmp.t.command.command_codes = RMAP_COMMAND_CODE_WRITE;
+  header_tmp.t.command.command_codes =
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY;
   header_tmp.t.command.key = 0x00;
   header_tmp.t.command.reply_address.length = sizeof(reply_address);
   header_tmp.t.command.reply_address.data = reply_address;
