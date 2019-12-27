@@ -292,7 +292,6 @@ static rmap_status_t serialize_command_header(
   if (rmap_status != RMAP_OK) {
     assert(
         rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_ECSS_TOO_MUCH_DATA ||
         rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
     return rmap_status;
   }
