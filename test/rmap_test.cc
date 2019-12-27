@@ -1040,6 +1040,61 @@ TEST(RmapHeaderSerialize, SendWriteReplyExactlyEnoughSpace)
       RMAP_OK);
 }
 
+TEST(RmapHeaderSerialize, SendWriteReplyReplyAddressTooLong)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t reply_address_too_long[] = {
+    0x1, 0x2, 0x3, 0x4,
+    0x5, 0x6, 0x7, 0x8,
+    0x9, 0xA, 0xB, 0xC,
+    0xD
+  };
+
+  header.type = RMAP_TYPE_WRITE_REPLY;
+  header.t.write_reply.reply_address.length = sizeof(reply_address_too_long);
+  header.t.write_reply.reply_address.data = reply_address_too_long;
+  header.t.write_reply.initiator_logical_address = 0xFE;
+  header.t.write_reply.command_codes =
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY;
+  header.t.write_reply.status = 0x00;
+  header.t.write_reply.target_logical_address = 0x67;
+  header.t.write_reply.transaction_identifier = 0x0000;
+
+  EXPECT_EQ(
+      rmap_header_serialize(&serialized_size, data, sizeof(data), &header),
+      RMAP_REPLY_ADDRESS_TOO_LONG);
+}
+
+TEST(RmapHeaderSerialize, SendWriteReplyMaximumReplyAddressLength)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t maximum_reply_address[] = {
+    0x1, 0x2, 0x3, 0x4,
+    0x5, 0x6, 0x7, 0x8,
+    0x9, 0xA, 0xB, 0xC
+  };
+
+  header.type = RMAP_TYPE_WRITE_REPLY;
+  header.t.write_reply.reply_address.length = sizeof(maximum_reply_address);
+  header.t.write_reply.reply_address.data = maximum_reply_address;
+  header.t.write_reply.initiator_logical_address = 0xFE;
+  header.t.write_reply.command_codes =
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY;
+  header.t.write_reply.status = 0x00;
+  header.t.write_reply.target_logical_address = 0x67;
+  header.t.write_reply.transaction_identifier = 0x0000;
+
+  EXPECT_EQ(
+      rmap_header_serialize(&serialized_size, data, sizeof(data), &header),
+      RMAP_OK);
+}
+
 TEST(RmapHeaderSerialize, SendReadReplyNotEnoughSpace)
 {
   size_t serialized_size;
@@ -1095,5 +1150,60 @@ TEST(RmapHeaderSerialize, SendReadReplyExactlyEnoughSpace)
         data,
         exactly_needed_size,
         &header),
+      RMAP_OK);
+}
+
+TEST(RmapHeaderSerialize, SendReadReplyReplyAddressTooLong)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t reply_address_too_long[] = {
+    0x1, 0x2, 0x3, 0x4,
+    0x5, 0x6, 0x7, 0x8,
+    0x9, 0xA, 0xB, 0xC,
+    0xD
+  };
+
+  header.type = RMAP_TYPE_READ_REPLY;
+  header.t.read_reply.reply_address.length = sizeof(reply_address_too_long);
+  header.t.read_reply.reply_address.data = reply_address_too_long;
+  header.t.read_reply.initiator_logical_address = 0xFE;
+  header.t.read_reply.command_codes = RMAP_COMMAND_CODE_REPLY;
+  header.t.read_reply.status = 0x00;
+  header.t.read_reply.target_logical_address = 0x67;
+  header.t.read_reply.transaction_identifier = 0x0000;
+  header.t.read_reply.data_length = 0x10;
+
+  EXPECT_EQ(
+      rmap_header_serialize(&serialized_size, data, sizeof(data), &header),
+      RMAP_REPLY_ADDRESS_TOO_LONG);
+}
+
+TEST(RmapHeaderSerialize, SendReadReplyMaximumReplyAddressLength)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t maximum_reply_address[] = {
+    0x1, 0x2, 0x3, 0x4,
+    0x5, 0x6, 0x7, 0x8,
+    0x9, 0xA, 0xB, 0xC
+  };
+
+  header.type = RMAP_TYPE_READ_REPLY;
+  header.t.read_reply.reply_address.length = sizeof(maximum_reply_address);
+  header.t.read_reply.reply_address.data = maximum_reply_address;
+  header.t.read_reply.initiator_logical_address = 0xFE;
+  header.t.read_reply.command_codes = RMAP_COMMAND_CODE_REPLY;
+  header.t.read_reply.status = 0x00;
+  header.t.read_reply.target_logical_address = 0x67;
+  header.t.read_reply.transaction_identifier = 0x0000;
+  header.t.read_reply.data_length = 0x10;
+
+  EXPECT_EQ(
+      rmap_header_serialize(&serialized_size, data, sizeof(data), &header),
       RMAP_OK);
 }
