@@ -537,7 +537,7 @@ static rmap_status_t serialize_read_reply_header(
     return rmap_status;
   }
 
-  if (data_size < common_serialized_size + 1) {
+  if (data_size < common_serialized_size + 5) {
     return RMAP_NOT_ENOUGH_SPACE;
   }
 
