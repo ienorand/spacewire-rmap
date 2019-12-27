@@ -1,10 +1,8 @@
 #include "rmap.h"
 
 #include <assert.h>
-#include <errno.h>
 #include <string.h>
 #include <stdbool.h>
-#include <arpa/inet.h>
 
 #define RMAP_REPLY_ADDRESS_LENGTH_MAX 12
 #define RMAP_DATA_LENGTH_MAX ((1 << 24) - 1)

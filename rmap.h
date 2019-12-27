@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <sys/types.h>
 
 /** Representation of an RMAP header type. */
 typedef enum {
