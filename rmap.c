@@ -299,7 +299,7 @@ static rmap_status_t serialize_command_header(
   }
 
   if (header->data_length > RMAP_DATA_LENGTH_MAX) {
-    return RMAP_ECSS_TOO_MUCH_DATA;
+    return RMAP_DATA_LENGTH_TOO_BIG;
   }
 
   if (header->command_codes & ~(RMAP_COMMAND_CODES_ALL)) {
@@ -685,6 +685,7 @@ rmap_status_t rmap_header_serialize(
         rmap_status == RMAP_NULLPTR ||
         rmap_status == RMAP_NOT_ENOUGH_SPACE ||
         rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
+        rmap_status == RMAP_DATA_LENGTH_TOO_BIG ||
         rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
     return rmap_status;
   }
@@ -748,6 +749,7 @@ rmap_status_t rmap_packet_serialize_inplace(
     assert(
         rmap_status == RMAP_NULLPTR ||
         rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
+        rmap_status == RMAP_DATA_LENGTH_TOO_BIG ||
         rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
     return rmap_status;
   }
@@ -897,6 +899,9 @@ const char *rmap_status_text(const rmap_status_t status)
 
     case RMAP_REPLY_ADDRESS_TOO_LONG:
       return "RMAP_REPLY_ADDRESS_TOO_LONG";
+
+    case RMAP_DATA_LENGTH_TOO_BIG:
+      return "RMAP_DATA_LENGTH_TOO_BIG";
 
     case RMAP_NO_RMAP_PROTOCOL:
       return "RMAP_NO_RMAP_PROTOCOL";

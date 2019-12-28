@@ -31,6 +31,7 @@ typedef enum {
   RMAP_NULLPTR,
   RMAP_NOT_ENOUGH_SPACE,
   RMAP_REPLY_ADDRESS_TOO_LONG,
+  RMAP_DATA_LENGTH_TOO_BIG,
   RMAP_NO_RMAP_PROTOCOL,
   RMAP_HEADER_CRC_ERROR,
   RMAP_ECSS_INCOMPLETE_HEADER,
@@ -186,6 +187,9 @@ rmap_status_t rmap_header_calculate_serialized_size(
  *         data_size.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
  *         12.
+ * @retval RMAP_DATA_LENGTH_TOO_BIG The value of the data_length member of the
+ *         header object is greater than the maximum possible RMAP data length
+ *         (16777215).
  * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The value of @p
  *         header->type is invalid or the command codes either contain an
  *         invalid value or an invalid combination for the given packet type.
@@ -224,6 +228,9 @@ rmap_status_t rmap_header_serialize(
  *         RMAP CRC.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
  *         12.
+ * @retval RMAP_DATA_LENGTH_TOO_BIG The value of the data_length member of the
+ *         header object is greater than the maximum possible RMAP data length
+ *         (16777215).
  * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The value of @p
  *         header->type is invalid or the command codes either contain an
  *         invalid value or an invalid combination for the given packet type.
