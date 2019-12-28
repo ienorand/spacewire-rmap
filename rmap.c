@@ -685,7 +685,6 @@ rmap_status_t rmap_header_serialize(
         rmap_status == RMAP_NULLPTR ||
         rmap_status == RMAP_NOT_ENOUGH_SPACE ||
         rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE ||
         rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
     return rmap_status;
   }
