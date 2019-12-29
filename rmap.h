@@ -117,7 +117,7 @@ typedef struct {
   uint32_t data_length;
 } rmap_send_read_reply_header_t;
 
-/** Representation of an RMAP write reply header after reception and
+/** Representation of an RMAP read reply header after reception and
  * deserialization.
  */
 typedef struct {
