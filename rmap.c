@@ -539,6 +539,10 @@ static rmap_status_t serialize_read_reply_header(
     return RMAP_NOT_ENOUGH_SPACE;
   }
 
+  if (header->data_length > RMAP_DATA_LENGTH_MAX) {
+    return RMAP_DATA_LENGTH_TOO_BIG;
+  }
+
   const uint8_t reserved = 0;
   data[common_serialized_size] = reserved;
 
