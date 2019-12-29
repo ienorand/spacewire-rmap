@@ -980,5 +980,3 @@ uint8_t rmap_crc_calculate(
 
   return crc;
 }
-
-void rmap_data_crc_put(unsigned char *const data, const size_t data_size);

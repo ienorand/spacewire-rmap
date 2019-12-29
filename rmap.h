@@ -288,7 +288,4 @@ const char *rmap_status_text(rmap_status_t status);
  */
 uint8_t rmap_crc_calculate(const unsigned char *data, size_t data_size);
 
-/* TODO: Implement or remove. */
-void rmap_data_crc_put(unsigned char *data, size_t data_size);
-
 #endif /* RMAP_H */
