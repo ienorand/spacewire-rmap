@@ -246,12 +246,12 @@ rmap_status_t rmap_packet_serialize_inplace(
     size_t payload_size,
     const rmap_send_header_t *header);
 
-/** Deserialize an RMAP header.
+/** Deserialize the header from a receiced RMAP packet.
  *
  * @param[out] serialized_size Size of the serialized header.
  * @param[in] header Destination for the deserialized header.
- * @param[in] data Location of the serialized header.
- * @param data_size Size available in @p data for the serialized header.
+ * @param[in] data Start of the RMAP packet.
+ * @param data_size Size of the RMAP packet in @p data.
  *
  * @retval RMAP_NULLPTR @p serialized_size, @p header or @p data is NULL.
  * @retval RMAP_ECSS_INCOMPLETE_HEADER @p data_size is not large enough to
