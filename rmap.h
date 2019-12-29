@@ -258,10 +258,10 @@ rmap_status_t rmap_packet_serialize_inplace(
  *         contain the RMAP header.
  * @retval RMAP_NO_RMAP_PROTOCOL The protocol identifier is not the identifier
  *         for the RMAP protocol.
+ * @retval RMAP_HEADER_CRC_ERROR The header CRC is invalid.
  * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The packet type is
  *         invalid or the command code combination is invalid for the packet
  *         type.
- * @retval RMAP_HEADER_CRC_ERROR The header CRC is invalid.
  * @retval RMAP_OK Success, the header has been deserialized in @p header and
  *         its serialized size is given in @p serialized_size.
  */
