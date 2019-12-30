@@ -840,6 +840,38 @@ rmap_status_t rmap_header_deserialize(
     return RMAP_HEADER_CRC_ERROR;
   }
 
+  const bool is_write_command_with_verify_before_write_set =
+    rmap_type == RMAP_TYPE_COMMAND &&
+    (command_codes & RMAP_COMMAND_CODE_WRITE) &&
+    (command_codes & RMAP_COMMAND_CODE_VERIFY);
+
+
+  if (rmap_type == RMAP_TYPE_READ_REPLY ||
+      is_write_command_with_verify_before_write_set) {
+    /* Data length and data crc is checked unconditionally for read reply and
+     * if verify-before-write bit is set for write commands.
+     */
+
+    const uint32_t data_length_tmp =
+      (uint32_t)data[8] << 16 | (uint32_t)data[9] << 8 | data[10];
+    const size_t expected_packet_size = header_size + data_length_tmp + 1;
+    if(data_size < expected_packet_size) {
+      return RMAP_INCOMPLETE_PACKET;
+    }
+    if (data_size > expected_packet_size) {
+      return RMAP_ECSS_TOO_MUCH_DATA;
+    }
+
+    const uint8_t data_crc =
+      rmap_crc_calculate(data + header_size, data_size - header_size);
+    /* If the crc is included in the crc calculation, the result should
+     * be 0.
+     */
+    if (data_crc != 0) {
+      return RMAP_ECSS_INVALID_DATA_CRC;
+    }
+  }
+
   *serialized_size = header_size;
   header->type = rmap_type;
 
@@ -907,11 +939,17 @@ const char *rmap_status_text(const rmap_status_t status)
     case RMAP_INCOMPLETE_HEADER:
       return "RMAP_INCOMPLETE_HEADER";
 
+    case RMAP_INCOMPLETE_PACKET:
+      return "RMAP_INCOMPLETE_PACKET";
+
     case RMAP_NO_RMAP_PROTOCOL:
       return "RMAP_NO_RMAP_PROTOCOL";
 
     case RMAP_HEADER_CRC_ERROR:
       return "RMAP_HEADER_CRC_ERROR";
+
+    case RMAP_ECSS_INVALID_DATA_CRC:
+      return "RMAP_ECSS_INVALID_DATA_CRC";
 
     case RMAP_ECSS_ERROR_END_OF_PACKET:
       return "RMAP_ECSS_ERROR_END_OF_PACKET";

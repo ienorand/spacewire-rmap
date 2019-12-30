@@ -32,9 +32,11 @@ typedef enum {
   RMAP_NOT_ENOUGH_SPACE,
   RMAP_REPLY_ADDRESS_TOO_LONG,
   RMAP_DATA_LENGTH_TOO_BIG,
+  RMAP_INCOMPLETE_PACKET,
   RMAP_NO_RMAP_PROTOCOL,
   RMAP_HEADER_CRC_ERROR,
   RMAP_INCOMPLETE_HEADER,
+  RMAP_ECSS_INVALID_DATA_CRC,
   RMAP_ECSS_ERROR_END_OF_PACKET,
   RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE,
   RMAP_ECSS_TOO_MUCH_DATA
@@ -248,6 +250,14 @@ rmap_status_t rmap_packet_serialize_inplace(
 
 /** Deserialize the header from a receiced RMAP packet.
  *
+ * The data length and data CRC is verified for write command packets only if
+ * the verifty-before-write bit is set in the received packet, otherwise this
+ * verification must be handled by the caller.
+ *
+ * The absence of data is verified for read command and write reply packets.
+ *
+ * The data length and data CRC is verified for read reply packets.
+ *
  * @param[out] serialized_size Size of the serialized header.
  * @param[in] header Destination for the deserialized header.
  * @param[in] data Start of the RMAP packet.
@@ -256,15 +266,19 @@ rmap_status_t rmap_packet_serialize_inplace(
  * @retval RMAP_NULLPTR @p serialized_size, @p header or @p data is NULL.
  * @retval RMAP_INCOMPLETE_HEADER @p data_size is not large enough to contain
  *         the RMAP header.
+ * @retval RMAP_INCOMPLETE_PACKET @p data_size is not large enough to contain
+ *         the whole packet based on the packet data length.
  * @retval RMAP_NO_RMAP_PROTOCOL The protocol identifier is not the identifier
  *         for the RMAP protocol.
  * @retval RMAP_HEADER_CRC_ERROR The header CRC is invalid.
+ * @retval RMAP_ECSS_INVALID_DATA_CRC The data CRC is invalid (if
+ *         applicable/verified).
  * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The packet type is
  *         invalid or the command code combination is invalid for the packet
  *         type.
- * @retval RMAP_ECSS_TOO_MUCH_DATA The packet contains data after the header
- *         while the packet type (read command or write reply) should never
- *         include data.
+ * @retval RMAP_ECSS_TOO_MUCH_DATA The @p data_size indicates a packet size
+ *         which is too large based on the packet type and data length (if
+ *         applicable/verified).
  * @retval RMAP_OK Success, the header has been deserialized in @p header and
  *         its serialized size is given in @p serialized_size.
  */
