@@ -53,7 +53,7 @@ typedef struct {
   unsigned char command_codes;
   uint8_t key;
   struct {
-    const uint8_t *data;
+    uint8_t data[12];
     size_t length;
   } reply_address;
   uint8_t initiator_logical_address;
@@ -71,7 +71,7 @@ typedef struct {
   unsigned char command_codes;
   uint8_t key;
   struct {
-    const uint8_t *data;
+    uint8_t data[12];
     size_t length;
   } reply_address;
   uint8_t initiator_logical_address;
@@ -84,7 +84,7 @@ typedef struct {
 /** Representation of an RMAP write reply header for sending. */
 typedef struct {
   struct {
-    const uint8_t *data;
+    uint8_t data[12];
     size_t length;
   } reply_address;
   uint8_t initiator_logical_address;
@@ -108,7 +108,7 @@ typedef struct {
 /** Representation of an RMAP read reply header for sending. */
 typedef struct {
   struct {
-    const uint8_t *data;
+    uint8_t data[12];
     size_t length;
   } reply_address;
   uint8_t initiator_logical_address;
@@ -160,9 +160,7 @@ typedef struct {
  * @param[out] serialized_size Size of the header if serialized.
  * @param[in] header RMAP header object.
  *
- * @retval RMAP_NULLPTR @p serialized_size, @p header or the reply_address
- *         member of the reply header object is NULL with a non-zero length
- *         set.
+ * @retval RMAP_NULLPTR @p serialized_size or @p header is NULL.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
  *         12.
  * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The value of @p
@@ -183,8 +181,8 @@ rmap_status_t rmap_header_calculate_serialized_size(
  * @param[in] header RMAP header object.
  *
  * @retval RMAP_NULLPTR @p serialized_size, @p data or @p header is NULL, or
- *         the target_address or reply_address member of the header object is
- *         NULL with a non-zero length set.
+ *         the target_address member of the header object is NULL with a
+ *         non-zero length set.
  * @retval RMAP_NOT_ENOUGH_SPACE The serialized header would be larger than @p
  *         data_size.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
@@ -221,8 +219,8 @@ rmap_status_t rmap_header_serialize(
  * @param[in] header RMAP header object.
  *
  * @retval RMAP_NULLPTR @p serialized_size, @p serialized_offset, @p data or @p
- *         header is NULL, or the target_address or reply_address member of the
- *         header object is NULL with a non-zero length set.
+ *         header is NULL, or the target_address member of the header object is
+ *         NULL with a non-zero length set.
  * @retval RMAP_ECSS_TOO_MUCH_DATA The packet type and command codes indicated
  *         that this was a read command or a write reply.
  * @retval RMAP_NOT_ENOUGH_SPACE The serialized header would not fit before the

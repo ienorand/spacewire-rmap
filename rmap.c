@@ -48,7 +48,7 @@ typedef enum {
 
 typedef struct {
   struct {
-    uint8_t *data;
+    uint8_t data[12];
     size_t length;
   } reply_address;
   uint8_t initiator_logical_address;
@@ -60,7 +60,7 @@ typedef struct {
 
 typedef struct {
   struct {
-    uint8_t *data;
+    uint8_t data[12];
     size_t length;
   } reply_address;
   uint8_t initiator_logical_address;
@@ -225,17 +225,12 @@ static rmap_status_t calculate_reply_address_unpadded_size(
 {
   size_t padding_size;
 
-  if (!unpadded_size) {
-    return RMAP_NULLPTR;
-  }
+  assert(address);
+  assert(unpadded_size);
 
   if (size == 0) {
     *unpadded_size = 0;
     return RMAP_OK;
-  }
-
-  if (!address) {
-    return RMAP_NULLPTR;
   }
 
   if (size > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
@@ -273,9 +268,6 @@ static rmap_status_t serialize_command_header(
     return RMAP_NULLPTR;
   }
   if (header->target_address.length > 0 && !header->target_address.data) {
-    return RMAP_NULLPTR;
-  }
-  if (header->reply_address.length > 0 && !header->reply_address.data) {
     return RMAP_NULLPTR;
   }
 
@@ -383,9 +375,7 @@ static rmap_status_t serialize_common_reply_header(
         header->reply_address.data,
         header->reply_address.length);
   if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_NULLPTR ||
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG);
+    assert(rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG);
     return rmap_status;
   }
 
@@ -623,9 +613,7 @@ rmap_status_t rmap_header_calculate_serialized_size(
         reply_header.reply_address.data,
         reply_header.reply_address.length);
   if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_NULLPTR ||
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG);
+    assert(rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG);
     return rmap_status;
   }
 
@@ -879,7 +867,10 @@ rmap_status_t rmap_header_deserialize(
     header->t.command.target_logical_address = data[0];
     header->t.command.command_codes = command_codes;
     header->t.command.key = data[3];
-    header->t.command.reply_address.data = data + 4;
+    memcpy(
+        header->t.command.reply_address.data,
+        data + 4,
+        reply_address_length);
     header->t.command.reply_address.length = reply_address_length;
     offset = 4 + reply_address_length;
     header->t.command.initiator_logical_address = data[offset];
