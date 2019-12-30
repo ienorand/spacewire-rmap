@@ -34,7 +34,7 @@ typedef enum {
   RMAP_DATA_LENGTH_TOO_BIG,
   RMAP_NO_RMAP_PROTOCOL,
   RMAP_HEADER_CRC_ERROR,
-  RMAP_ECSS_INCOMPLETE_HEADER,
+  RMAP_INCOMPLETE_HEADER,
   RMAP_ECSS_ERROR_END_OF_PACKET,
   RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE,
   RMAP_ECSS_TOO_MUCH_DATA
@@ -254,8 +254,8 @@ rmap_status_t rmap_packet_serialize_inplace(
  * @param data_size Size of the RMAP packet in @p data.
  *
  * @retval RMAP_NULLPTR @p serialized_size, @p header or @p data is NULL.
- * @retval RMAP_ECSS_INCOMPLETE_HEADER @p data_size is not large enough to
- *         contain the RMAP header.
+ * @retval RMAP_INCOMPLETE_HEADER @p data_size is not large enough to contain
+ *         the RMAP header.
  * @retval RMAP_NO_RMAP_PROTOCOL The protocol identifier is not the identifier
  *         for the RMAP protocol.
  * @retval RMAP_HEADER_CRC_ERROR The header CRC is invalid.

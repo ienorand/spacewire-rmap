@@ -786,7 +786,7 @@ rmap_status_t rmap_header_deserialize(
   }
 
   if (data_size < 8) {
-    return RMAP_ECSS_INCOMPLETE_HEADER;
+    return RMAP_INCOMPLETE_HEADER;
   }
 
   if (data[1] != 1) {
@@ -829,7 +829,7 @@ rmap_status_t rmap_header_deserialize(
   }
 
   if (header_size > data_size) {
-    return RMAP_ECSS_INCOMPLETE_HEADER;
+    return RMAP_INCOMPLETE_HEADER;
   }
 
   const uint8_t crc = rmap_crc_calculate(data, header_size);
@@ -904,14 +904,14 @@ const char *rmap_status_text(const rmap_status_t status)
     case RMAP_DATA_LENGTH_TOO_BIG:
       return "RMAP_DATA_LENGTH_TOO_BIG";
 
+    case RMAP_INCOMPLETE_HEADER:
+      return "RMAP_INCOMPLETE_HEADER";
+
     case RMAP_NO_RMAP_PROTOCOL:
       return "RMAP_NO_RMAP_PROTOCOL";
 
     case RMAP_HEADER_CRC_ERROR:
       return "RMAP_HEADER_CRC_ERROR";
-
-    case RMAP_ECSS_INCOMPLETE_HEADER:
-      return "RMAP_ECSS_INCOMPLETE_HEADER";
 
     case RMAP_ECSS_ERROR_END_OF_PACKET:
       return "RMAP_ECSS_ERROR_END_OF_PACKET";
