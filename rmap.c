@@ -70,6 +70,24 @@ typedef struct {
   uint16_t transaction_identifier;
 } common_receive_reply_header_t;
 
+static bool is_command_codes_valid(const unsigned char command_codes)
+{
+  if (command_codes & ~(RMAP_COMMAND_CODES_ALL)) {
+    return false;
+  }
+
+  switch (command_codes) {
+    case 0:
+    case RMAP_COMMAND_CODE_INCREMENT:
+    case RMAP_COMMAND_CODE_VERIFY:
+    case RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT:
+    case RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY:
+      return false;
+  }
+
+  return true;
+}
+
 static uint8_t serialize_instruction(
     const packet_type_t packet_type,
     const unsigned char command_codes,
@@ -87,9 +105,7 @@ static uint8_t serialize_instruction(
         "Must be a valid packet type.");
   }
 
-  assert(
-      (command_codes & ~(RMAP_COMMAND_CODES_ALL)) == 0 &&
-      "Must be a valid option.");
+  assert(is_command_codes_valid(command_codes));
   if (command_codes & RMAP_COMMAND_CODE_WRITE) {
     instruction |= 1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT;
   }
@@ -159,14 +175,8 @@ static rmap_status_t deserialize_instruction(
     command_codes_tmp |= RMAP_COMMAND_CODE_INCREMENT;
   }
 
-  switch (command_codes_tmp) {
-    case 0:
-    case RMAP_COMMAND_CODE_INCREMENT:
-    case RMAP_COMMAND_CODE_VERIFY:
-    case RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT:
-    case RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY:
-      /* invalid combination */
-      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+  if (!is_command_codes_valid(command_codes_tmp)) {
+    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
   }
 
   const unsigned char reply_address_length_serialized =
@@ -294,7 +304,7 @@ static rmap_status_t serialize_command_header(
     return RMAP_DATA_LENGTH_TOO_BIG;
   }
 
-  if (header->command_codes & ~(RMAP_COMMAND_CODES_ALL)) {
+  if (!is_command_codes_valid(header->command_codes)) {
     return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
   }
 
@@ -385,7 +395,7 @@ static rmap_status_t serialize_common_reply_header(
     return RMAP_NOT_ENOUGH_SPACE;
   }
 
-  if (header->command_codes & ~(RMAP_COMMAND_CODES_ALL)) {
+  if (!is_command_codes_valid(header->command_codes)) {
     return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
   }
   if (!(header->command_codes & RMAP_COMMAND_CODE_REPLY)) {

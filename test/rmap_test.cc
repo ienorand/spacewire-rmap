@@ -727,6 +727,115 @@ TEST(RmapHeaderSerialize, InvalidPacketType)
       RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
 }
 
+typedef std::tuple<unsigned char, rmap_status_t> CommandCodesParameters;
+class CommandCodesParameterized :
+  public testing::TestWithParam<CommandCodesParameters>
+{
+};
+
+TEST_P(CommandCodesParameterized, RmapHeaderSerializeCommand)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x1 };
+  const uint8_t reply_address[] = { 0x2 };
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.length = sizeof(target_address);
+  header.t.command.target_address.data = target_address;
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.key = 0x00;
+  header.t.command.reply_address.length = sizeof(reply_address);
+  memcpy(
+    header.t.command.reply_address.data,
+    reply_address,
+    sizeof(reply_address));
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.transaction_identifier = 0x0000;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000000;
+  header.t.command.data_length = 0x10;
+
+  header.t.command.command_codes = std::get<0>(GetParam());
+  const unsigned char expected_result = std::get<1>(GetParam());
+    EXPECT_EQ(
+        rmap_header_serialize(
+          &serialized_size,
+          data,
+          sizeof(data),
+          &header),
+        expected_result);
+}
+
+static const CommandCodesParameters all_command_codes_parameters[] = {
+  { 0x00, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  { RMAP_COMMAND_CODE_INCREMENT, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  { RMAP_COMMAND_CODE_REPLY, RMAP_OK },
+  { RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT, RMAP_OK },
+  { RMAP_COMMAND_CODE_VERIFY, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  {
+    RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_REPLY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_OK
+  },
+  { RMAP_COMMAND_CODE_WRITE, RMAP_OK },
+  { RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_INCREMENT, RMAP_OK },
+  { RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY, RMAP_OK },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_REPLY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_OK
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_VERIFY,
+    RMAP_OK
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_OK
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_REPLY,
+    RMAP_OK
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_REPLY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_OK
+  },
+  { 0xFF, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  {
+    (RMAP_COMMAND_CODE_WRITE |
+     RMAP_COMMAND_CODE_VERIFY |
+     RMAP_COMMAND_CODE_REPLY |
+     RMAP_COMMAND_CODE_INCREMENT) + 1,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+};
+
+INSTANTIATE_TEST_CASE_P(
+    AllCommandCodes,
+    CommandCodesParameterized,
+    testing::ValuesIn(all_command_codes_parameters));
+
 TEST(RmapHeaderSerialize, WriteCommandNotEnoughSpace)
 {
   size_t serialized_size;
