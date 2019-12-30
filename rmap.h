@@ -262,6 +262,9 @@ rmap_status_t rmap_packet_serialize_inplace(
  * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The packet type is
  *         invalid or the command code combination is invalid for the packet
  *         type.
+ * @retval RMAP_ECSS_TOO_MUCH_DATA The packet contains data after the header
+ *         while the packet type (read command or write reply) should never
+ *         include data.
  * @retval RMAP_OK Success, the header has been deserialized in @p header and
  *         its serialized size is given in @p serialized_size.
  */
