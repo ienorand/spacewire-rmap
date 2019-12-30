@@ -799,13 +799,10 @@ rmap_status_t rmap_header_deserialize(
         &command_codes,
         &reply_address_length,
         data[2]);
-  switch (deserialize_instruction_status) {
-    case RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE:
-      return deserialize_instruction_status;
-
-    default:
-      assert(deserialize_instruction_status == RMAP_OK);
-      break;
+  if (deserialize_instruction_status != RMAP_OK) {
+    assert(deserialize_instruction_status ==
+        RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
+    return deserialize_instruction_status;
   }
 
   if (packet_type == RMAP_PACKET_TYPE_COMMAND) {
