@@ -800,6 +800,78 @@ TEST(RmapHeaderSerialize, WriteCommandReplyAddressTooLong)
       RMAP_REPLY_ADDRESS_TOO_LONG);
 }
 
+TEST(RmapHeaderSerialize, WriteCommandDataLengthTooBig)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x1 };
+  const uint8_t reply_address[] = { 0x2 };
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.length = sizeof(target_address);
+  header.t.command.target_address.data = target_address;
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.command_codes =
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY;
+  header.t.command.key = 0x00;
+  header.t.command.reply_address.length = sizeof(reply_address);
+  memcpy(
+    header.t.command.reply_address.data,
+    reply_address,
+    sizeof(reply_address));
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.transaction_identifier = 0x0000;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000000;
+  header.t.command.data_length = 1 << 24;
+
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_DATA_LENGTH_TOO_BIG);
+}
+
+TEST(RmapHeaderSerialize, WriteCommandMaximumDataLength)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x1 };
+  const uint8_t reply_address[] = { 0x2 };
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.length = sizeof(target_address);
+  header.t.command.target_address.data = target_address;
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.command_codes =
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY;
+  header.t.command.key = 0x00;
+  header.t.command.reply_address.length = sizeof(reply_address);
+  memcpy(
+    header.t.command.reply_address.data,
+    reply_address,
+    sizeof(reply_address));
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.transaction_identifier = 0x0000;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000000;
+  header.t.command.data_length = (1 << 24) - 1;
+
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_OK);
+}
+
 TEST(RmapHeaderSerialize, WriteCommandMaximumReplyAddressLength)
 {
   size_t serialized_size;
@@ -986,6 +1058,76 @@ TEST(RmapHeaderSerialize, ReadCommandMaximumReplyAddressLength)
   header.t.command.extended_address = 0x00;
   header.t.command.address = 0xA0000000;
   header.t.command.data_length = 0x10;
+
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_OK);
+}
+
+TEST(RmapHeaderSerialize, ReadCommandDataLengthTooBig)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x1 };
+  const uint8_t reply_address[] = { 0x2 };
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.length = sizeof(target_address);
+  header.t.command.target_address.data = target_address;
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.command_codes = RMAP_COMMAND_CODE_REPLY;
+  header.t.command.key = 0x00;
+  header.t.command.reply_address.length = sizeof(reply_address);
+  memcpy(
+    header.t.command.reply_address.data,
+    reply_address,
+    sizeof(reply_address));
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.transaction_identifier = 0x0000;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000000;
+  header.t.command.data_length = 1 << 24;
+
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_DATA_LENGTH_TOO_BIG);
+}
+
+TEST(RmapHeaderSerialize, ReadCommandMaximumDataLength)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x1 };
+  const uint8_t reply_address[] = { 0x2 };
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.length = sizeof(target_address);
+  header.t.command.target_address.data = target_address;
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.command_codes = RMAP_COMMAND_CODE_REPLY;
+  header.t.command.key = 0x00;
+  header.t.command.reply_address.length = sizeof(reply_address);
+  memcpy(
+    header.t.command.reply_address.data,
+    reply_address,
+    sizeof(reply_address));
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.transaction_identifier = 0x0000;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000000;
+  header.t.command.data_length = (1 << 24) - 1;
 
   EXPECT_EQ(
       rmap_header_serialize(
@@ -1241,5 +1383,65 @@ TEST(RmapHeaderSerialize, SendReadReplyMaximumReplyAddressLength)
 
   EXPECT_EQ(
       rmap_header_serialize(&serialized_size, data, sizeof(data), &header),
+      RMAP_OK);
+}
+
+TEST(RmapHeaderSerialize, SendReadReplyDataLengthTooBig)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t reply_address[] = { 0x1 };
+
+  header.type = RMAP_TYPE_READ_REPLY;
+  header.t.read_reply.reply_address.length = sizeof(reply_address);
+  memcpy(
+    header.t.read_reply.reply_address.data,
+    reply_address,
+    sizeof(reply_address));
+  header.t.read_reply.initiator_logical_address = 0xFE;
+  header.t.read_reply.command_codes = RMAP_COMMAND_CODE_REPLY;
+  header.t.read_reply.status = 0x00;
+  header.t.read_reply.target_logical_address = 0x67;
+  header.t.read_reply.transaction_identifier = 0x0000;
+  header.t.read_reply.data_length = 1 << 24;
+
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_DATA_LENGTH_TOO_BIG);
+}
+
+TEST(RmapHeaderSerialize, SendReadReplyMaximumDataLength)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t reply_address[] = { 0x1 };
+
+  header.type = RMAP_TYPE_READ_REPLY;
+  header.t.read_reply.reply_address.length = sizeof(reply_address);
+  memcpy(
+    header.t.read_reply.reply_address.data,
+    reply_address,
+    sizeof(reply_address));
+  header.t.read_reply.initiator_logical_address = 0xFE;
+  header.t.read_reply.command_codes = RMAP_COMMAND_CODE_REPLY;
+  header.t.read_reply.status = 0x00;
+  header.t.read_reply.target_logical_address = 0x67;
+  header.t.read_reply.transaction_identifier = 0x0000;
+  header.t.read_reply.data_length = (1 << 24) - 1;
+
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
       RMAP_OK);
 }
