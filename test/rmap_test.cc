@@ -727,49 +727,92 @@ TEST(RmapHeaderSerialize, InvalidPacketType)
       RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
 }
 
-typedef std::tuple<unsigned char, rmap_status_t> CommandCodesParameters;
+typedef std::tuple<unsigned char, rmap_status_t> CommandCodesStatusParameters;
+typedef std::tuple<rmap_type_t, CommandCodesStatusParameters> CommandCodesParameters;
 class CommandCodesParameterized :
   public testing::TestWithParam<CommandCodesParameters>
 {
 };
 
-TEST_P(CommandCodesParameterized, RmapHeaderSerializeCommand)
+TEST_P(CommandCodesParameterized, RmapHeaderSerialize)
 {
   size_t serialized_size;
   rmap_send_header_t header;
   unsigned char data[64];
+  unsigned char expected_result;
 
   const uint8_t target_address[] = { 0x1 };
   const uint8_t reply_address[] = { 0x2 };
 
-  header.type = RMAP_TYPE_COMMAND;
-  header.t.command.target_address.length = sizeof(target_address);
-  header.t.command.target_address.data = target_address;
-  header.t.command.target_logical_address = 0xFE;
-  header.t.command.key = 0x00;
-  header.t.command.reply_address.length = sizeof(reply_address);
-  memcpy(
-    header.t.command.reply_address.data,
-    reply_address,
-    sizeof(reply_address));
-  header.t.command.initiator_logical_address = 0x67;
-  header.t.command.transaction_identifier = 0x0000;
-  header.t.command.extended_address = 0x00;
-  header.t.command.address = 0xA0000000;
-  header.t.command.data_length = 0x10;
+  header.type = std::get<0>(GetParam());
+  switch(header.type) {
+    case RMAP_TYPE_COMMAND:
+      header.t.command.target_address.length = sizeof(target_address);
+      header.t.command.target_address.data = target_address;
+      header.t.command.target_logical_address = 0xFE;
+      header.t.command.key = 0x00;
+      header.t.command.reply_address.length = sizeof(reply_address);
+      memcpy(
+          header.t.command.reply_address.data,
+          reply_address,
+          sizeof(reply_address));
+      header.t.command.initiator_logical_address = 0x67;
+      header.t.command.transaction_identifier = 0x0000;
+      header.t.command.extended_address = 0x00;
+      header.t.command.address = 0xA0000000;
+      header.t.command.data_length = 0x10;
 
-  header.t.command.command_codes = std::get<0>(GetParam());
-  const unsigned char expected_result = std::get<1>(GetParam());
-    EXPECT_EQ(
-        rmap_header_serialize(
-          &serialized_size,
-          data,
-          sizeof(data),
-          &header),
-        expected_result);
+      header.t.command.command_codes = std::get<0>(std::get<1>(GetParam()));
+      expected_result = std::get<1>(std::get<1>(GetParam()));
+      break;
+
+    case RMAP_TYPE_WRITE_REPLY:
+      header.t.write_reply.reply_address.length = sizeof(reply_address);
+      memcpy(
+          header.t.write_reply.reply_address.data,
+          reply_address,
+          sizeof(reply_address));
+      header.t.write_reply.initiator_logical_address = 0xFE;
+      header.t.write_reply.status = 0x00;
+      header.t.write_reply.target_logical_address = 0x67;
+      header.t.write_reply.transaction_identifier = 0x0000;
+
+      header.t.write_reply.command_codes = std::get<0>(std::get<1>(GetParam()));
+      expected_result = std::get<1>(std::get<1>(GetParam()));
+      break;
+
+    case RMAP_TYPE_READ_REPLY:
+      header.t.read_reply.reply_address.length = sizeof(reply_address);
+      memcpy(
+          header.t.read_reply.reply_address.data,
+          reply_address,
+          sizeof(reply_address));
+      header.t.read_reply.initiator_logical_address = 0xFE;
+      header.t.read_reply.status = 0x00;
+      header.t.read_reply.target_logical_address = 0x67;
+      header.t.read_reply.transaction_identifier = 0x0000;
+      header.t.read_reply.data_length = 0x10;
+
+      header.t.read_reply.command_codes = std::get<0>(std::get<1>(GetParam()));
+      expected_result = std::get<1>(std::get<1>(GetParam()));
+      break;
+
+    default:
+      assert(false);
+      break;
+  }
+
+  EXPECT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      expected_result);
 }
 
-static const CommandCodesParameters all_command_codes_parameters[] = {
+static const CommandCodesStatusParameters
+command_packet_command_codes_status_parameters[] = {
   { 0x00, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
   { RMAP_COMMAND_CODE_INCREMENT, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
   { RMAP_COMMAND_CODE_REPLY, RMAP_OK },
@@ -831,10 +874,164 @@ static const CommandCodesParameters all_command_codes_parameters[] = {
   },
 };
 
+static const CommandCodesStatusParameters
+write_reply_packet_command_codes_status_parameters[] = {
+  { 0x00, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  { RMAP_COMMAND_CODE_INCREMENT, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  { RMAP_COMMAND_CODE_REPLY, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  {
+    RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  { RMAP_COMMAND_CODE_VERIFY, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  {
+    RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_REPLY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  { RMAP_COMMAND_CODE_WRITE, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  {
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  { RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY, RMAP_OK },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_REPLY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_OK
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_VERIFY,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_REPLY,
+    RMAP_OK
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_REPLY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_OK
+  },
+  { 0xFF, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  {
+    (RMAP_COMMAND_CODE_WRITE |
+     RMAP_COMMAND_CODE_VERIFY |
+     RMAP_COMMAND_CODE_REPLY |
+     RMAP_COMMAND_CODE_INCREMENT) + 1,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+};
+
+static const CommandCodesStatusParameters
+read_reply_packet_command_codes_status_parameters[] = {
+  { 0x00, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  { RMAP_COMMAND_CODE_INCREMENT, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  { RMAP_COMMAND_CODE_REPLY, RMAP_OK },
+  { RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT, RMAP_OK },
+  { RMAP_COMMAND_CODE_VERIFY, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  {
+    RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_REPLY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_OK
+  },
+  { RMAP_COMMAND_CODE_WRITE, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  {
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_REPLY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_VERIFY,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_REPLY,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  {
+    RMAP_COMMAND_CODE_WRITE |
+      RMAP_COMMAND_CODE_VERIFY |
+      RMAP_COMMAND_CODE_REPLY |
+      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+  { 0xFF, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
+  {
+    (RMAP_COMMAND_CODE_WRITE |
+     RMAP_COMMAND_CODE_VERIFY |
+     RMAP_COMMAND_CODE_REPLY |
+     RMAP_COMMAND_CODE_INCREMENT) + 1,
+    RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE
+  },
+};
+
 INSTANTIATE_TEST_CASE_P(
-    AllCommandCodes,
+    Command,
     CommandCodesParameterized,
-    testing::ValuesIn(all_command_codes_parameters));
+    testing::Combine(
+      testing::Values(RMAP_TYPE_COMMAND),
+      testing::ValuesIn(command_packet_command_codes_status_parameters)));
+
+INSTANTIATE_TEST_CASE_P(
+    WriteReply,
+    CommandCodesParameterized,
+    testing::Combine(
+      testing::Values(RMAP_TYPE_WRITE_REPLY),
+      testing::ValuesIn(write_reply_packet_command_codes_status_parameters)));
+
+INSTANTIATE_TEST_CASE_P(
+    ReadReply,
+    CommandCodesParameterized,
+    testing::Combine(
+      testing::Values(RMAP_TYPE_READ_REPLY),
+      testing::ValuesIn(read_reply_packet_command_codes_status_parameters)));
 
 TEST(RmapHeaderSerialize, WriteCommandNotEnoughSpace)
 {
