@@ -812,7 +812,7 @@ TEST_P(CommandCodesParameterized, RmapHeaderSerialize)
 }
 
 static const CommandCodesStatusParameters
-command_packet_command_codes_status_parameters[] = {
+command_packet_command_codes_status_parameters[] {
   { 0x00, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
   { RMAP_COMMAND_CODE_INCREMENT, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
   { RMAP_COMMAND_CODE_REPLY, RMAP_OK },
@@ -875,7 +875,7 @@ command_packet_command_codes_status_parameters[] = {
 };
 
 static const CommandCodesStatusParameters
-write_reply_packet_command_codes_status_parameters[] = {
+write_reply_packet_command_codes_status_parameters[] {
   { 0x00, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
   { RMAP_COMMAND_CODE_INCREMENT, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
   { RMAP_COMMAND_CODE_REPLY, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
@@ -944,7 +944,7 @@ write_reply_packet_command_codes_status_parameters[] = {
 };
 
 static const CommandCodesStatusParameters
-read_reply_packet_command_codes_status_parameters[] = {
+read_reply_packet_command_codes_status_parameters[] {
   { 0x00, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
   { RMAP_COMMAND_CODE_INCREMENT, RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE },
   { RMAP_COMMAND_CODE_REPLY, RMAP_OK },
