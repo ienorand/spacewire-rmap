@@ -33,7 +33,7 @@ USER_DIR = $(CURDIR)/..
 CPPFLAGS += -isystem $(GTEST_DIR)/include -isystem $(GMOCK_DIR)/include -I$(USER_DIR)
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra -pthread
+CXXFLAGS += -g -Wall -Wextra -pthread -std=c++11
 
 # Flags passed to the C compiler.
 CFLAGS += -g -Wall -Wextra -std=c99 -Wpedantic -pthread
