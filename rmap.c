@@ -250,9 +250,10 @@ static rmap_status_t calculate_reply_address_unpadded_size(
   /* ignore leading zeroes in reply address field */
   padding_size = 0;
   for (size_t i = 0; i < size; ++i) {
-    if (address[i] == 0) {
-      ++padding_size;
+    if (address[i] != 0) {
+      break;
     }
+    ++padding_size;
   }
   if (size > 0 && padding_size == size) {
     /* If reply address length is non-zero and the reply address is all zeroes,

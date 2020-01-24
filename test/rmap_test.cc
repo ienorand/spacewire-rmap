@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 extern "C" {
 #include "rmap.h"
@@ -232,6 +233,7 @@ static const uint8_t test_pattern2_unverified_incrementing_write_with_reply_with
   0xB4
 };
 
+static const size_t test_pattern2_reply_address_length = 7;
 static const uint8_t test_pattern2_expected_write_reply_with_spacewire_addresses[] = {
   /* Reply SpaceWire Address */
   0x99,
@@ -614,6 +616,82 @@ TEST(RmapHeaderDeserialize, TestPattern1Reply)
   EXPECT_EQ(header.t.read_reply.status, 0x00);
   EXPECT_EQ(header.t.read_reply.target_logical_address, 0xFE);
   EXPECT_EQ(header.t.read_reply.transaction_identifier, 0x0001);
+}
+
+TEST(RmapHeaderDeserialize, TestPattern2Command)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  const unsigned char expected_reply_address[] = {
+    0x00, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x00
+  };
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        (unsigned char *)test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+        test_pattern2_target_address_length,
+        sizeof(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) -
+        test_pattern2_target_address_length),
+      RMAP_OK);
+
+  EXPECT_EQ(
+      serialized_size,
+      16 + sizeof(expected_reply_address));
+
+  ASSERT_EQ(header.type, RMAP_TYPE_COMMAND);
+  EXPECT_EQ(header.t.command.target_logical_address, 0xFE);
+  EXPECT_TRUE(header.t.command.command_codes & RMAP_COMMAND_CODE_WRITE);
+  EXPECT_FALSE(header.t.command.command_codes & RMAP_COMMAND_CODE_VERIFY);
+  EXPECT_TRUE(header.t.command.command_codes & RMAP_COMMAND_CODE_REPLY);
+  EXPECT_TRUE(header.t.command.command_codes & RMAP_COMMAND_CODE_INCREMENT);
+  EXPECT_EQ(header.t.command.key, 0x00);
+  EXPECT_EQ(
+      header.t.command.reply_address.length,
+      sizeof(expected_reply_address));
+  EXPECT_EQ(
+      std::vector<unsigned char>(
+        header.t.command.reply_address.data,
+        header.t.command.reply_address.data +
+        header.t.command.reply_address.length),
+      std::vector<unsigned char>(
+        std::begin(expected_reply_address),
+        std::end(expected_reply_address)));
+  EXPECT_EQ(header.t.command.initiator_logical_address, 0x67);
+  EXPECT_EQ(header.t.command.transaction_identifier, 0x0002);
+  EXPECT_EQ(header.t.command.extended_address, 0x00);
+  EXPECT_EQ(header.t.command.address, 0xA0000010);
+  EXPECT_EQ(header.t.command.data_length, 0x0010);
+}
+
+TEST(RmapHeaderDeserialize, TestPattern2Reply)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        (unsigned char *)test_pattern2_expected_write_reply_with_spacewire_addresses +
+        test_pattern2_reply_address_length,
+        sizeof(test_pattern2_expected_write_reply_with_spacewire_addresses) -
+        test_pattern2_reply_address_length),
+      RMAP_OK);
+
+  EXPECT_EQ(serialized_size, 8);
+
+  ASSERT_EQ(header.type, RMAP_TYPE_WRITE_REPLY);
+  EXPECT_EQ(header.t.read_reply.initiator_logical_address, 0x67);
+  EXPECT_TRUE(header.t.read_reply.command_codes & RMAP_COMMAND_CODE_WRITE);
+  EXPECT_FALSE(header.t.read_reply.command_codes & RMAP_COMMAND_CODE_VERIFY);
+  EXPECT_TRUE(header.t.read_reply.command_codes & RMAP_COMMAND_CODE_REPLY);
+  EXPECT_TRUE(header.t.read_reply.command_codes & RMAP_COMMAND_CODE_INCREMENT);
+  EXPECT_EQ(header.t.read_reply.status, 0x00);
+  EXPECT_EQ(header.t.read_reply.target_logical_address, 0xFE);
+  EXPECT_EQ(header.t.read_reply.transaction_identifier, 0x0002);
 }
 
 TEST(RmapHeaderSerialize, Nullptr)
