@@ -776,6 +776,7 @@ rmap_status_t rmap_header_deserialize(
   packet_type_t packet_type;
   unsigned char command_codes;
   size_t reply_address_length;
+  size_t reply_address_unpadded_length;
   size_t header_size;
   rmap_type_t rmap_type;
   size_t offset;
@@ -878,11 +879,21 @@ rmap_status_t rmap_header_deserialize(
     header->t.command.target_logical_address = data[0];
     header->t.command.command_codes = command_codes;
     header->t.command.key = data[3];
+
+    const rmap_status_t calculate_reply_address_unpadded_size_status =
+      calculate_reply_address_unpadded_size(
+          &reply_address_unpadded_length,
+          data + 4,
+          reply_address_length);
+    assert(calculate_reply_address_unpadded_size_status == RMAP_OK);
+    const size_t reply_address_padding_length =
+      reply_address_length - reply_address_unpadded_length;
     memcpy(
         header->t.command.reply_address.data,
-        data + 4,
-        reply_address_length);
-    header->t.command.reply_address.length = reply_address_length;
+        data + 4 + reply_address_padding_length,
+        reply_address_unpadded_length);
+    header->t.command.reply_address.length = reply_address_unpadded_length;
+
     offset = 4 + reply_address_length;
     header->t.command.initiator_logical_address = data[offset];
     header->t.command.transaction_identifier = (uint16_t)data[offset + 1] << 8;

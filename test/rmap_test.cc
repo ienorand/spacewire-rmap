@@ -623,9 +623,11 @@ TEST(RmapHeaderDeserialize, TestPattern2Command)
   rmap_receive_header_t header;
   size_t serialized_size;
 
+  const size_t expected_reply_address_padding = 1;
   const unsigned char expected_reply_address[] = {
-    0x00, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x00
+    0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x00
   };
+  ASSERT_EQ(sizeof(expected_reply_address), test_pattern2_reply_address_length);
 
   EXPECT_EQ(
       rmap_header_deserialize(
@@ -639,7 +641,7 @@ TEST(RmapHeaderDeserialize, TestPattern2Command)
 
   EXPECT_EQ(
       serialized_size,
-      16 + sizeof(expected_reply_address));
+      16 + expected_reply_address_padding + sizeof(expected_reply_address));
 
   ASSERT_EQ(header.type, RMAP_TYPE_COMMAND);
   EXPECT_EQ(header.t.command.target_logical_address, 0xFE);
