@@ -571,6 +571,54 @@ static rmap_status_t serialize_read_reply_header(
   return RMAP_OK;
 }
 
+rmap_status_t rmap_header_initialize_reply(
+    rmap_send_header_t *const reply,
+    const rmap_receive_command_header_t *const command)
+{
+  if (!reply || !command) {
+    return RMAP_NULLPTR;
+  }
+
+  if (!(command->command_codes & RMAP_COMMAND_CODE_REPLY)) {
+    return RMAP_NO_REPLY;
+  }
+
+  if (command->command_codes & RMAP_COMMAND_CODE_WRITE) {
+    reply->type = RMAP_TYPE_WRITE_REPLY;
+    reply->t.write_reply.reply_address.length = command->reply_address.length;
+    memcpy(
+        reply->t.write_reply.reply_address.data,
+        command->reply_address.data,
+        command->reply_address.length);
+    reply->t.write_reply.initiator_logical_address =
+      command->initiator_logical_address;
+    reply->t.write_reply.command_codes = command->command_codes;
+    reply->t.write_reply.status = 0;
+    reply->t.write_reply.target_logical_address =
+      command->target_logical_address;
+    reply->t.write_reply.transaction_identifier =
+      command->transaction_identifier;
+  } else {
+    reply->type = RMAP_TYPE_READ_REPLY;
+    reply->t.read_reply.reply_address.length = command->reply_address.length;
+    memcpy(
+        reply->t.read_reply.reply_address.data,
+        command->reply_address.data,
+        command->reply_address.length);
+    reply->t.read_reply.initiator_logical_address =
+      command->initiator_logical_address;
+    reply->t.read_reply.command_codes = command->command_codes;
+    reply->t.read_reply.status = 0;
+    reply->t.read_reply.target_logical_address =
+      command->target_logical_address;
+    reply->t.read_reply.transaction_identifier =
+      command->transaction_identifier;
+    reply->t.read_reply.data_length = command->data_length;
+  }
+
+  return RMAP_OK;
+}
+
 rmap_status_t rmap_header_calculate_serialized_size(
     size_t *const serialized_size,
     const rmap_send_header_t *const header)
@@ -960,6 +1008,9 @@ const char *rmap_status_text(const rmap_status_t status)
 
     case RMAP_HEADER_CRC_ERROR:
       return "RMAP_HEADER_CRC_ERROR";
+
+    case RMAP_NO_REPLY:
+      return "RMAP_NO_REPLY";
 
     case RMAP_ECSS_INVALID_DATA_CRC:
       return "RMAP_ECSS_INVALID_DATA_CRC";

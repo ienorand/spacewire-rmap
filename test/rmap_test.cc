@@ -1881,3 +1881,212 @@ TEST(RmapHeaderSerialize, SendReadReplyMaximumDataLength)
         &header),
       RMAP_OK);
 }
+
+TEST(RmapHeaderInitializeReply, Nullptr)
+{
+  rmap_send_header_t reply;
+  rmap_receive_header_t receive_header;
+  size_t serialized_size;
+
+  EXPECT_EQ(rmap_header_initialize_reply(NULL, NULL), RMAP_NULLPTR);
+  EXPECT_EQ(rmap_header_initialize_reply(&reply, NULL), RMAP_NULLPTR);
+
+  ASSERT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &receive_header,
+        (unsigned char *)test_pattern0_unverified_incrementing_write_with_reply,
+        sizeof(test_pattern0_unverified_incrementing_write_with_reply)),
+      RMAP_OK);
+  ASSERT_EQ(receive_header.type, RMAP_TYPE_COMMAND);
+  EXPECT_EQ(
+      rmap_header_initialize_reply(NULL, &receive_header.t.command),
+      RMAP_NULLPTR);
+}
+
+TEST(RmapHeaderInitializeReply, NoReply)
+{
+  rmap_send_header_t reply;
+  rmap_receive_header_t receive_header;
+  size_t serialized_size;
+
+  ASSERT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &receive_header,
+        (unsigned char *)test_pattern0_unverified_incrementing_write_with_reply,
+        sizeof(test_pattern0_unverified_incrementing_write_with_reply)),
+      RMAP_OK);
+  ASSERT_EQ(receive_header.type, RMAP_TYPE_COMMAND);
+  receive_header.t.command.command_codes &= ~RMAP_COMMAND_CODE_REPLY;
+  EXPECT_EQ(
+      rmap_header_initialize_reply(&reply, &receive_header.t.command),
+      RMAP_NO_REPLY);
+
+  ASSERT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &receive_header,
+        (unsigned char *)test_pattern1_incrementing_read,
+        sizeof(test_pattern1_incrementing_read)),
+      RMAP_OK);
+  ASSERT_EQ(receive_header.type, RMAP_TYPE_COMMAND);
+  receive_header.t.command.command_codes &= ~RMAP_COMMAND_CODE_REPLY;
+  EXPECT_EQ(
+      rmap_header_initialize_reply(&reply, &receive_header.t.command),
+      RMAP_NO_REPLY);
+}
+
+TEST(RmapHeaderInitializeReply, TestPattern0)
+{
+  rmap_send_header_t reply;
+  rmap_receive_header_t receive_header;
+  size_t serialized_size;
+
+  rmap_receive_command_header_t *const cmd = &receive_header.t.command;
+
+  ASSERT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &receive_header,
+        (unsigned char *)test_pattern0_unverified_incrementing_write_with_reply,
+        sizeof(test_pattern0_unverified_incrementing_write_with_reply)),
+      RMAP_OK);
+  ASSERT_EQ(receive_header.type, RMAP_TYPE_COMMAND);
+  EXPECT_EQ(rmap_header_initialize_reply(&reply, cmd), RMAP_OK);
+
+  ASSERT_EQ(reply.type, RMAP_TYPE_WRITE_REPLY);
+
+  rmap_send_write_reply_header_t *const r = &reply.t.write_reply;
+
+  EXPECT_EQ(r->reply_address.length, cmd->reply_address.length);
+  EXPECT_EQ(
+      std::vector<unsigned char>(
+        r->reply_address.data,
+        r->reply_address.data + r->reply_address.length),
+      std::vector<unsigned char>(
+        cmd->reply_address.data,
+        cmd->reply_address.data + cmd->reply_address.length));
+  EXPECT_EQ(r->initiator_logical_address, cmd->initiator_logical_address);
+  EXPECT_EQ(r->command_codes, cmd->command_codes);
+  EXPECT_EQ(r->status, 0);
+  EXPECT_EQ(r->target_logical_address, cmd->target_logical_address);
+  EXPECT_EQ(r->transaction_identifier, cmd->transaction_identifier);
+}
+
+TEST(RmapHeaderInitializeReply, TestPattern1)
+{
+  rmap_send_header_t reply;
+  rmap_receive_header_t receive_header;
+  size_t serialized_size;
+
+  rmap_receive_command_header_t *const cmd = &receive_header.t.command;
+
+  ASSERT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &receive_header,
+        (unsigned char *)test_pattern1_incrementing_read,
+        sizeof(test_pattern1_incrementing_read)),
+      RMAP_OK);
+  ASSERT_EQ(receive_header.type, RMAP_TYPE_COMMAND);
+  EXPECT_EQ(rmap_header_initialize_reply(&reply, cmd), RMAP_OK);
+
+  ASSERT_EQ(reply.type, RMAP_TYPE_READ_REPLY);
+
+  rmap_send_read_reply_header_t *const r = &reply.t.read_reply;
+
+  EXPECT_EQ(r->reply_address.length, cmd->reply_address.length);
+  EXPECT_EQ(
+      std::vector<unsigned char>(
+        r->reply_address.data,
+        r->reply_address.data + r->reply_address.length),
+      std::vector<unsigned char>(
+        cmd->reply_address.data,
+        cmd->reply_address.data + cmd->reply_address.length));
+  EXPECT_EQ(r->initiator_logical_address, cmd->initiator_logical_address);
+  EXPECT_EQ(r->command_codes, cmd->command_codes);
+  EXPECT_EQ(r->status, 0);
+  EXPECT_EQ(r->target_logical_address, cmd->target_logical_address);
+  EXPECT_EQ(r->transaction_identifier, cmd->transaction_identifier);
+  EXPECT_EQ(r->data_length, cmd->data_length);
+}
+
+TEST(RmapHeaderInitializeReply, TestPattern2)
+{
+  rmap_send_header_t reply;
+  rmap_receive_header_t receive_header;
+  size_t serialized_size;
+
+  rmap_receive_command_header_t *const cmd = &receive_header.t.command;
+
+  ASSERT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &receive_header,
+        (unsigned char *)test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+        test_pattern2_target_address_length,
+        sizeof(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) -
+        test_pattern2_target_address_length),
+      RMAP_OK);
+  ASSERT_EQ(receive_header.type, RMAP_TYPE_COMMAND);
+  EXPECT_EQ(rmap_header_initialize_reply(&reply, cmd), RMAP_OK);
+
+  ASSERT_EQ(reply.type, RMAP_TYPE_WRITE_REPLY);
+
+  rmap_send_write_reply_header_t *const r = &reply.t.write_reply;
+
+  EXPECT_EQ(r->reply_address.length, cmd->reply_address.length);
+  EXPECT_EQ(
+      std::vector<unsigned char>(
+        r->reply_address.data,
+        r->reply_address.data + r->reply_address.length),
+      std::vector<unsigned char>(
+        cmd->reply_address.data,
+        cmd->reply_address.data + cmd->reply_address.length));
+  EXPECT_EQ(r->initiator_logical_address, cmd->initiator_logical_address);
+  EXPECT_EQ(r->command_codes, cmd->command_codes);
+  EXPECT_EQ(r->status, 0);
+  EXPECT_EQ(r->target_logical_address, cmd->target_logical_address);
+  EXPECT_EQ(r->transaction_identifier, cmd->transaction_identifier);
+}
+
+TEST(RmapHeaderInitializeReply, TestPattern3)
+{
+  rmap_send_header_t reply;
+  rmap_receive_header_t receive_header;
+  size_t serialized_size;
+
+  rmap_receive_command_header_t *const cmd = &receive_header.t.command;
+
+  ASSERT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &receive_header,
+        (unsigned char *)test_pattern3_incrementing_read_with_spacewire_addresses +
+        test_pattern3_target_address_length,
+        sizeof(test_pattern3_incrementing_read_with_spacewire_addresses) -
+        test_pattern3_target_address_length),
+      RMAP_OK);
+  ASSERT_EQ(receive_header.type, RMAP_TYPE_COMMAND);
+  EXPECT_EQ(rmap_header_initialize_reply(&reply, cmd), RMAP_OK);
+
+  ASSERT_EQ(reply.type, RMAP_TYPE_READ_REPLY);
+
+  rmap_send_read_reply_header_t *const r = &reply.t.read_reply;
+
+  EXPECT_EQ(r->reply_address.length, cmd->reply_address.length);
+  EXPECT_EQ(
+      std::vector<unsigned char>(
+        r->reply_address.data,
+        r->reply_address.data + r->reply_address.length),
+      std::vector<unsigned char>(
+        cmd->reply_address.data,
+        cmd->reply_address.data + cmd->reply_address.length));
+  EXPECT_EQ(r->initiator_logical_address, cmd->initiator_logical_address);
+  EXPECT_EQ(r->command_codes, cmd->command_codes);
+  EXPECT_EQ(r->status, 0);
+  EXPECT_EQ(r->target_logical_address, cmd->target_logical_address);
+  EXPECT_EQ(r->transaction_identifier, cmd->transaction_identifier);
+  EXPECT_EQ(r->data_length, cmd->data_length);
+}

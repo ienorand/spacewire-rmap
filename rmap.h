@@ -36,6 +36,7 @@ typedef enum {
   RMAP_NO_RMAP_PROTOCOL,
   RMAP_HEADER_CRC_ERROR,
   RMAP_INCOMPLETE_HEADER,
+  RMAP_NO_REPLY,
   RMAP_ECSS_INVALID_DATA_CRC,
   RMAP_ECSS_ERROR_END_OF_PACKET,
   RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE,
@@ -154,6 +155,32 @@ typedef struct {
     rmap_receive_read_reply_header_t read_reply;
   } t;
 } rmap_receive_header_t;
+
+/** Initialize a reply header for given command header.
+ *
+ * Initialize a reply header object with all members set to match a reply to a
+ * successfully executed command.
+ *
+ * The status should be updated to match the actual result of the command execution.
+ *
+ * In case of a read command, the data length should be updated to match the
+ * actual amount of data read.
+ *
+ * @pre The RMAP command header object in @p command must be the result of a
+ *      call to rmap_header_deserialize() which returned RMAP_OK and which
+ *      provided an RMAP header object with the type RMAP_TYPE_COMMAND.
+ *
+ * @param[out] reply RMAP reply header object.
+ * @param[in] command RMAP command header object.
+ *
+ * @retval RMAP_NULLPTR @p reply or @p command is NULL.
+ * @retval RMAP_NO_REPLY No reply should be sent for this command based on the
+ *         command codes.
+ * @retval RMAP_OK Success, the reply has been initialized in @p reply.
+ */
+rmap_status_t rmap_header_initialize_reply(
+    rmap_send_header_t *reply,
+    const rmap_receive_command_header_t *command);
 
 /** Calculate the size of a header if serialized.
  *
