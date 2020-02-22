@@ -415,7 +415,7 @@ static rmap_status_t serialize_common_reply_header(
       reply_address_unpadded_size);
   data_ptr += reply_address_unpadded_size;
 
-  *data_ptr++ = header->target_logical_address;
+  *data_ptr++ = header->initiator_logical_address;
 
   const uint8_t protocol_identifier = 1;
   *data_ptr++ = protocol_identifier;

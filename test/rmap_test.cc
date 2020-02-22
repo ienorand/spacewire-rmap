@@ -1882,6 +1882,306 @@ TEST(RmapHeaderSerialize, SendReadReplyMaximumDataLength)
       RMAP_OK);
 }
 
+TEST(RmapHeaderSerialize, TestPattern0Command)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.length = 0;
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.reply_address.length = 0;
+  header.t.command.key = 0x00;
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.command_codes =
+    RMAP_COMMAND_CODE_WRITE |
+    RMAP_COMMAND_CODE_INCREMENT |
+    RMAP_COMMAND_CODE_REPLY;
+  header.t.command.transaction_identifier = 0x0000;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000000;
+  header.t.command.data_length = 0x000010;
+
+  ASSERT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_OK);
+
+  EXPECT_THAT(
+      std::vector<unsigned char>(data, data + serialized_size),
+      testing::ElementsAreArray(
+        test_pattern0_unverified_incrementing_write_with_reply,
+        serialized_size));
+}
+
+TEST(RmapHeaderSerialize, TestPattern0Reply)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  header.type = RMAP_TYPE_WRITE_REPLY;
+  header.t.write_reply.reply_address.length = 0;
+  header.t.write_reply.initiator_logical_address = 0x67;
+  header.t.write_reply.command_codes =
+    RMAP_COMMAND_CODE_WRITE |
+    RMAP_COMMAND_CODE_INCREMENT |
+    RMAP_COMMAND_CODE_REPLY;
+  header.t.write_reply.status = 0;
+  header.t.write_reply.target_logical_address = 0xFE;
+  header.t.write_reply.transaction_identifier = 0x0000;
+
+  ASSERT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_OK);
+
+  EXPECT_THAT(
+      std::vector<unsigned char>(data, data + serialized_size),
+      testing::ElementsAreArray(
+        test_pattern0_expected_write_reply,
+        serialized_size));
+}
+
+TEST(RmapHeaderSerialize, TestPattern1Command)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.length = 0;
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.reply_address.length = 0;
+  header.t.command.key = 0x00;
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.command_codes =
+    RMAP_COMMAND_CODE_INCREMENT |
+    RMAP_COMMAND_CODE_REPLY;
+  header.t.command.transaction_identifier = 0x0001;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000000;
+  header.t.command.data_length = 0x000010;
+
+  ASSERT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_OK);
+
+  EXPECT_THAT(
+      std::vector<unsigned char>(data, data + serialized_size),
+      testing::ElementsAreArray(
+        test_pattern1_incrementing_read,
+        serialized_size));
+}
+
+TEST(RmapHeaderSerialize, TestPattern1Reply)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  header.type = RMAP_TYPE_READ_REPLY;
+  header.t.read_reply.reply_address.length = 0;
+  header.t.read_reply.initiator_logical_address = 0x67;
+  header.t.read_reply.command_codes =
+    RMAP_COMMAND_CODE_INCREMENT |
+    RMAP_COMMAND_CODE_REPLY;
+  header.t.read_reply.status = 0;
+  header.t.read_reply.target_logical_address = 0xFE;
+  header.t.read_reply.transaction_identifier = 0x0001;
+  header.t.read_reply.data_length = 0x000010;
+
+  ASSERT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_OK);
+
+  EXPECT_THAT(
+      std::vector<unsigned char>(data, data + serialized_size),
+      testing::ElementsAreArray(
+        test_pattern1_expected_read_reply,
+        serialized_size));
+}
+
+TEST(RmapHeaderSerialize, TestPattern2Command)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77 };
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.data = target_address;
+  header.t.command.target_address.length = sizeof(target_address);
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.reply_address.data[0] = 0x00;
+  header.t.command.reply_address.data[1] = 0x99;
+  header.t.command.reply_address.data[2] = 0xAA;
+  header.t.command.reply_address.data[3] = 0xBB;
+  header.t.command.reply_address.data[4] = 0xCC;
+  header.t.command.reply_address.data[5] = 0xDD;
+  header.t.command.reply_address.data[6] = 0xEE;
+  header.t.command.reply_address.data[7] = 0x00;
+  header.t.command.reply_address.length = 8;
+  header.t.command.key = 0x00;
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.command_codes =
+    RMAP_COMMAND_CODE_WRITE |
+    RMAP_COMMAND_CODE_INCREMENT |
+    RMAP_COMMAND_CODE_REPLY;
+  header.t.command.transaction_identifier = 0x0002;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000010;
+  header.t.command.data_length = 0x000010;
+
+  ASSERT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_OK);
+
+  EXPECT_THAT(
+      std::vector<unsigned char>(data, data + serialized_size),
+      testing::ElementsAreArray(
+        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses,
+        serialized_size));
+}
+
+TEST(RmapHeaderSerialize, TestPattern2Reply)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  header.type = RMAP_TYPE_WRITE_REPLY;
+  header.t.write_reply.reply_address.data[0] = 0x00;
+  header.t.write_reply.reply_address.data[1] = 0x99;
+  header.t.write_reply.reply_address.data[2] = 0xAA;
+  header.t.write_reply.reply_address.data[3] = 0xBB;
+  header.t.write_reply.reply_address.data[4] = 0xCC;
+  header.t.write_reply.reply_address.data[5] = 0xDD;
+  header.t.write_reply.reply_address.data[6] = 0xEE;
+  header.t.write_reply.reply_address.data[7] = 0x00;
+  header.t.write_reply.reply_address.length = 8;
+  header.t.write_reply.initiator_logical_address = 0x67;
+  header.t.write_reply.command_codes =
+    RMAP_COMMAND_CODE_WRITE |
+    RMAP_COMMAND_CODE_INCREMENT |
+    RMAP_COMMAND_CODE_REPLY;
+  header.t.write_reply.status = 0;
+  header.t.write_reply.target_logical_address = 0xFE;
+  header.t.write_reply.transaction_identifier = 0x0002;
+
+  ASSERT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_OK);
+
+  EXPECT_THAT(
+      std::vector<unsigned char>(data, data + serialized_size),
+      testing::ElementsAreArray(
+        test_pattern2_expected_write_reply_with_spacewire_addresses,
+        serialized_size));
+}
+
+TEST(RmapHeaderSerialize, TestPattern3Command)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  const uint8_t target_address[] = { 0x11, 0x22, 0x33, 0x44 };
+
+  header.type = RMAP_TYPE_COMMAND;
+  header.t.command.target_address.data = target_address;
+  header.t.command.target_address.length = sizeof(target_address);
+  header.t.command.target_logical_address = 0xFE;
+  header.t.command.reply_address.data[0] = 0x99;
+  header.t.command.reply_address.data[1] = 0xAA;
+  header.t.command.reply_address.data[2] = 0xBB;
+  header.t.command.reply_address.data[3] = 0xCC;
+  header.t.command.reply_address.length = 4;
+  header.t.command.key = 0x00;
+  header.t.command.initiator_logical_address = 0x67;
+  header.t.command.command_codes =
+    RMAP_COMMAND_CODE_INCREMENT |
+    RMAP_COMMAND_CODE_REPLY;
+  header.t.command.transaction_identifier = 0x0003;
+  header.t.command.extended_address = 0x00;
+  header.t.command.address = 0xA0000010;
+  header.t.command.data_length = 0x000010;
+
+  ASSERT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_OK);
+
+  EXPECT_THAT(
+      std::vector<unsigned char>(data, data + serialized_size),
+      testing::ElementsAreArray(
+        test_pattern3_incrementing_read_with_spacewire_addresses,
+        serialized_size));
+}
+
+TEST(RmapHeaderSerialize, TestPattern3Reply)
+{
+  size_t serialized_size;
+  rmap_send_header_t header;
+  unsigned char data[64];
+
+  header.type = RMAP_TYPE_READ_REPLY;
+  header.t.read_reply.reply_address.data[0] = 0x99;
+  header.t.read_reply.reply_address.data[1] = 0xAA;
+  header.t.read_reply.reply_address.data[2] = 0xBB;
+  header.t.read_reply.reply_address.data[3] = 0xCC;
+  header.t.read_reply.reply_address.length = 4;
+  header.t.read_reply.initiator_logical_address = 0x67;
+  header.t.read_reply.command_codes =
+    RMAP_COMMAND_CODE_INCREMENT |
+    RMAP_COMMAND_CODE_REPLY;
+  header.t.read_reply.status = 0;
+  header.t.read_reply.target_logical_address = 0xFE;
+  header.t.read_reply.transaction_identifier = 0x0003;
+  header.t.read_reply.data_length = 0x000010;
+
+  ASSERT_EQ(
+      rmap_header_serialize(
+        &serialized_size,
+        data,
+        sizeof(data),
+        &header),
+      RMAP_OK);
+
+  EXPECT_THAT(
+      std::vector<unsigned char>(data, data + serialized_size),
+      testing::ElementsAreArray(
+        test_pattern3_expected_read_reply_with_spacewire_addresses,
+        serialized_size));
+}
+
 TEST(RmapHeaderInitializeReply, Nullptr)
 {
   rmap_send_header_t reply;
