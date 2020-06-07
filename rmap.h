@@ -202,7 +202,7 @@ rmap_status_t rmap_header_calculate_serialized_size(
 /** Serialize an RMAP header.
  *
  * @param[out] serialized_size Size of the serialized header.
- * @param[in] data Destination for the serialized header.
+ * @param[out] data Destination for the serialized header.
  * @param data_size Maximum size available in @p data for the serialized
  *            header.
  * @param[in] header RMAP header object.
@@ -238,7 +238,7 @@ rmap_status_t rmap_header_serialize(
  *
  * @param[out] serialized_offset Offset of the serialized header in @p data.
  * @param[out] serialized_size Size of the serialized header.
- * @param[in] data Destination for the serialized header.
+ * @param[out] data Destination for the serialized header.
  * @param data_size Maximum size available in @p data for the serialized
  *        header, the payload, and the RMAP CRC.
  * @param payload_offset Offset of the payload in @p data.
