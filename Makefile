@@ -10,6 +10,11 @@ librmap.a: librmap.a(rmap.o)
 
 rmap.o: rmap.h
 
+.PHONY: test
+test:
+	$(MAKE) -C test test
+
 .PHONY: clean
 clean:
 	rm -f rmap.o librmap.a
+	$(MAKE) -C test clean
