@@ -273,7 +273,7 @@ rmap_status_t rmap_packet_serialize_inplace(
     size_t payload_size,
     const rmap_send_header_t *header);
 
-/** Deserialize the header from a receiced RMAP packet.
+/** Deserialize the header from a received RMAP packet.
  *
  * The data length and data CRC is verified for write command packets only if
  * the verifty-before-write bit is set in the received packet, otherwise this
@@ -321,7 +321,7 @@ rmap_status_t rmap_header_deserialize(
  */
 const char *rmap_status_text(rmap_status_t status);
 
-/** Calculate RMAP crc.
+/** Calculate RMAP CRC.
  *
  * @param[in] data Start of data to CRC.
  * @param data_size Size of data to CRC.
