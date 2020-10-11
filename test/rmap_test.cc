@@ -162,6 +162,7 @@ static const uint8_t test_pattern1_expected_read_reply[] = {
 };
 
 static const size_t test_pattern2_target_address_length = 7;
+static const size_t test_pattern2_reply_address_length_padded = 8;
 static const uint8_t test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses[] = {
   /* Target SpaceWire Address */
   0x11,
@@ -307,6 +308,7 @@ static const uint8_t test_pattern3_incrementing_read_with_spacewire_addresses[] 
   0xF7
 };
 
+static const size_t test_pattern3_reply_address_length = 4;
 static const uint8_t test_pattern3_expected_read_reply_with_spacewire_addresses[] = {
   /* Reply SpaceWire Address */
   0x99,
@@ -507,21 +509,30 @@ TEST(RmapHeaderDeserialize, Nullptr)
 }
 
 typedef std::tuple<int, int, rmap_status_t> SerializedPacketTypeCommandCodesStatusParameters;
-class SerializedWriteInstruction :
+
+class SerializedWriteCommandInstruction :
   public testing::TestWithParam<SerializedPacketTypeCommandCodesStatusParameters>
 {
 };
 
-TEST_P(SerializedWriteInstruction, DeserializeTestPattern0Command)
+TEST_P(SerializedWriteCommandInstruction, DeserializeTestPattern0Command)
 {
   rmap_receive_header_t header;
   size_t serialized_size;
 
-  unsigned char test_pattern[sizeof(test_pattern0_unverified_incrementing_write_with_reply)];
+  const uint8_t *const pattern =
+    test_pattern0_unverified_incrementing_write_with_reply;
+  const size_t pattern_length =
+    sizeof(test_pattern0_unverified_incrementing_write_with_reply);
+  const size_t target_address_length = 0;
+  const size_t instruction_offset = 2;
+  const size_t header_length = 16;
+
+  unsigned char modified_pattern[pattern_length - target_address_length];
   memcpy(
-      test_pattern,
-      test_pattern0_unverified_incrementing_write_with_reply,
-      sizeof(test_pattern));
+      modified_pattern,
+      pattern + target_address_length,
+      pattern_length - target_address_length);
 
   const int packet_type = std::get<0>(GetParam());
   ASSERT_GE(packet_type, 0x0);
@@ -529,26 +540,72 @@ TEST_P(SerializedWriteInstruction, DeserializeTestPattern0Command)
   const int command_codes = std::get<1>(GetParam());
   ASSERT_GE(command_codes, 0x0);
   ASSERT_LE(command_codes, 0xF);
-  const int reply_address_length_serialized = 0x0;
+  const int reply_address_length_serialized =
+    modified_pattern[instruction_offset] & 3;
   const int instruction =
     packet_type << 6 | command_codes << 2 | reply_address_length_serialized;
   ASSERT_GE(instruction, 0x00);
   ASSERT_LE(instruction, 0xFF);
-  test_pattern[2] = (unsigned char)(instruction);
-  test_pattern[15] = rmap_crc_calculate(test_pattern, 15);
+  modified_pattern[instruction_offset] = (unsigned char)(instruction);
+  modified_pattern[header_length - 1] =
+    rmap_crc_calculate(modified_pattern, header_length -1);
 
   EXPECT_EQ(
       rmap_header_deserialize(
         &serialized_size,
         &header,
-        test_pattern,
-        sizeof(test_pattern)),
+        modified_pattern,
+        sizeof(modified_pattern)),
+      std::get<2>(GetParam()));
+}
+
+TEST_P(SerializedWriteCommandInstruction, DeserializeTestPattern2Command)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  const uint8_t *const pattern =
+    test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses;
+  const size_t pattern_length =
+    sizeof(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses);
+  const size_t target_address_length = test_pattern2_target_address_length;
+  const size_t instruction_offset = 2;
+  const size_t header_length = 16 + test_pattern2_reply_address_length_padded;
+
+  unsigned char modified_pattern[pattern_length - target_address_length];
+  memcpy(
+      modified_pattern,
+      pattern + target_address_length,
+      sizeof(modified_pattern));
+
+  const int packet_type = std::get<0>(GetParam());
+  ASSERT_GE(packet_type, 0x0);
+  ASSERT_LE(packet_type, 0x3);
+  const int command_codes = std::get<1>(GetParam());
+  ASSERT_GE(command_codes, 0x0);
+  ASSERT_LE(command_codes, 0xF);
+  const int reply_address_length_serialized =
+    modified_pattern[instruction_offset] & 3;
+  const int instruction =
+    packet_type << 6 | command_codes << 2 | reply_address_length_serialized;
+  ASSERT_GE(instruction, 0x00);
+  ASSERT_LE(instruction, 0xFF);
+  modified_pattern[instruction_offset] = (unsigned char)(instruction);
+  modified_pattern[header_length - 1] =
+    rmap_crc_calculate(modified_pattern, header_length - 1);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        modified_pattern,
+        sizeof(modified_pattern)),
       std::get<2>(GetParam()));
 }
 
 INSTANTIATE_TEST_CASE_P(
     InvalidPacketType,
-    SerializedWriteInstruction,
+    SerializedWriteCommandInstruction,
     testing::Combine(
       testing::Values(0x2, 0x3),
       testing::Range(
@@ -558,12 +615,351 @@ INSTANTIATE_TEST_CASE_P(
 
 INSTANTIATE_TEST_CASE_P(
     ValidPacketType,
-    SerializedWriteInstruction,
+    SerializedWriteCommandInstruction,
     testing::Combine(
       testing::Values(0x1),
       testing::Range(
         1 << 3,
         (1 << 3 | 1 << 2 | 1 << 1 | 1 << 0) + 1),
+      testing::Values(RMAP_OK)));
+
+class SerializedWriteReplyInstruction :
+  public testing::TestWithParam<SerializedPacketTypeCommandCodesStatusParameters>
+{
+};
+
+TEST_P(SerializedWriteReplyInstruction, DeserializeTestPattern0Reply)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  const uint8_t *const pattern =
+    test_pattern0_expected_write_reply;
+  const size_t pattern_length =
+    sizeof(test_pattern0_expected_write_reply);
+  const size_t target_address_length = 0;
+  const size_t instruction_offset = 2;
+  const size_t header_length = 8;
+
+  unsigned char modified_pattern[pattern_length - target_address_length];
+  memcpy(
+      modified_pattern,
+      pattern + target_address_length,
+      sizeof(modified_pattern));
+
+  const int packet_type = std::get<0>(GetParam());
+  ASSERT_GE(packet_type, 0x0);
+  ASSERT_LE(packet_type, 0x3);
+  const int command_codes = std::get<1>(GetParam());
+  ASSERT_GE(command_codes, 0x0);
+  ASSERT_LE(command_codes, 0xF);
+  const int reply_address_length_serialized =
+    modified_pattern[instruction_offset] & 3;
+  const int instruction =
+    packet_type << 6 | command_codes << 2 | reply_address_length_serialized;
+  ASSERT_GE(instruction, 0x00);
+  ASSERT_LE(instruction, 0xFF);
+  modified_pattern[instruction_offset] = (unsigned char)(instruction);
+  modified_pattern[header_length - 1] =
+    rmap_crc_calculate(modified_pattern, header_length - 1);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        modified_pattern,
+        sizeof(modified_pattern)),
+      std::get<2>(GetParam()));
+}
+
+TEST_P(SerializedWriteReplyInstruction, DeserializeTestPattern2Reply)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  const uint8_t *const pattern =
+    test_pattern2_expected_write_reply_with_spacewire_addresses;
+  const size_t pattern_length =
+    sizeof(test_pattern2_expected_write_reply_with_spacewire_addresses);
+  const size_t target_address_length = test_pattern2_reply_address_length;
+  const size_t instruction_offset = 2;
+  const size_t header_length = 8;
+
+  unsigned char modified_pattern[pattern_length - target_address_length];
+  memcpy(
+      modified_pattern,
+      pattern + target_address_length,
+      sizeof(modified_pattern));
+
+  const int packet_type = std::get<0>(GetParam());
+  ASSERT_GE(packet_type, 0x0);
+  ASSERT_LE(packet_type, 0x3);
+  const int command_codes = std::get<1>(GetParam());
+  ASSERT_GE(command_codes, 0x0);
+  ASSERT_LE(command_codes, 0xF);
+  const int reply_address_length_serialized =
+    modified_pattern[instruction_offset] & 3;
+  const int instruction =
+    packet_type << 6 | command_codes << 2 | reply_address_length_serialized;
+  ASSERT_GE(instruction, 0x00);
+  ASSERT_LE(instruction, 0xFF);
+  modified_pattern[instruction_offset] = (unsigned char)(instruction);
+  modified_pattern[header_length - 1] =
+    rmap_crc_calculate(modified_pattern, header_length - 1);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        modified_pattern,
+        sizeof(modified_pattern)),
+      std::get<2>(GetParam()));
+}
+
+INSTANTIATE_TEST_CASE_P(
+    InvalidPacketType,
+    SerializedWriteReplyInstruction,
+    testing::Combine(
+      testing::Values(0x2, 0x3),
+      testing::Range(
+        1 << 3,
+        (1 << 3 | 1 << 2 | 1 << 1 | 1 << 0) + 1),
+      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+
+INSTANTIATE_TEST_CASE_P(
+    ValidPacketType,
+    SerializedWriteReplyInstruction,
+    testing::Combine(
+      testing::Values(0x0),
+      testing::Range(
+        1 << 3,
+        (1 << 3 | 1 << 2 | 1 << 1 | 1 << 0) + 1),
+      testing::Values(RMAP_OK)));
+
+class SerializedReadCommandInstruction :
+  public testing::TestWithParam<SerializedPacketTypeCommandCodesStatusParameters>
+{
+};
+
+TEST_P(SerializedReadCommandInstruction, DeserializeTestPattern1Command)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  const uint8_t *const pattern = test_pattern1_incrementing_read;
+  const size_t pattern_length = sizeof(test_pattern1_incrementing_read);
+  const size_t target_address_length = 0;
+  const size_t instruction_offset = 2;
+  const size_t header_length = 16;
+
+  unsigned char modified_pattern[pattern_length - target_address_length];
+  memcpy(
+      modified_pattern,
+      pattern + target_address_length,
+      sizeof(modified_pattern));
+
+  const int packet_type = std::get<0>(GetParam());
+  ASSERT_GE(packet_type, 0x0);
+  ASSERT_LE(packet_type, 0x3);
+  const int command_codes = std::get<1>(GetParam());
+  ASSERT_GE(command_codes, 0x0);
+  ASSERT_LE(command_codes, 0xF);
+  const int reply_address_length_serialized =
+    modified_pattern[instruction_offset] & 3;
+  const int instruction =
+    packet_type << 6 | command_codes << 2 | reply_address_length_serialized;
+  ASSERT_GE(instruction, 0x00);
+  ASSERT_LE(instruction, 0xFF);
+  modified_pattern[instruction_offset] = (unsigned char)(instruction);
+  modified_pattern[header_length - 1] =
+    rmap_crc_calculate(modified_pattern, header_length - 1);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        modified_pattern,
+        sizeof(modified_pattern)),
+      std::get<2>(GetParam()));
+}
+
+TEST_P(SerializedReadCommandInstruction, DeserializeTestPattern3Command)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  const uint8_t *const pattern =
+    test_pattern3_incrementing_read_with_spacewire_addresses;
+  const size_t pattern_length =
+    sizeof(test_pattern3_incrementing_read_with_spacewire_addresses);
+  const size_t target_address_length = test_pattern3_target_address_length;
+  const size_t instruction_offset = 2;
+  const size_t header_length = 16 + test_pattern3_reply_address_length;
+
+  unsigned char modified_pattern[pattern_length - target_address_length];
+  memcpy(
+      modified_pattern,
+      pattern + target_address_length,
+      sizeof(modified_pattern));
+
+  const int packet_type = std::get<0>(GetParam());
+  ASSERT_GE(packet_type, 0x0);
+  ASSERT_LE(packet_type, 0x3);
+  const int command_codes = std::get<1>(GetParam());
+  ASSERT_GE(command_codes, 0x0);
+  ASSERT_LE(command_codes, 0xF);
+  const int reply_address_length_serialized =
+    modified_pattern[instruction_offset] & 3;
+  const int instruction =
+    packet_type << 6 | command_codes << 2 | reply_address_length_serialized;
+  ASSERT_GE(instruction, 0x00);
+  ASSERT_LE(instruction, 0xFF);
+  modified_pattern[instruction_offset] = (unsigned char)(instruction);
+  modified_pattern[header_length - 1] =
+    rmap_crc_calculate(modified_pattern, header_length - 1);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        modified_pattern,
+        sizeof(modified_pattern)),
+      std::get<2>(GetParam()));
+}
+
+INSTANTIATE_TEST_CASE_P(
+    InvalidPacketType,
+    SerializedReadCommandInstruction,
+    testing::Combine(
+      testing::Values(0x2, 0x3),
+      testing::Values(
+        1 << 1,
+        1 << 1 |1 << 0,
+        1 << 2 | 1 << 1 |1 << 0),
+      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+
+INSTANTIATE_TEST_CASE_P(
+    ValidPacketType,
+    SerializedReadCommandInstruction,
+    testing::Combine(
+      testing::Values(0x1),
+      testing::Values(
+        1 << 1,
+        1 << 1 |1 << 0,
+        1 << 2 | 1 << 1 |1 << 0),
+      testing::Values(RMAP_OK)));
+
+class SerializedReadReplyInstruction :
+  public testing::TestWithParam<SerializedPacketTypeCommandCodesStatusParameters>
+{
+};
+
+TEST_P(SerializedReadReplyInstruction, DeserializeTestPattern1Reply)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  const uint8_t *const pattern = test_pattern1_expected_read_reply;
+  const size_t pattern_length = sizeof(test_pattern1_expected_read_reply);
+  const size_t target_address_length = 0;
+  const size_t instruction_offset = 2;
+  const size_t header_length = 12;
+
+  unsigned char modified_pattern[pattern_length - target_address_length];
+  memcpy(
+      modified_pattern,
+      pattern + target_address_length,
+      sizeof(modified_pattern));
+
+  const int packet_type = std::get<0>(GetParam());
+  ASSERT_GE(packet_type, 0x0);
+  ASSERT_LE(packet_type, 0x3);
+  const int command_codes = std::get<1>(GetParam());
+  ASSERT_GE(command_codes, 0x0);
+  ASSERT_LE(command_codes, 0xF);
+  const int reply_address_length_serialized =
+    modified_pattern[instruction_offset] & 3;
+  const int instruction =
+    packet_type << 6 | command_codes << 2 | reply_address_length_serialized;
+  ASSERT_GE(instruction, 0x00);
+  ASSERT_LE(instruction, 0xFF);
+  modified_pattern[instruction_offset] = (unsigned char)(instruction);
+  modified_pattern[header_length - 1] =
+    rmap_crc_calculate(modified_pattern, header_length - 1);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        modified_pattern,
+        sizeof(modified_pattern)),
+      std::get<2>(GetParam()));
+}
+
+TEST_P(SerializedReadReplyInstruction, DeserializeTestPattern3Reply)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  const uint8_t *const pattern =
+    test_pattern3_expected_read_reply_with_spacewire_addresses;
+  const size_t pattern_length =
+    sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses);
+  const size_t target_address_length = test_pattern3_reply_address_length;
+  const size_t instruction_offset = 2;
+  const size_t header_length = 12;
+
+  unsigned char modified_pattern[pattern_length - target_address_length];
+  memcpy(
+      modified_pattern,
+      pattern + target_address_length,
+      sizeof(modified_pattern));
+
+  const int packet_type = std::get<0>(GetParam());
+  ASSERT_GE(packet_type, 0x0);
+  ASSERT_LE(packet_type, 0x3);
+  const int command_codes = std::get<1>(GetParam());
+  ASSERT_GE(command_codes, 0x0);
+  ASSERT_LE(command_codes, 0xF);
+  const int reply_address_length_serialized =
+    modified_pattern[instruction_offset] & 3;
+  const int instruction =
+    packet_type << 6 | command_codes << 2 | reply_address_length_serialized;
+  ASSERT_GE(instruction, 0x00);
+  ASSERT_LE(instruction, 0xFF);
+  modified_pattern[instruction_offset] = (unsigned char)(instruction);
+  modified_pattern[header_length - 1] =
+    rmap_crc_calculate(modified_pattern, header_length - 1);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        modified_pattern,
+        sizeof(modified_pattern)),
+      std::get<2>(GetParam()));
+}
+
+INSTANTIATE_TEST_CASE_P(
+    InvalidPacketType,
+    SerializedReadReplyInstruction,
+    testing::Combine(
+      testing::Values(0x2, 0x3),
+      testing::Values(
+        1 << 1,
+        1 << 1 |1 << 0,
+        1 << 2 | 1 << 1 |1 << 0),
+      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+
+INSTANTIATE_TEST_CASE_P(
+    ValidPacketType,
+    SerializedReadReplyInstruction,
+    testing::Combine(
+      testing::Values(0x0),
+      testing::Values(
+        1 << 1,
+        1 << 1 |1 << 0,
+        1 << 2 | 1 << 1 |1 << 0),
       testing::Values(RMAP_OK)));
 
 TEST(RmapHeaderDeserialize, TestPattern0Command)
