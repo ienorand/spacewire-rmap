@@ -863,8 +863,14 @@ rmap_status_t rmap_header_deserialize(
       return RMAP_ECSS_TOO_MUCH_DATA;
     }
   } else {
+    if (!(command_codes & RMAP_COMMAND_CODE_REPLY)) {
+      /* Reply without reply in command codes is invalid. */
+      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+    }
+
     if (command_codes & RMAP_COMMAND_CODE_WRITE) {
       rmap_type = RMAP_TYPE_WRITE_REPLY;
+
       header_size = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
       if (data_size > header_size) {
         /* Data characters in write reply are invalid. */

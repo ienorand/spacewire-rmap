@@ -721,9 +721,23 @@ INSTANTIATE_TEST_CASE_P(
     SerializedWriteReplyInstruction,
     testing::Combine(
       testing::Values(0x2, 0x3),
-      testing::Range(
+      testing::Values(
+        1 << 3 | 1 << 1,
+        1 << 3 | 1 << 1 | 1 << 0,
+        1 << 3 | 1 << 2 | 1 << 1,
+        1 << 3 | 1 << 2 | 1 << 1 | 1 << 0),
+      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+
+INSTANTIATE_TEST_CASE_P(
+    InvalidReplyWithoutReplyCommandCode,
+    SerializedWriteReplyInstruction,
+    testing::Combine(
+      testing::Values(0x0),
+      testing::Values(
         1 << 3,
-        (1 << 3 | 1 << 2 | 1 << 1 | 1 << 0) + 1),
+        1 << 3 | 1 << 0,
+        1 << 3 | 1 << 2,
+        1 << 3 | 1 << 2 | 1 << 0),
       testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
 
 INSTANTIATE_TEST_CASE_P(
@@ -731,9 +745,11 @@ INSTANTIATE_TEST_CASE_P(
     SerializedWriteReplyInstruction,
     testing::Combine(
       testing::Values(0x0),
-      testing::Range(
-        1 << 3,
-        (1 << 3 | 1 << 2 | 1 << 1 | 1 << 0) + 1),
+      testing::Values(
+        1 << 3 | 1 << 1,
+        1 << 3 | 1 << 1 | 1 << 0,
+        1 << 3 | 1 << 2 | 1 << 1,
+        1 << 3 | 1 << 2 | 1 << 1 | 1 << 0),
       testing::Values(RMAP_OK)));
 
 class SerializedReadCommandInstruction :
