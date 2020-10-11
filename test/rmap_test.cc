@@ -506,6 +506,66 @@ TEST(RmapHeaderDeserialize, Nullptr)
       RMAP_NULLPTR);
 }
 
+typedef std::tuple<int, int, rmap_status_t> SerializedPacketTypeCommandCodesStatusParameters;
+class SerializedWriteInstruction :
+  public testing::TestWithParam<SerializedPacketTypeCommandCodesStatusParameters>
+{
+};
+
+TEST_P(SerializedWriteInstruction, DeserializeTestPattern0Command)
+{
+  rmap_receive_header_t header;
+  size_t serialized_size;
+
+  unsigned char test_pattern[sizeof(test_pattern0_unverified_incrementing_write_with_reply)];
+  memcpy(
+      test_pattern,
+      test_pattern0_unverified_incrementing_write_with_reply,
+      sizeof(test_pattern));
+
+  const int packet_type = std::get<0>(GetParam());
+  ASSERT_GE(packet_type, 0x0);
+  ASSERT_LE(packet_type, 0x3);
+  const int command_codes = std::get<1>(GetParam());
+  ASSERT_GE(command_codes, 0x0);
+  ASSERT_LE(command_codes, 0xF);
+  const int reply_address_length_serialized = 0x0;
+  const int instruction =
+    packet_type << 6 | command_codes << 2 | reply_address_length_serialized;
+  ASSERT_GE(instruction, 0x00);
+  ASSERT_LE(instruction, 0xFF);
+  test_pattern[2] = (unsigned char)(instruction);
+  test_pattern[15] = rmap_crc_calculate(test_pattern, 15);
+
+  EXPECT_EQ(
+      rmap_header_deserialize(
+        &serialized_size,
+        &header,
+        test_pattern,
+        sizeof(test_pattern)),
+      std::get<2>(GetParam()));
+}
+
+INSTANTIATE_TEST_CASE_P(
+    InvalidPacketType,
+    SerializedWriteInstruction,
+    testing::Combine(
+      testing::Values(0x2, 0x3),
+      testing::Range(
+        1 << 3,
+        (1 << 3 | 1 << 2 | 1 << 1 | 1 << 0) + 1),
+      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+
+INSTANTIATE_TEST_CASE_P(
+    ValidPacketType,
+    SerializedWriteInstruction,
+    testing::Combine(
+      testing::Values(0x1),
+      testing::Range(
+        1 << 3,
+        (1 << 3 | 1 << 2 | 1 << 1 | 1 << 0) + 1),
+      testing::Values(RMAP_OK)));
+
 TEST(RmapHeaderDeserialize, TestPattern0Command)
 {
   rmap_receive_header_t header;

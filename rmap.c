@@ -827,6 +827,7 @@ rmap_status_t rmap_header_deserialize(
   size_t reply_address_unpadded_length;
   size_t header_size;
   rmap_type_t rmap_type;
+  size_t data_length_offset;
   size_t offset;
 
   if (!serialized_size || !header || !data) {
@@ -900,9 +901,17 @@ rmap_status_t rmap_header_deserialize(
      * if verify-before-write bit is set for write commands.
      */
 
-    const uint32_t data_length_tmp =
-      (uint32_t)data[8] << 16 | (uint32_t)data[9] << 8 | data[10];
-    const size_t expected_packet_size = header_size + data_length_tmp + 1;
+    if (rmap_type == RMAP_TYPE_READ_REPLY) {
+      data_length_offset = 8;
+    } else {
+      assert(is_write_command_with_verify_before_write_set);
+      data_length_offset = 12;
+    }
+    const uint32_t data_length =
+      (uint32_t)data[data_length_offset] << 16 |
+      (uint32_t)data[data_length_offset + 1] << 8 |
+      data[data_length_offset + 2];
+    const size_t expected_packet_size = header_size + data_length + 1;
     if(data_size < expected_packet_size) {
       return RMAP_INCOMPLETE_PACKET;
     }
