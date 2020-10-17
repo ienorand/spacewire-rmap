@@ -134,58 +134,58 @@ static rmap_status_t deserialize_instruction(
     size_t *const reply_address_length,
     const uint8_t instruction)
 {
-  packet_type_t packet_type_tmp;
-  unsigned char command_codes_tmp;
+  bool is_unused_packet_type_or_command_code;
 
   assert(packet_type);
   assert(command_codes);
   assert(reply_address_length);
 
+  is_unused_packet_type_or_command_code = false;
+
   const unsigned char packet_type_representation =
     (instruction & RMAP_INSTRUCTION_PACKET_TYPE_MASK) >>
     RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
-  switch (packet_type_representation) {
-    case 0:
-      packet_type_tmp = RMAP_PACKET_TYPE_REPLY;
-      break;
 
-    case 1:
-      packet_type_tmp = RMAP_PACKET_TYPE_COMMAND;
-      break;
-
-    default:
-      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+  if (packet_type_representation & 1) {
+    *packet_type = RMAP_PACKET_TYPE_COMMAND;
+  } else {
+    *packet_type = RMAP_PACKET_TYPE_REPLY;
   }
 
-  command_codes_tmp = 0;
+  if (packet_type_representation & 1 << 1) {
+    is_unused_packet_type_or_command_code = true;
+  }
+
+  *command_codes = 0;
   if ((instruction & RMAP_INSTRUCTION_COMMAND_WRITE_MASK) >>
       RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT) {
-    command_codes_tmp |= RMAP_COMMAND_CODE_WRITE;
+    *command_codes |= RMAP_COMMAND_CODE_WRITE;
   }
   if ((instruction & RMAP_INSTRUCTION_COMMAND_VERIFY_MASK) >>
       RMAP_INSTRUCTION_COMMAND_VERIFY_SHIFT) {
-    command_codes_tmp |= RMAP_COMMAND_CODE_VERIFY;
+    *command_codes |= RMAP_COMMAND_CODE_VERIFY;
   }
   if ((instruction & RMAP_INSTRUCTION_COMMAND_REPLY_MASK) >>
       RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT) {
-    command_codes_tmp |= RMAP_COMMAND_CODE_REPLY;
+    *command_codes |= RMAP_COMMAND_CODE_REPLY;
   }
   if ((instruction & RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK) >>
       RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT) {
-    command_codes_tmp |= RMAP_COMMAND_CODE_INCREMENT;
+    *command_codes |= RMAP_COMMAND_CODE_INCREMENT;
   }
 
-  if (!is_command_codes_valid(command_codes_tmp)) {
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+  if (!is_command_codes_valid(*command_codes)) {
+    is_unused_packet_type_or_command_code = true;
   }
 
   const unsigned char reply_address_length_serialized =
     (instruction & RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK) >>
     RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT;
-
-  *packet_type = packet_type_tmp;
-  *command_codes = command_codes_tmp;
   *reply_address_length = reply_address_length_serialized * 4;
+
+  if (is_unused_packet_type_or_command_code) {
+    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+  }
 
   return RMAP_OK;
 }
