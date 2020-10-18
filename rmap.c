@@ -824,9 +824,14 @@ rmap_status_t rmap_header_deserialize(
   packet_type_t packet_type;
   unsigned char command_codes;
   size_t reply_address_length;
+  bool is_unused_packet_type_or_command_code;
+  bool is_reply_without_reply_command_code;
   size_t reply_address_unpadded_length;
   size_t header_size;
+  bool has_too_much_data;
   rmap_type_t rmap_type;
+  bool has_not_enough_data_in_data_field;
+  bool has_invalid_data_crc;
   size_t offset;
 
   if (!serialized_size || !header || !data) {
@@ -841,6 +846,9 @@ rmap_status_t rmap_header_deserialize(
     return RMAP_NO_RMAP_PROTOCOL;
   }
 
+  is_unused_packet_type_or_command_code = false;
+  is_reply_without_reply_command_code = false;
+
   const rmap_status_t deserialize_instruction_status =
     deserialize_instruction(
         &packet_type,
@@ -850,8 +858,10 @@ rmap_status_t rmap_header_deserialize(
   if (deserialize_instruction_status != RMAP_OK) {
     assert(deserialize_instruction_status ==
         RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return deserialize_instruction_status;
+    is_unused_packet_type_or_command_code = true;
   }
+
+  has_too_much_data = false;
 
   if (packet_type == RMAP_PACKET_TYPE_COMMAND) {
     rmap_type = RMAP_TYPE_COMMAND;
@@ -860,12 +870,12 @@ rmap_status_t rmap_header_deserialize(
     if (!(command_codes & RMAP_COMMAND_CODE_WRITE) &&
         data_size > header_size) {
       /* Data characters in read command are invalid. */
-      return RMAP_ECSS_TOO_MUCH_DATA;
+      has_too_much_data = true;
     }
   } else {
+      assert(packet_type == RMAP_PACKET_TYPE_REPLY);
     if (!(command_codes & RMAP_COMMAND_CODE_REPLY)) {
-      /* Reply without reply in command codes is invalid. */
-      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+      is_reply_without_reply_command_code = true;
     }
 
     if (command_codes & RMAP_COMMAND_CODE_WRITE) {
@@ -874,7 +884,7 @@ rmap_status_t rmap_header_deserialize(
       header_size = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
       if (data_size > header_size) {
         /* Data characters in write reply are invalid. */
-        return RMAP_ECSS_TOO_MUCH_DATA;
+        has_too_much_data = true;
       }
     } else {
       rmap_type = RMAP_TYPE_READ_REPLY;
@@ -899,6 +909,8 @@ rmap_status_t rmap_header_deserialize(
     (command_codes & RMAP_COMMAND_CODE_WRITE) &&
     (command_codes & RMAP_COMMAND_CODE_VERIFY);
 
+  has_not_enough_data_in_data_field = false;
+  has_invalid_data_crc = false;
 
   if (rmap_type == RMAP_TYPE_READ_REPLY ||
       is_write_command_with_verify_before_write_set) {
@@ -913,10 +925,10 @@ rmap_status_t rmap_header_deserialize(
       data[data_length_offset + 2];
     const size_t expected_packet_size = header_size + data_length + 1;
     if(data_size < expected_packet_size) {
-      return RMAP_INCOMPLETE_PACKET;
+      has_not_enough_data_in_data_field = true;
     }
     if (data_size > expected_packet_size) {
-      return RMAP_ECSS_TOO_MUCH_DATA;
+      has_too_much_data = true;
     }
 
     const uint8_t data_crc =
@@ -925,7 +937,7 @@ rmap_status_t rmap_header_deserialize(
      * be 0.
      */
     if (data_crc != 0) {
-      return RMAP_ECSS_INVALID_DATA_CRC;
+      has_invalid_data_crc = true;
     }
   }
 
@@ -963,6 +975,19 @@ rmap_status_t rmap_header_deserialize(
     header->t.command.data_length = (uint32_t)data[offset + 8] << 16;
     header->t.command.data_length |= (uint32_t)data[offset + 9] << 8;
     header->t.command.data_length |= (uint32_t)data[offset + 10];
+
+    if (is_unused_packet_type_or_command_code) {
+      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+    }
+    if (has_too_much_data) {
+      return RMAP_ECSS_TOO_MUCH_DATA;
+    }
+    if (has_not_enough_data_in_data_field) {
+      return RMAP_INCOMPLETE_PACKET;
+    }
+    if (has_invalid_data_crc) {
+      return RMAP_ECSS_INVALID_DATA_CRC;
+    }
     return RMAP_OK;
   }
 
@@ -973,6 +998,14 @@ rmap_status_t rmap_header_deserialize(
     header->t.write_reply.target_logical_address = data[4];
     header->t.write_reply.transaction_identifier = (uint16_t)data[5] << 8;
     header->t.write_reply.transaction_identifier |= data[6];
+
+    if (is_unused_packet_type_or_command_code ||
+        is_reply_without_reply_command_code) {
+      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+    }
+    if (has_too_much_data) {
+      return RMAP_ECSS_TOO_MUCH_DATA;
+    }
     return RMAP_OK;
   }
 
@@ -985,6 +1018,20 @@ rmap_status_t rmap_header_deserialize(
   header->t.read_reply.data_length = (uint32_t)data[8] << 16;
   header->t.read_reply.data_length |= (uint32_t)data[9] << 8;
   header->t.read_reply.data_length |= (uint32_t)data[10];
+
+  if (is_unused_packet_type_or_command_code ||
+      is_reply_without_reply_command_code) {
+    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+  }
+  if (has_too_much_data) {
+    return RMAP_ECSS_TOO_MUCH_DATA;
+  }
+  if (has_not_enough_data_in_data_field) {
+    return RMAP_INCOMPLETE_PACKET;
+  }
+  if (has_invalid_data_crc) {
+    return RMAP_ECSS_INVALID_DATA_CRC;
+  }
   return RMAP_OK;
 }
 

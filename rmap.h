@@ -283,29 +283,51 @@ rmap_status_t rmap_packet_serialize_inplace(
  *
  * The data length and data CRC is verified for read reply packets.
  *
+ * Some return values indicate an error in the header but also indicate that a
+ * deserialized header is provided. This means that the @p header and
+ * @p serialized_size parameters have been updated to represent the invalid
+ * header. In the case of commands, a reply shall be sent based on this invalid
+ * header if the command codes has the reply bit set, according to the RMAP
+ * standard.
+ *
+ * Some return values indicate an error in the header but does not indicate
+ * that a deserialized header is provided, in this case the @p header and
+ * @p serialized_size parameters have not been updated, A reply shall not
+ * be sent in these cases according to the RMAP standard.
+ *
+ * The unused packet type error uses the same return value as unused command
+ * code, and hence assumes that a command with an unused packet type will cause
+ * a reply to be sent, since commands with unused command codes requires a
+ * reply. Sending this reply due to a command with an invalid packet type is
+ * optional according to the RMAP standard ("may send a reply"), but it is in
+ * practice mandated by the interface of this function.
+ *
  * @param[out] serialized_size Size of the serialized header.
  * @param[in] header Destination for the deserialized header.
  * @param[in] data Start of the RMAP packet.
  * @param data_size Size of the RMAP packet in @p data.
  *
- * @retval RMAP_NULLPTR @p serialized_size, @p header or @p data is NULL.
+ * @retval RMAP_NULLPTR @p serialized_size, @p header or @p data is NULL. No
+ *         deserialized header is provided.
  * @retval RMAP_INCOMPLETE_HEADER @p data_size is not large enough to contain
- *         the RMAP header.
+ *         the RMAP header. No deserialized header is provided.
  * @retval RMAP_INCOMPLETE_PACKET @p data_size is not large enough to contain
- *         the whole packet based on the packet data length.
+ *         the whole packet based on the packet data length. No deserialized
+ *         header is provided.
  * @retval RMAP_NO_RMAP_PROTOCOL The protocol identifier is not the identifier
- *         for the RMAP protocol.
- * @retval RMAP_HEADER_CRC_ERROR The header CRC is invalid.
+ *         for the RMAP protocol. No deserialized header is provided.
+ * @retval RMAP_HEADER_CRC_ERROR The header CRC is invalid. No deserialized
+ *         header is provided. A deserialized header is provided.
  * @retval RMAP_ECSS_INVALID_DATA_CRC The data CRC is invalid (if
- *         applicable/verified).
+ *         applicable/verified). A deserialized header is provided.
  * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The packet type is
  *         invalid or the command code combination is invalid for the packet
- *         type.
+ *         type. A deserialized header is provided.
  * @retval RMAP_ECSS_TOO_MUCH_DATA The @p data_size indicates a packet size
  *         which is too large based on the packet type and data length (if
- *         applicable/verified).
- * @retval RMAP_OK Success, the header has been deserialized in @p header and
- *         its serialized size is given in @p serialized_size.
+ *         applicable/verified). A deserialized header is provided.
+ * @retval RMAP_OK No errors detected in header. A deserialized header is
+ *         provided.
  */
 rmap_status_t rmap_header_deserialize(
     size_t *serialized_size,

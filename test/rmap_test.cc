@@ -607,7 +607,7 @@ INSTANTIATE_TEST_CASE_P(
     InvalidPacketType,
     SerializedWriteCommandInstruction,
     testing::Combine(
-      testing::Values(0x2, 0x3),
+      testing::Values(0x3),
       testing::Range(
         1 << 3,
         (1 << 3 | 1 << 2 | 1 << 1 | 1 << 0) + 1),
@@ -720,7 +720,7 @@ INSTANTIATE_TEST_CASE_P(
     InvalidPacketType,
     SerializedWriteReplyInstruction,
     testing::Combine(
-      testing::Values(0x2, 0x3),
+      testing::Values(0x2),
       testing::Values(
         1 << 3 | 1 << 1,
         1 << 3 | 1 << 1 | 1 << 0,
@@ -847,11 +847,24 @@ INSTANTIATE_TEST_CASE_P(
     InvalidPacketType,
     SerializedReadCommandInstruction,
     testing::Combine(
-      testing::Values(0x2, 0x3),
+      testing::Values(0x3),
       testing::Values(
         1 << 1,
         1 << 1 |1 << 0,
         1 << 2 | 1 << 1 |1 << 0),
+      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+
+INSTANTIATE_TEST_CASE_P(
+    InvalidCommandCodes,
+    SerializedReadCommandInstruction,
+    testing::Combine(
+      testing::Values(0x1),
+      testing::Values(
+        0,
+        1 << 0,
+        1 << 2,
+        1 << 2 | 1 << 0,
+        1 << 2 | 1 << 1),
       testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
 
 INSTANTIATE_TEST_CASE_P(
@@ -960,11 +973,24 @@ INSTANTIATE_TEST_CASE_P(
     InvalidPacketType,
     SerializedReadReplyInstruction,
     testing::Combine(
-      testing::Values(0x2, 0x3),
+      testing::Values(0x2),
       testing::Values(
         1 << 1,
         1 << 1 |1 << 0,
         1 << 2 | 1 << 1 |1 << 0),
+      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+
+INSTANTIATE_TEST_CASE_P(
+    InvalidCommandCodes,
+    SerializedReadReplyInstruction,
+    testing::Combine(
+      testing::Values(0x0),
+      testing::Values(
+        0,
+        1 << 0,
+        1 << 2,
+        1 << 2 | 1 << 0,
+        1 << 2 | 1 << 1),
       testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
 
 INSTANTIATE_TEST_CASE_P(
