@@ -276,7 +276,7 @@ rmap_status_t rmap_packet_serialize_inplace(
 /** Deserialize the header from a received RMAP packet.
  *
  * The data length and data CRC is verified for write command packets only if
- * the verifty-before-write bit is set in the received packet, otherwise this
+ * the verify-before-write bit is set in the received packet, otherwise this
  * verification must be handled by the caller.
  *
  * The absence of data is verified for read command and write reply packets.
