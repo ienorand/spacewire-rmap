@@ -317,7 +317,7 @@ rmap_status_t rmap_packet_serialize_inplace(
  * @retval RMAP_NO_RMAP_PROTOCOL The protocol identifier is not the identifier
  *         for the RMAP protocol. No deserialized header is provided.
  * @retval RMAP_HEADER_CRC_ERROR The header CRC is invalid. No deserialized
- *         header is provided. A deserialized header is provided.
+ *         header is provided.
  * @retval RMAP_ECSS_INVALID_DATA_CRC The data CRC is invalid (if
  *         applicable/verified). A deserialized header is provided.
  * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The packet type is
