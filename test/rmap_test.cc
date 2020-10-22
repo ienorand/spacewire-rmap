@@ -611,7 +611,7 @@ INSTANTIATE_TEST_CASE_P(
       testing::Range(
         1 << 3,
         (1 << 3 | 1 << 2 | 1 << 1 | 1 << 0) + 1),
-      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+      testing::Values(RMAP_UNUSED_PACKET_TYPE)));
 
 INSTANTIATE_TEST_CASE_P(
     ValidPacketType,
@@ -726,7 +726,7 @@ INSTANTIATE_TEST_CASE_P(
         1 << 3 | 1 << 1 | 1 << 0,
         1 << 3 | 1 << 2 | 1 << 1,
         1 << 3 | 1 << 2 | 1 << 1 | 1 << 0),
-      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+      testing::Values(RMAP_UNUSED_PACKET_TYPE)));
 
 INSTANTIATE_TEST_CASE_P(
     InvalidReplyWithoutReplyCommandCode,
@@ -738,7 +738,7 @@ INSTANTIATE_TEST_CASE_P(
         1 << 3 | 1 << 0,
         1 << 3 | 1 << 2,
         1 << 3 | 1 << 2 | 1 << 0),
-      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+      testing::Values(RMAP_UNUSED_COMMAND_CODE)));
 
 INSTANTIATE_TEST_CASE_P(
     ValidPacketType,
@@ -852,7 +852,7 @@ INSTANTIATE_TEST_CASE_P(
         1 << 1,
         1 << 1 |1 << 0,
         1 << 2 | 1 << 1 |1 << 0),
-      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+      testing::Values(RMAP_UNUSED_PACKET_TYPE)));
 
 INSTANTIATE_TEST_CASE_P(
     InvalidCommandCodes,
@@ -865,7 +865,7 @@ INSTANTIATE_TEST_CASE_P(
         1 << 2,
         1 << 2 | 1 << 0,
         1 << 2 | 1 << 1),
-      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+      testing::Values(RMAP_UNUSED_COMMAND_CODE)));
 
 INSTANTIATE_TEST_CASE_P(
     ValidPacketType,
@@ -978,7 +978,7 @@ INSTANTIATE_TEST_CASE_P(
         1 << 1,
         1 << 1 |1 << 0,
         1 << 2 | 1 << 1 |1 << 0),
-      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+      testing::Values(RMAP_UNUSED_PACKET_TYPE)));
 
 INSTANTIATE_TEST_CASE_P(
     InvalidCommandCodes,
@@ -991,7 +991,7 @@ INSTANTIATE_TEST_CASE_P(
         1 << 2,
         1 << 2 | 1 << 0,
         1 << 2 | 1 << 1),
-      testing::Values(RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE)));
+      testing::Values(RMAP_UNUSED_COMMAND_CODE)));
 
 INSTANTIATE_TEST_CASE_P(
     ValidPacketType,
@@ -1293,7 +1293,7 @@ TEST(RmapHeaderSerialize, InvalidPacketType)
         data,
         sizeof(data),
         &header),
-      RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
+      RMAP_UNUSED_PACKET_TYPE);
 
   header.type = (rmap_type_t)(RMAP_TYPE_READ_REPLY + 1);
   EXPECT_EQ(
@@ -1302,7 +1302,7 @@ TEST(RmapHeaderSerialize, InvalidPacketType)
         data,
         sizeof(data),
         &header),
-      RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
+      RMAP_UNUSED_PACKET_TYPE);
 }
 
 typedef std::tuple<unsigned char, rmap_status_t> CommandCodesStatusParameters;
@@ -1397,10 +1397,10 @@ INSTANTIATE_TEST_CASE_P(
       testing::Values(
         std::make_tuple(
           0x00,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_REPLY,
           RMAP_OK),
@@ -1409,17 +1409,17 @@ INSTANTIATE_TEST_CASE_P(
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_REPLY |
-            RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE,
@@ -1432,37 +1432,38 @@ INSTANTIATE_TEST_CASE_P(
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_REPLY |
-            RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_VERIFY,
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_COMMAND_CODE_VERIFY |
+          RMAP_COMMAND_CODE_INCREMENT,
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_REPLY,
+          RMAP_COMMAND_CODE_VERIFY |
+          RMAP_COMMAND_CODE_REPLY,
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_REPLY |
-            RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_COMMAND_CODE_VERIFY |
+          RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
           RMAP_OK),
         std::make_tuple(
           0xFF,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_INVALID_COMMAND_CODE),
         std::make_tuple(
           (RMAP_COMMAND_CODE_WRITE |
            RMAP_COMMAND_CODE_VERIFY |
            RMAP_COMMAND_CODE_REPLY |
-           RMAP_COMMAND_CODE_INCREMENT) + 1,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE))));
+           RMAP_COMMAND_CODE_INCREMENT) << 1 |
+          1,
+          RMAP_INVALID_COMMAND_CODE))));
 
 INSTANTIATE_TEST_CASE_P(
     WriteReply,
@@ -1472,72 +1473,73 @@ INSTANTIATE_TEST_CASE_P(
       testing::Values(
         std::make_tuple(
           0x00,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_REPLY,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_REPLY |
-            RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_REPLY |
-            RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_VERIFY,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_COMMAND_CODE_VERIFY |
+          RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_REPLY,
+          RMAP_COMMAND_CODE_VERIFY |
+          RMAP_COMMAND_CODE_REPLY,
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_REPLY |
-            RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_COMMAND_CODE_VERIFY |
+          RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
           RMAP_OK),
         std::make_tuple(
           0xFF,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_INVALID_COMMAND_CODE),
         std::make_tuple(
           (RMAP_COMMAND_CODE_WRITE |
            RMAP_COMMAND_CODE_VERIFY |
            RMAP_COMMAND_CODE_REPLY |
-           RMAP_COMMAND_CODE_INCREMENT) + 1,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE))));
+           RMAP_COMMAND_CODE_INCREMENT) << 1 |
+          1,
+          RMAP_INVALID_COMMAND_CODE))));
 
 INSTANTIATE_TEST_CASE_P(
     ReadReply,
@@ -1547,10 +1549,10 @@ INSTANTIATE_TEST_CASE_P(
       testing::Values(
         std::make_tuple(
           0x00,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_REPLY,
           RMAP_OK),
@@ -1559,60 +1561,61 @@ INSTANTIATE_TEST_CASE_P(
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_REPLY |
-            RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
           RMAP_OK),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_REPLY |
-            RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_VERIFY,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_COMMAND_CODE_VERIFY |
+          RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_NO_REPLY),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_REPLY,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_COMMAND_CODE_VERIFY |
+          RMAP_COMMAND_CODE_REPLY,
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           RMAP_COMMAND_CODE_WRITE |
-            RMAP_COMMAND_CODE_VERIFY |
-            RMAP_COMMAND_CODE_REPLY |
-            RMAP_COMMAND_CODE_INCREMENT,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_COMMAND_CODE_VERIFY |
+          RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
+          RMAP_UNUSED_COMMAND_CODE),
         std::make_tuple(
           0xFF,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE),
+          RMAP_INVALID_COMMAND_CODE),
         std::make_tuple(
           (RMAP_COMMAND_CODE_WRITE |
            RMAP_COMMAND_CODE_VERIFY |
            RMAP_COMMAND_CODE_REPLY |
-           RMAP_COMMAND_CODE_INCREMENT) + 1,
-          RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE))));
+           RMAP_COMMAND_CODE_INCREMENT) << 1 |
+          1,
+          RMAP_INVALID_COMMAND_CODE))));
 
 TEST(RmapHeaderSerialize, WriteCommandNotEnoughSpace)
 {

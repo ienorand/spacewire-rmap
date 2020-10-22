@@ -37,9 +37,11 @@ typedef enum {
   RMAP_HEADER_CRC_ERROR,
   RMAP_INCOMPLETE_HEADER,
   RMAP_NO_REPLY,
+  RMAP_UNUSED_PACKET_TYPE,
+  RMAP_UNUSED_COMMAND_CODE,
+  RMAP_INVALID_COMMAND_CODE,
   RMAP_ECSS_INVALID_DATA_CRC,
   RMAP_ECSS_ERROR_END_OF_PACKET,
-  RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE,
   RMAP_ECSS_TOO_MUCH_DATA
 } rmap_status_t;
 
@@ -166,9 +168,12 @@ typedef struct {
  * In case of a read command, the data length should be updated to match the
  * actual amount of data read.
  *
+ * The RMAP command header object in @p command may be an invalid RMAP header
+ * for which an error reply should be sent.
+ *
  * @pre The RMAP command header object in @p command must be the result of a
- *      call to rmap_header_deserialize() which returned RMAP_OK and which
- *      provided an RMAP header object with the type RMAP_TYPE_COMMAND.
+ *      call to rmap_header_deserialize() which provided a deserialized header
+ *      with the type RMAP_TYPE_COMMAND.
  *
  * @param[out] reply RMAP reply header object.
  * @param[in] command RMAP command header object.
@@ -190,8 +195,7 @@ rmap_status_t rmap_header_initialize_reply(
  * @retval RMAP_NULLPTR @p serialized_size or @p header is NULL.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
  *         12.
- * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The value of @p
- *         header->type is invalid.
+ * @retval RMAP_UNUSED_PACKET_TYPE The value of @p header->type is invalid.
  * @retval RMAP_OK Success, the calculated serialized size is returned in @p
  *         serialized_size.
  */
@@ -200,6 +204,12 @@ rmap_status_t rmap_header_calculate_serialized_size(
     const rmap_send_header_t *header);
 
 /** Serialize an RMAP header.
+ *
+ * If an unused combination of command codes for the given packet type is
+ * given, the header will still be serialized. This is done in order to allow
+ * serializing replies with an "unused packet type or command code" error from
+ * a command with contained an unused command code, where the reply must
+ * contain the same unused command code as the command.
  *
  * @param[out] serialized_size Size of the serialized header.
  * @param[out] data Destination for the serialized header.
@@ -217,9 +227,14 @@ rmap_status_t rmap_header_calculate_serialized_size(
  * @retval RMAP_DATA_LENGTH_TOO_BIG The value of the data_length member of the
  *         header object is greater than the maximum possible RMAP data length
  *         (16777215).
- * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The value of @p
- *         header->type is invalid or the command codes either contain an
- *         invalid value or an invalid combination for the given packet type.
+ * @retval RMAP_UNUSED_PACKET_TYPE The value of @p header->type is invalid.
+ * @retval RMAP_UNREPRESENTABLE_COMMAND_CODE The value given for command codes
+ *         cannot be represented as an RMAP command code.
+ * @retval RMAP_NO_REPLY @p header->type indicates that this is a reply, but
+ *         the reply flag is not set in the command codes.
+ * @retval RMAP_UNUSED_COMMAND_CODE The given command codes are an unused
+ *         combination for the given packet type. The header has been
+ *         serialized in @p data.
  * @retval RMAP_OK Success, the header has been serialized in @p data.
  */
 rmap_status_t rmap_header_serialize(
@@ -235,6 +250,12 @@ rmap_status_t rmap_header_serialize(
  *
  * RMAP read commands and write replies are not valid input to this function,
  * since they do not contain a payload.
+ *
+ * If an unused combination of command codes for the given packet type is
+ * given, the header will still be serialized. This is done in order to allow
+ * serializing read replies with an "unused packet type or command code" error
+ * from a read command with contained an unused command code, where the reply
+ * must contain the same unused command code as the command.
  *
  * @param[out] serialized_offset Offset of the serialized header in @p data.
  * @param[out] serialized_size Size of the serialized header.
@@ -258,9 +279,12 @@ rmap_status_t rmap_header_serialize(
  * @retval RMAP_DATA_LENGTH_TOO_BIG The value of the data_length member of the
  *         header object is greater than the maximum possible RMAP data length
  *         (16777215).
- * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The value of @p
- *         header->type is invalid or the command codes either contain an
- *         invalid value or an invalid combination for the given packet type.
+ * @retval RMAP_UNUSED_PACKET_TYPE The value of @p header->type is invalid.
+ * @retval RMAP_UNREPRESENTABLE_COMMAND_CODE The value given for command codes
+ *         cannot be represented as an RMAP command code.
+ * @retval RMAP_UNUSED_COMMAND_CODE The given command codes are an unused
+ *         combination for the given packet type. The header has been
+ *         serialized in @p data.
  * @retval RMAP_OK Success, the header has been serialized before the payload
  *         offset and the RMAP CRC has been appended after the payload end.
  */
@@ -295,12 +319,10 @@ rmap_status_t rmap_packet_serialize_inplace(
  * @p serialized_size parameters have not been updated, A reply shall not
  * be sent in these cases according to the RMAP standard.
  *
- * The unused packet type error uses the same return value as unused command
- * code, and hence assumes that a command with an unused packet type will cause
- * a reply to be sent, since commands with unused command codes requires a
- * reply. Sending this reply due to a command with an invalid packet type is
- * optional according to the RMAP standard ("may send a reply"), but it is in
- * practice mandated by the interface of this function.
+ * As a special case, the unused packet type error (indicated by the
+ * RMAP_UNUSED_PACKET_TYPE return value) does not require a reply according to
+ * the RMAP standard, however "the target may send a reply". A deserialized
+ * header is provided in this case to allow sending a reply if desired.
  *
  * @param[out] serialized_size Size of the serialized header.
  * @param[in] header Destination for the deserialized header.
@@ -320,9 +342,10 @@ rmap_status_t rmap_packet_serialize_inplace(
  *         header is provided.
  * @retval RMAP_ECSS_INVALID_DATA_CRC The data CRC is invalid (if
  *         applicable/verified). A deserialized header is provided.
- * @retval RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE The packet type is
- *         invalid or the command code combination is invalid for the packet
- *         type. A deserialized header is provided.
+ * @retval RMAP_UNUSED_PACKET_TYPE The packet type is invalid. A deserialized
+ *         header is provided.
+ * @Retval RMAP_UNUSED_COMMAND_CODE The command code combination is invalid for
+ *         the packet type. A deserialized header is provided.
  * @retval RMAP_ECSS_TOO_MUCH_DATA The @p data_size indicates a packet size
  *         which is too large based on the packet type and data length (if
  *         applicable/verified). A deserialized header is provided.

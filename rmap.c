@@ -70,10 +70,10 @@ typedef struct {
   uint16_t transaction_identifier;
 } common_receive_reply_header_t;
 
-static bool is_command_codes_valid(const unsigned char command_codes)
+static rmap_status_t validate_command_codes(const unsigned char command_codes)
 {
   if (command_codes & ~(RMAP_COMMAND_CODES_ALL)) {
-    return false;
+    return RMAP_INVALID_COMMAND_CODE;
   }
 
   switch (command_codes) {
@@ -82,10 +82,10 @@ static bool is_command_codes_valid(const unsigned char command_codes)
     case RMAP_COMMAND_CODE_VERIFY:
     case RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT:
     case RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY:
-      return false;
+      return RMAP_UNUSED_COMMAND_CODE;
   }
 
-  return true;
+  return RMAP_OK;
 }
 
 static uint8_t serialize_instruction(
@@ -105,7 +105,6 @@ static uint8_t serialize_instruction(
         "Must be a valid packet type.");
   }
 
-  assert(is_command_codes_valid(command_codes));
   if (command_codes & RMAP_COMMAND_CODE_WRITE) {
     instruction |= 1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT;
   }
@@ -134,13 +133,15 @@ static rmap_status_t deserialize_instruction(
     size_t *const reply_address_length,
     const uint8_t instruction)
 {
-  bool is_unused_packet_type_or_command_code;
+  bool is_unused_packet_type;
+  bool is_unused_command_code;
 
   assert(packet_type);
   assert(command_codes);
   assert(reply_address_length);
 
-  is_unused_packet_type_or_command_code = false;
+  is_unused_packet_type = false;
+  is_unused_command_code = false;
 
   const unsigned char packet_type_representation =
     (instruction & RMAP_INSTRUCTION_PACKET_TYPE_MASK) >>
@@ -153,7 +154,7 @@ static rmap_status_t deserialize_instruction(
   }
 
   if (packet_type_representation & 1 << 1) {
-    is_unused_packet_type_or_command_code = true;
+    is_unused_packet_type = true;
   }
 
   *command_codes = 0;
@@ -174,8 +175,10 @@ static rmap_status_t deserialize_instruction(
     *command_codes |= RMAP_COMMAND_CODE_INCREMENT;
   }
 
-  if (!is_command_codes_valid(*command_codes)) {
-    is_unused_packet_type_or_command_code = true;
+  const rmap_status_t rmap_status = validate_command_codes(*command_codes);
+  if (rmap_status != RMAP_OK) {
+    assert(rmap_status == RMAP_UNUSED_COMMAND_CODE);
+    is_unused_command_code = true;
   }
 
   const unsigned char reply_address_length_serialized =
@@ -183,10 +186,12 @@ static rmap_status_t deserialize_instruction(
     RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT;
   *reply_address_length = reply_address_length_serialized * 4;
 
-  if (is_unused_packet_type_or_command_code) {
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+  if (is_unused_packet_type) {
+    return RMAP_UNUSED_PACKET_TYPE;
   }
-
+  if (is_unused_command_code) {
+    return RMAP_UNUSED_COMMAND_CODE;
+  }
   return RMAP_OK;
 }
 
@@ -272,7 +277,9 @@ static rmap_status_t serialize_command_header(
     const size_t data_size,
     const rmap_send_command_header_t *const header)
 {
+  rmap_status_t rmap_status;
   size_t calculated_serialized_size;
+  bool is_unused_command_code;
   unsigned char *data_ptr;
 
   if (!serialized_size || !data || !header) {
@@ -286,14 +293,14 @@ static rmap_status_t serialize_command_header(
     RMAP_TYPE_COMMAND,
     { *header }
   };
-  const rmap_status_t rmap_status =
+  rmap_status =
     rmap_header_calculate_serialized_size(
         &calculated_serialized_size,
         &header_wrapper);
   if (rmap_status != RMAP_OK) {
     assert(
         rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
+        rmap_status == RMAP_UNUSED_PACKET_TYPE);
     return rmap_status;
   }
 
@@ -305,8 +312,20 @@ static rmap_status_t serialize_command_header(
     return RMAP_DATA_LENGTH_TOO_BIG;
   }
 
-  if (!is_command_codes_valid(header->command_codes)) {
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+  is_unused_command_code = false;
+
+  rmap_status = validate_command_codes(header->command_codes);
+  switch (rmap_status) {
+    case RMAP_INVALID_COMMAND_CODE:
+      return RMAP_INVALID_COMMAND_CODE;
+
+    case RMAP_UNUSED_COMMAND_CODE:
+      is_unused_command_code = true;
+      break;
+
+    default:
+      assert(rmap_status == RMAP_OK);
+      break;
   }
 
   data_ptr = data;
@@ -364,6 +383,11 @@ static rmap_status_t serialize_command_header(
   assert((size_t)size == calculated_serialized_size);
 
   *serialized_size = (size_t)size;
+
+  if (is_unused_command_code) {
+    return RMAP_UNUSED_COMMAND_CODE;
+  }
+
   return RMAP_OK;
 }
 
@@ -373,14 +397,16 @@ static rmap_status_t serialize_common_reply_header(
     const size_t data_size,
     const common_send_reply_header_t *const header)
 {
+  rmap_status_t rmap_status;
   size_t reply_address_unpadded_size;
+  bool is_unused_command_code;
   unsigned char *data_ptr;
 
   if (!serialized_size || !data || !header) {
     return RMAP_NULLPTR;
   }
 
-  const rmap_status_t rmap_status =
+  rmap_status =
     calculate_reply_address_unpadded_size(
         &reply_address_unpadded_size,
         header->reply_address.data,
@@ -396,12 +422,25 @@ static rmap_status_t serialize_common_reply_header(
     return RMAP_NOT_ENOUGH_SPACE;
   }
 
-  if (!is_command_codes_valid(header->command_codes)) {
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+  is_unused_command_code = false;
+
+  rmap_status = validate_command_codes(header->command_codes);
+  switch (rmap_status) {
+    case RMAP_INVALID_COMMAND_CODE:
+      return RMAP_INVALID_COMMAND_CODE;
+
+    case RMAP_UNUSED_COMMAND_CODE:
+      is_unused_command_code = true;
+      break;
+
+    default:
+      assert(rmap_status == RMAP_OK);
+      break;
   }
+
   if (!(header->command_codes & RMAP_COMMAND_CODE_REPLY)) {
     /* must have reply command code */
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+    return RMAP_NO_REPLY;
   }
 
   data_ptr = data;
@@ -437,6 +476,10 @@ static rmap_status_t serialize_common_reply_header(
   assert((size_t)size == common_header_size);
 
   *serialized_size = (size_t)size;
+
+  if (is_unused_command_code) {
+    return RMAP_UNUSED_COMMAND_CODE;
+  }
   return RMAP_OK;
 }
 
@@ -446,6 +489,7 @@ static rmap_status_t serialize_write_reply_header(
     const size_t data_size,
     const rmap_send_write_reply_header_t *const header)
 {
+  bool is_unused_command_code;
   common_send_reply_header_t common_header;
   rmap_status_t rmap_status;
   size_t common_serialized_size;
@@ -455,9 +499,11 @@ static rmap_status_t serialize_write_reply_header(
     return RMAP_NULLPTR;
   }
 
+  is_unused_command_code = false;
+
   if (!(header->command_codes & RMAP_COMMAND_CODE_WRITE)) {
     /* must have write command code */
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+    is_unused_command_code = true;
   }
 
   make_common_from_send_write_reply_header(&common_header, header);
@@ -467,13 +513,21 @@ static rmap_status_t serialize_write_reply_header(
       data,
       data_size,
       &common_header);
-  if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_NULLPTR ||
-        rmap_status == RMAP_NOT_ENOUGH_SPACE ||
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return rmap_status;
+  switch (rmap_status) {
+    case RMAP_NULLPTR:
+    case RMAP_NOT_ENOUGH_SPACE:
+    case RMAP_REPLY_ADDRESS_TOO_LONG:
+    case RMAP_NO_REPLY:
+    case RMAP_INVALID_COMMAND_CODE:
+      return rmap_status;
+
+    case RMAP_UNUSED_COMMAND_CODE:
+      is_unused_command_code = true;
+      break;
+
+    default:
+      assert(rmap_status == RMAP_OK);
+      break;
   }
 
   if (data_size < common_serialized_size + 1) {
@@ -497,6 +551,10 @@ static rmap_status_t serialize_write_reply_header(
     rmap_crc_calculate(crc_range_start, crc_range_size);
 
   *serialized_size = common_serialized_size + 1;
+
+  if (is_unused_command_code) {
+    return RMAP_UNUSED_COMMAND_CODE;
+  }
   return RMAP_OK;
 }
 
@@ -506,6 +564,7 @@ static rmap_status_t serialize_read_reply_header(
     const size_t data_size,
     const rmap_send_read_reply_header_t *const header)
 {
+  bool is_unused_command_code;
   common_send_reply_header_t common_header;
   rmap_status_t rmap_status;
   size_t common_serialized_size;
@@ -515,9 +574,11 @@ static rmap_status_t serialize_read_reply_header(
     return RMAP_NULLPTR;
   }
 
+  is_unused_command_code = false;
+
   if (header->command_codes & RMAP_COMMAND_CODE_WRITE) {
     /* must not have write command code */
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+    is_unused_command_code = true;
   }
 
   make_common_from_send_read_reply_header(&common_header, header);
@@ -527,13 +588,21 @@ static rmap_status_t serialize_read_reply_header(
       data,
       data_size,
       &common_header);
-  if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_NULLPTR ||
-        rmap_status == RMAP_NOT_ENOUGH_SPACE ||
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return rmap_status;
+  switch (rmap_status) {
+    case RMAP_NULLPTR:
+    case RMAP_NOT_ENOUGH_SPACE:
+    case RMAP_REPLY_ADDRESS_TOO_LONG:
+    case RMAP_NO_REPLY:
+    case RMAP_INVALID_COMMAND_CODE:
+      return rmap_status;
+
+    case RMAP_UNUSED_COMMAND_CODE:
+      is_unused_command_code = true;
+      break;
+
+    default:
+      assert(rmap_status == RMAP_OK);
+      break;
   }
 
   if (data_size < common_serialized_size + 5) {
@@ -568,6 +637,10 @@ static rmap_status_t serialize_read_reply_header(
     rmap_crc_calculate(crc_range_start, crc_range_size);
 
   *serialized_size = common_serialized_size + 5;
+
+  if (is_unused_command_code) {
+    return RMAP_UNUSED_COMMAND_CODE;
+  }
   return RMAP_OK;
 }
 
@@ -663,7 +736,7 @@ rmap_status_t rmap_header_calculate_serialized_size(
         &reply_header,
         &header->t.write_reply);
   } else {
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+    return RMAP_UNUSED_PACKET_TYPE;
   }
 
   const rmap_status_t rmap_status =
@@ -686,12 +759,15 @@ rmap_status_t rmap_header_serialize(
     const size_t data_size,
     const rmap_send_header_t *const header)
 {
+  bool is_unused_command_code;
   rmap_status_t rmap_status;
   size_t serialized_size_tmp;
 
   if (!header || !serialized_size) {
     return RMAP_NULLPTR;
   }
+
+  is_unused_command_code = false;
 
   /* Unless serialized_size_tmp is explicitly initialized before the calls to
    * serialize_write_reply_header() or serialize_read_reply_header() this will
@@ -728,20 +804,31 @@ rmap_status_t rmap_header_serialize(
       break;
 
     default:
-      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+      return RMAP_UNUSED_PACKET_TYPE;
   }
+  switch (rmap_status) {
+    case RMAP_NULLPTR:
+    case RMAP_NOT_ENOUGH_SPACE:
+    case RMAP_REPLY_ADDRESS_TOO_LONG:
+    case RMAP_DATA_LENGTH_TOO_BIG:
+    case RMAP_NO_REPLY:
+    case RMAP_INVALID_COMMAND_CODE:
+      return rmap_status;
 
-  if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_NULLPTR ||
-        rmap_status == RMAP_NOT_ENOUGH_SPACE ||
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_DATA_LENGTH_TOO_BIG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return rmap_status;
+    case RMAP_UNUSED_COMMAND_CODE:
+      is_unused_command_code = true;
+      break;
+
+    default:
+      assert(rmap_status == RMAP_OK);
+      break;
   }
 
   *serialized_size = serialized_size_tmp;
+
+  if (is_unused_command_code) {
+    return RMAP_UNUSED_COMMAND_CODE;
+  }
   return RMAP_OK;
 }
 
@@ -757,6 +844,7 @@ rmap_status_t rmap_packet_serialize_inplace(
   rmap_status_t rmap_status;
   size_t calculated_header_serialized_size;
   size_t header_serialized_size;
+  bool is_unused_command_code;
 
   if (!serialized_offset || !serialized_size || !data || !header) {
     return RMAP_NULLPTR;
@@ -783,7 +871,7 @@ rmap_status_t rmap_packet_serialize_inplace(
     assert(
         rmap_status == RMAP_NULLPTR ||
         rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
+        rmap_status == RMAP_UNUSED_PACKET_TYPE);
     return rmap_status;
   }
 
@@ -791,18 +879,26 @@ rmap_status_t rmap_packet_serialize_inplace(
     return RMAP_NOT_ENOUGH_SPACE;
   }
 
+  is_unused_command_code = false;
+
   rmap_status = rmap_header_serialize(
       &header_serialized_size,
       data + payload_offset - calculated_header_serialized_size,
       payload_offset,
       header);
-  if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_NULLPTR ||
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_DATA_LENGTH_TOO_BIG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return rmap_status;
+  switch (rmap_status) {
+    case RMAP_NULLPTR:
+    case RMAP_REPLY_ADDRESS_TOO_LONG:
+    case RMAP_DATA_LENGTH_TOO_BIG:
+      return rmap_status;
+
+    case RMAP_UNUSED_COMMAND_CODE:
+      is_unused_command_code = true;
+      break;
+
+    default:
+      assert(rmap_status == RMAP_OK);
+      break;
   }
   assert(header_serialized_size == calculated_header_serialized_size);
 
@@ -812,6 +908,9 @@ rmap_status_t rmap_packet_serialize_inplace(
   *serialized_offset = payload_offset - header_serialized_size;
   *serialized_size = header_serialized_size + payload_size + 1;
 
+  if (is_unused_command_code) {
+    return RMAP_UNUSED_COMMAND_CODE;
+  }
   return RMAP_OK;
 }
 
@@ -824,8 +923,8 @@ rmap_status_t rmap_header_deserialize(
   packet_type_t packet_type;
   unsigned char command_codes;
   size_t reply_address_length;
-  bool is_unused_packet_type_or_command_code;
-  bool is_reply_without_reply_command_code;
+  bool is_unused_packet_type;
+  bool is_unused_command_code;
   size_t reply_address_unpadded_length;
   size_t header_size;
   bool has_too_much_data;
@@ -846,8 +945,8 @@ rmap_status_t rmap_header_deserialize(
     return RMAP_NO_RMAP_PROTOCOL;
   }
 
-  is_unused_packet_type_or_command_code = false;
-  is_reply_without_reply_command_code = false;
+  is_unused_packet_type = false;
+  is_unused_command_code = false;
 
   const rmap_status_t deserialize_instruction_status =
     deserialize_instruction(
@@ -855,10 +954,18 @@ rmap_status_t rmap_header_deserialize(
         &command_codes,
         &reply_address_length,
         data[2]);
-  if (deserialize_instruction_status != RMAP_OK) {
-    assert(deserialize_instruction_status ==
-        RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    is_unused_packet_type_or_command_code = true;
+  switch (deserialize_instruction_status) {
+    case RMAP_UNUSED_PACKET_TYPE:
+      is_unused_packet_type = true;
+      break;
+
+    case RMAP_UNUSED_COMMAND_CODE:
+      is_unused_command_code = true;
+      break;
+
+    default:
+      assert(deserialize_instruction_status == RMAP_OK);
+      break;
   }
 
   has_too_much_data = false;
@@ -875,7 +982,8 @@ rmap_status_t rmap_header_deserialize(
   } else {
       assert(packet_type == RMAP_PACKET_TYPE_REPLY);
     if (!(command_codes & RMAP_COMMAND_CODE_REPLY)) {
-      is_reply_without_reply_command_code = true;
+      /* Reply without reply set is invalid. */
+      is_unused_command_code = true;
     }
 
     if (command_codes & RMAP_COMMAND_CODE_WRITE) {
@@ -976,8 +1084,11 @@ rmap_status_t rmap_header_deserialize(
     header->t.command.data_length |= (uint32_t)data[offset + 9] << 8;
     header->t.command.data_length |= (uint32_t)data[offset + 10];
 
-    if (is_unused_packet_type_or_command_code) {
-      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+    if (is_unused_packet_type) {
+      return RMAP_UNUSED_PACKET_TYPE;
+    }
+    if (is_unused_command_code) {
+      return RMAP_UNUSED_COMMAND_CODE;
     }
     if (has_too_much_data) {
       return RMAP_ECSS_TOO_MUCH_DATA;
@@ -999,9 +1110,12 @@ rmap_status_t rmap_header_deserialize(
     header->t.write_reply.transaction_identifier = (uint16_t)data[5] << 8;
     header->t.write_reply.transaction_identifier |= data[6];
 
-    if (is_unused_packet_type_or_command_code ||
-        is_reply_without_reply_command_code) {
-      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+    // TODO: Should this be "packet error" or "invalid reply" only?
+    if (is_unused_packet_type) {
+      return RMAP_UNUSED_PACKET_TYPE;
+    }
+    if (is_unused_command_code) {
+      return RMAP_UNUSED_COMMAND_CODE;
     }
     if (has_too_much_data) {
       return RMAP_ECSS_TOO_MUCH_DATA;
@@ -1019,9 +1133,12 @@ rmap_status_t rmap_header_deserialize(
   header->t.read_reply.data_length |= (uint32_t)data[9] << 8;
   header->t.read_reply.data_length |= (uint32_t)data[10];
 
-  if (is_unused_packet_type_or_command_code ||
-      is_reply_without_reply_command_code) {
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+  // TODO: Should this be "packet error" or "invalid reply" only?
+  if (is_unused_packet_type) {
+    return RMAP_UNUSED_PACKET_TYPE;
+  }
+  if (is_unused_command_code) {
+    return RMAP_UNUSED_COMMAND_CODE;
   }
   if (has_too_much_data) {
     return RMAP_ECSS_TOO_MUCH_DATA;
@@ -1068,14 +1185,20 @@ const char *rmap_status_text(const rmap_status_t status)
     case RMAP_NO_REPLY:
       return "RMAP_NO_REPLY";
 
+    case RMAP_UNUSED_PACKET_TYPE:
+      return "RMAP_UNUSED_PACKET_TYPE";
+
+    case RMAP_UNUSED_COMMAND_CODE:
+      return "RMAP_UNUSED_COMMAND_CODE";
+
+    case RMAP_INVALID_COMMAND_CODE:
+      return "RMAP_INVALID_COMMAND_CODE";
+
     case RMAP_ECSS_INVALID_DATA_CRC:
       return "RMAP_ECSS_INVALID_DATA_CRC";
 
     case RMAP_ECSS_ERROR_END_OF_PACKET:
       return "RMAP_ECSS_ERROR_END_OF_PACKET";
-
-    case RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE:
-      return "RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE";
 
     case RMAP_ECSS_TOO_MUCH_DATA:
       return "RMAP_ECSS_TOO_MUCH_DATA";
