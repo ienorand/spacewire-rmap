@@ -732,9 +732,9 @@ rmap_status_t rmap_header_calculate_serialized_size(
         &header->t.write_reply);
   } else if (header->type == RMAP_TYPE_READ_REPLY) {
     reply_header_static_size = RMAP_READ_REPLY_HEADER_STATIC_SIZE;
-    make_common_from_send_write_reply_header(
+    make_common_from_send_read_reply_header(
         &reply_header,
-        &header->t.write_reply);
+        &header->t.read_reply);
   } else {
     return RMAP_UNUSED_PACKET_TYPE;
   }
