@@ -59,9 +59,6 @@ typedef enum {
    */
   RMAP_DATA_LENGTH_TOO_BIG,
 
-  /** Unused. */
-  RMAP_INCOMPLETE_PACKET,
-
   /** The protocol field indicates that this is not an RMAP packet. */
   RMAP_NO_RMAP_PROTOCOL,
 
@@ -97,9 +94,6 @@ typedef enum {
 
   /** The data CRC indicates that errors are present in the data. */
   RMAP_ECSS_INVALID_DATA_CRC,
-
-  /** Unused. */
-  RMAP_ECSS_ERROR_END_OF_PACKET,
 
   /** There is more data than expected.
    *

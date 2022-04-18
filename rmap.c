@@ -1578,9 +1578,6 @@ const char *rmap_status_text(const rmap_status_t status)
     case RMAP_INCOMPLETE_HEADER:
       return "RMAP_INCOMPLETE_HEADER";
 
-    case RMAP_INCOMPLETE_PACKET:
-      return "RMAP_INCOMPLETE_PACKET";
-
     case RMAP_NO_RMAP_PROTOCOL:
       return "RMAP_NO_RMAP_PROTOCOL";
 
@@ -1601,9 +1598,6 @@ const char *rmap_status_text(const rmap_status_t status)
 
     case RMAP_ECSS_INVALID_DATA_CRC:
       return "RMAP_ECSS_INVALID_DATA_CRC";
-
-    case RMAP_ECSS_ERROR_END_OF_PACKET:
-      return "RMAP_ECSS_ERROR_END_OF_PACKET";
 
     case RMAP_ECSS_TOO_MUCH_DATA:
       return "RMAP_ECSS_TOO_MUCH_DATA";
