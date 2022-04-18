@@ -27,21 +27,89 @@ enum {
  * specification use a "RMAP_ECSS_" prefix.
  */
 typedef enum {
+  /** Success. */
   RMAP_OK,
+
+  /** A required pointer parameter was NULL.
+   *
+   * This is only used to indicate errors by the library function caller, not
+   * errors that can occur as part of the protocol operation.
+   */
   RMAP_NULLPTR,
+
+  /** Not enough space in provided parameters to complete operation.
+   *
+   * This is only used to indicate errors by the library function caller, not
+   * errors that can occur as part of the protocol operation.
+   *
+   * For example, this can indicate that the provided destination data is not
+   * large enough to fit the RMAP header which is being serialized, or that the
+   * provided destination data for the reply address is not large enough to fit
+   * the reply address being copied.
+   */
   RMAP_NOT_ENOUGH_SPACE,
+
+  /** The provided reply address is larger than 12 bytes. */
   RMAP_REPLY_ADDRESS_TOO_LONG,
+
+  /** The provided data length is unrepresentable in an RMAP data length field.
+   *
+   * The provided data length is above 16777215 and is not representable in an
+   * RMAP data length field.
+   */
   RMAP_DATA_LENGTH_TOO_BIG,
+
+  /** Unused. */
   RMAP_INCOMPLETE_PACKET,
+
+  /** The protocol field indicates that this is not an RMAP packet. */
   RMAP_NO_RMAP_PROTOCOL,
+
+  /** The header CRC indicates that errors are present in the header. */
   RMAP_HEADER_CRC_ERROR,
+
+  /** The provided data is not large enough to contain the full RMAP header.
+   *
+   * This is used to indicates that the provided source data is not large
+   * enough to fit the whole RMAP header that is being deserialized.
+   */
   RMAP_INCOMPLETE_HEADER,
+
+  /** A reply packet type was combined with a without-reply command code.
+   *
+   * This is only used to indicate errors by the library function caller, not
+   * errors that can occur as part of the protocol operation.
+   */
   RMAP_NO_REPLY,
+
+  /** The packet type field has the reserved bit set. */
   RMAP_UNUSED_PACKET_TYPE,
+
+  /** The command field contains a reserved command code. */
   RMAP_UNUSED_COMMAND_CODE,
+
+  /** The provided command code is an unrepresentable command code.
+   *
+   * This is only used to indicate errors by the library function caller, not
+   * errors that can occur as part of the protocol operation.
+   */
   RMAP_INVALID_COMMAND_CODE,
+
+  /** The data CRC indicates that errors are present in the data. */
   RMAP_ECSS_INVALID_DATA_CRC,
+
+  /** Unused. */
   RMAP_ECSS_ERROR_END_OF_PACKET,
+
+  /** There is more data than expected.
+   *
+   * This can indicate that either:
+   * * An RMAP packet was determined to contain more data than expected
+   *   (protocol error).
+   * * An attempt was made to serialize an RMAP read command or write reply
+   *   in-place around an existing data field, but these packet types do not
+   *   contain a data field (caller error).
+   */
   RMAP_ECSS_TOO_MUCH_DATA
 } rmap_status_t;
 
