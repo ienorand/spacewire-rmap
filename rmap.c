@@ -1055,7 +1055,9 @@ static rmap_status_t serialize_write_reply_header(
     return RMAP_UNUSED_COMMAND_CODE;
   }
 
-  rmap_set_initiator_logical_address(packet, header->initiator_logical_address);
+  rmap_set_initiator_logical_address(
+      packet,
+      header->initiator_logical_address);
   rmap_set_status(packet, header->status);
   rmap_set_target_logical_address(packet, header->target_logical_address);
   rmap_set_transaction_identifier(packet, header->transaction_identifier);
@@ -1119,7 +1121,9 @@ static rmap_status_t serialize_read_reply_header(
     return RMAP_UNUSED_COMMAND_CODE;
   }
 
-  rmap_set_initiator_logical_address(packet, header->initiator_logical_address);
+  rmap_set_initiator_logical_address(
+      packet,
+      header->initiator_logical_address);
   rmap_set_status(packet, header->status);
   rmap_set_target_logical_address(packet, header->target_logical_address);
   rmap_set_transaction_identifier(packet, header->transaction_identifier);
