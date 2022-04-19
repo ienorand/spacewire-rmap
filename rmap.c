@@ -184,28 +184,7 @@ static size_t calculate_reply_address_padded_size(const uint8_t instruction)
   return raw * 4;
 }
 
-/** Get the reply address data and length from a verified RMAP command header.
- *
- * Leading zero-padding in the reply address will be removed, resulting in an
- * address that is ready to use as a spacewire address.
- *
- * The initiator logical address is not included in the copied reply address.
- *
- * @pre @p header must contain a verified RMAP command header.
- *
- * @param[out] reply_address0 Destination for reply address.
- * @param[out] reply_address_size Number of bytes copied into @p reply_address0
- *             on success.
- * @param reply_address_max_size Number of bytes available in
- *        @p reply_address0.
- * @param[in] header Verified RMAP command header.
- *
- * @retval RMAP_NOT_ENOUGH_SPACE @p reply_address_max_size is less than the
- *         size of the reply address.
- * @retval RMAP_OK Reply address was successfully copied to @p reply_address0
- *         and its size is given in @p reply_address_size.
- */
-static rmap_status_t rmap_get_reply_address(
+rmap_status_t rmap_get_reply_address(
     uint8_t *const reply_address0,
     size_t *const reply_address_size,
     const size_t reply_address_max_size,
@@ -251,17 +230,7 @@ static rmap_status_t rmap_get_reply_address(
   return RMAP_OK;
 }
 
-/** Set the reply address field in an initialized RMAP command header.
- *
- * @pre @p header must contain an initialized RMAP command header.
- * @pre @p reply_address_size must match the (padded) length set in the reply
- *      address length field in @p header.
- *
- * @param[out] header Initialized RMAP command header.
- * @param[in] reply_address Reply address field to copy into @p header.
- * @param reply_address_size Number of bytes to copy from @p reply_address.
- */
-static void rmap_set_reply_address(
+void rmap_set_reply_address(
     uint8_t *const header,
     const uint8_t *const reply_address,
     const size_t reply_address_size)

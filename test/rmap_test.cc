@@ -741,6 +741,168 @@ TEST(RmapIsUnusedCommandCode, UnusedCommandCodes)
   EXPECT_EQ(rmap_is_unused_command_code(pattern), true);
 }
 
+TEST(RmapGetReplyAddress, Patterns)
+{
+  uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
+  size_t reply_address_size;
+
+  EXPECT_EQ(
+      rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        test_pattern0_unverified_incrementing_write_with_reply),
+      RMAP_OK);
+  EXPECT_EQ(reply_address_size, 0);
+
+  EXPECT_EQ(
+      rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        test_pattern1_incrementing_read),
+      RMAP_OK);
+  EXPECT_EQ(reply_address_size, 0);
+
+  EXPECT_EQ(
+      rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+        test_pattern2_target_address_length),
+      RMAP_OK);
+  EXPECT_EQ(reply_address_size, test_pattern2_reply_address_length);
+  EXPECT_EQ(
+      std::vector<uint8_t>(reply_address, reply_address + reply_address_size),
+      std::vector<uint8_t>(
+        test_pattern2_expected_write_reply_with_spacewire_addresses,
+        test_pattern2_expected_write_reply_with_spacewire_addresses +
+        test_pattern2_reply_address_length));
+
+  EXPECT_EQ(
+      rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        test_pattern3_incrementing_read_with_spacewire_addresses +
+        test_pattern3_target_address_length),
+      RMAP_OK);
+  EXPECT_EQ(reply_address_size, test_pattern3_reply_address_length);
+  EXPECT_EQ(
+      std::vector<uint8_t>(reply_address, reply_address + reply_address_size),
+      std::vector<uint8_t>(
+        test_pattern3_expected_read_reply_with_spacewire_addresses,
+        test_pattern3_expected_read_reply_with_spacewire_addresses +
+        test_pattern3_reply_address_length));
+}
+
+typedef std::tuple<std::vector<uint8_t>, std::vector<uint8_t>>
+SetReplyAddressParameters;
+
+class SetReplyAddress :
+  public testing::TestWithParam<SetReplyAddressParameters>
+{
+};
+
+TEST_P(SetReplyAddress, SetGet)
+{
+  uint8_t header[64];
+  uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
+  size_t reply_address_size;
+
+  auto unpadded = std::get<0>(GetParam());
+
+  ASSERT_EQ(
+      rmap_initialize_header(
+        header,
+        sizeof(header),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        unpadded.size()),
+      RMAP_OK);
+
+  rmap_set_reply_address(header, unpadded.data(), unpadded.size());
+
+  ASSERT_EQ(
+      rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        header),
+      RMAP_OK);
+  EXPECT_EQ(
+      std::vector<uint8_t>(reply_address, reply_address + reply_address_size),
+      unpadded);
+}
+
+TEST_P(SetReplyAddress, SetVerifyPadded)
+{
+  uint8_t header[64];
+
+  auto unpadded = std::get<0>(GetParam());
+  auto expected_padded = std::get<1>(GetParam());
+
+  ASSERT_EQ(
+      rmap_initialize_header(
+        header,
+        sizeof(header),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        unpadded.size()),
+      RMAP_OK);
+
+  rmap_set_reply_address(header, unpadded.data(), unpadded.size());
+
+  ASSERT_EQ(
+      std::vector<uint8_t>(header + 4, header + 4 + expected_padded.size()),
+      expected_padded);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    ReplyAddressPatterns,
+    SetReplyAddress,
+    testing::Values(
+      std::make_tuple(
+        std::vector<uint8_t>({ 1 }),
+        std::vector<uint8_t>({ 0, 0, 0, 1 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 0 }),
+        std::vector<uint8_t>({ 0, 0, 1, 0 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 2, 3 }),
+        std::vector<uint8_t>({ 0, 1, 2, 3 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 0, 0, 0 }),
+        std::vector<uint8_t>({ 1, 0, 0, 0 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 2, 3, 4 }),
+        std::vector<uint8_t>({ 1, 2, 3, 4 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 2, 3, 4, 5 }),
+        std::vector<uint8_t>({ 0, 0, 0, 1, 2, 3, 4, 5 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 2, 3, 4, 5, 6, 7 }),
+        std::vector<uint8_t>({ 0, 1, 2, 3, 4, 5, 6, 7 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 2, 3, 4, 5, 6, 7, 8 }),
+        std::vector<uint8_t>({ 1, 2, 3, 4, 5, 6, 7, 8 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 2, 3, 4, 5, 6, 7, 8, 9 }),
+        std::vector<uint8_t>({ 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 }),
+        std::vector<uint8_t>({ 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }),
+        std::vector<uint8_t>({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }),
+        std::vector<uint8_t>({ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })),
+      std::make_tuple(
+        std::vector<uint8_t>({ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }),
+        std::vector<uint8_t>({ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }))));
+
 typedef std::tuple<size_t, rmap_packet_type_t, int, size_t, rmap_status_t>
 InitializeHeaderParameters;
 
