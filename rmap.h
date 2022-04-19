@@ -168,7 +168,6 @@ enum {
     RMAP_REPLY_ADDRESS_LENGTH_MAX,
   RMAP_DATA_LENGTH_MAX = (1 << 24) - 1,
   RMAP_PACKET_SIZE_MAX = RMAP_HEADER_SIZE_MAX + RMAP_DATA_LENGTH_MAX + 1,
-
 };
 
 /** Common representation of an RMAP write or read command header for sending.
@@ -688,6 +687,49 @@ uint32_t rmap_get_address(const uint8_t *header);
  * @param address Address field to copy into @p header.
  */
 void rmap_set_address(uint8_t *header, uint32_t address);
+
+/** Get the data length field from a verified RMAP command or read reply
+ *  header.
+ *
+ * Read-modify-write is not supported.
+ *
+ * @pre @p header must contain a verified RMAP command or read reply header.
+ *
+ * @param[in] header Verified RMAP command or read reply header.
+ *
+ * @return Data length field.
+ */
+uint32_t rmap_get_header_data_length(const uint8_t *header);
+
+/** Set the data length field in an initialized RMAP command or read reply
+ *  header.
+ *
+ * Read-modify-write is not supported.
+ *
+ * @pre @p header must contain an initialized RMAP command or read reply
+ *      header.
+ *
+ * @param[out] header Initialized RMAP command or read reply header.
+ * @param data_length Data length field to copy into @p header.
+ */
+void rmap_set_data_length(uint8_t *header, uint32_t data_length);
+
+/** Calculate the data field length from a packet with a verified RMAP command
+ *  or read reply header.
+ *
+ * The data field length is calculated based on the end of the header and the
+ * size of the raw packet, excluding the data CRC field (the data CRC field is
+ * assumed to exist but is not verified).
+ *
+ * Read-modify-write is not supported.
+ *
+ * @pre @p packet must contain a verified RMAP command or read reply header.
+ *
+ * @param[in] packet Packet with a verified RMAP command or read reply header.
+ *
+ * @return Data field length.
+ */
+size_t rmap_get_raw_data_length(const uint8_t *packet, size_t size);
 
 /** Initialize an RMAP header.
  *

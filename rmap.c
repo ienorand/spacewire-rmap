@@ -423,18 +423,7 @@ static size_t rmap_calculate_header_size(const uint8_t *const header)
   return calculate_header_size(rmap_get_instruction(header));
 }
 
-/** Get the data length field from a verified RMAP command or read reply
- *  header.
- *
- * Read-modify-write is not supported.
- *
- * @pre @p header must contain a verified RMAP command or read reply header.
- *
- * @param[in] header Verified RMAP command or read reply header.
- *
- * @return Data length field.
- */
-static uint32_t get_header_data_length(const uint8_t *const header)
+uint32_t rmap_get_header_data_length(const uint8_t *const header)
 {
   size_t offset;
 
@@ -454,20 +443,7 @@ static uint32_t get_header_data_length(const uint8_t *const header)
     (header[offset + 2] << 0);
 }
 
-/** Set the data length field in an initialized RMAP command or read reply
- *  header.
- *
- * Read-modify-write is not supported.
- *
- * @pre @p header must contain an initialized RMAP command or read reply
- *      header.
- *
- * @param[out] header Initialized RMAP command or read reply header.
- * @param data_length Data length field to copy into @p header.
- */
-static void rmap_set_data_length(
-    uint8_t *const header,
-    const uint32_t data_length)
+void rmap_set_data_length(uint8_t *const header, const uint32_t data_length)
 {
   size_t offset;
 
@@ -484,24 +460,7 @@ static void rmap_set_data_length(
   header[offset + 2] = (data_length >> 0) & 0xFF;
 }
 
-/** Calculate the data field length from a packet with a verified RMAP command
- *  or read reply header.
- *
- * The data field length is calculated based on the end of the header and the
- * size of the raw packet, excluding the data CRC field (the data CRC field is
- * assumed to exist but is not verified).
- *
- * Read-modify-write is not supported.
- *
- * @pre @p packet must contain a verified RMAP command or read reply header.
- *
- * @param[in] packet Packet with a verified RMAP command or read reply header.
- *
- * @return Data field length.
- */
-static size_t get_raw_data_length(
-    const uint8_t *const packet,
-    const size_t size)
+size_t rmap_get_raw_data_length(const uint8_t *const packet, const size_t size)
 {
   return size - (calculate_header_size(rmap_get_instruction(packet)) + 1);
 }
@@ -617,7 +576,7 @@ static rmap_status_t verify_data(
 
   const size_t data_offset =
     calculate_header_size(rmap_get_instruction(packet));
-  const size_t data_length = get_header_data_length(packet);
+  const size_t data_length = rmap_get_header_data_length(packet);
 
   if (size < data_offset + data_length + 1) {
     return RMAP_EARLY_EOP;
@@ -1286,7 +1245,7 @@ rmap_status_t rmap_header_deserialize(
     header->t.command.extended_address = rmap_get_extended_address(data);
     header->t.command.address = rmap_get_address(data);
 
-    header->t.command.data_length = get_header_data_length(data);
+    header->t.command.data_length = rmap_get_header_data_length(data);
 
     if (!rmap_is_instruction_write(instruction) &&
         data_size > *serialized_size) {
@@ -1348,7 +1307,7 @@ rmap_status_t rmap_header_deserialize(
     rmap_get_target_logical_address(data);
   header->t.read_reply.transaction_identifier =
     rmap_get_transaction_identifier(data);
-  header->t.read_reply.data_length = get_header_data_length(data);
+  header->t.read_reply.data_length = rmap_get_header_data_length(data);
 
   // TODO: Should this be "packet error" or "invalid reply" only?
   if (rmap_is_instruction_unused_packet_type(instruction)) {
