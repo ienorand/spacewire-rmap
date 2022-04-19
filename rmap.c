@@ -250,16 +250,7 @@ void rmap_set_reply_address(
       reply_address_size);
 }
 
-/** Get the target logical address field from a potential RMAP header.
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- * @pre @p header must have a correct packet type field.
- *
- * @param[in] header Potential RMAP header.
- *
- * @return Target logical address field.
- */
-static uint8_t rmap_get_target_logical_address(const uint8_t *const header)
+uint8_t rmap_get_target_logical_address(const uint8_t *const header)
 {
   if (rmap_is_command(header)) {
     return header[0];
@@ -269,16 +260,7 @@ static uint8_t rmap_get_target_logical_address(const uint8_t *const header)
   return header[4];
 }
 
-/** Set the target logical address field in a potential RMAP header.
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- * @pre @p header must have a correct packet type field.
- *
- * @param[out] header Potential RMAP header.
- * @param target_logical_address Target logical address field to copy into
- *        @p header.
- */
-static void rmap_set_target_logical_address(
+void rmap_set_target_logical_address(
     uint8_t *const header,
     const uint8_t target_logical_address)
 {
