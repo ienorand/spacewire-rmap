@@ -360,6 +360,67 @@ static const uint8_t test_pattern3_expected_read_reply_with_spacewire_addresses[
   0xB4
 };
 
+typedef std::tuple<const uint8_t *, uint8_t> PatternGetByteParameters;
+
+class ProtocolInPattern :
+  public testing::TestWithParam<PatternGetByteParameters>
+{
+};
+
+TEST_P(ProtocolInPattern, GetProtocol)
+{
+  EXPECT_EQ(
+      rmap_get_protocol(std::get<0>(GetParam())),
+      std::get<1>(GetParam()));
+}
+
+INSTANTIATE_TEST_CASE_P(
+    TestPatterns,
+    ProtocolInPattern,
+    testing::Combine(
+      testing::Values(
+        test_pattern0_unverified_incrementing_write_with_reply,
+        test_pattern0_expected_write_reply,
+        test_pattern1_incrementing_read,
+        test_pattern1_expected_read_reply,
+        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+        test_pattern2_target_address_length,
+        test_pattern2_expected_write_reply_with_spacewire_addresses +
+        test_pattern2_reply_address_length,
+        test_pattern3_incrementing_read_with_spacewire_addresses +
+        test_pattern3_target_address_length,
+        test_pattern3_expected_read_reply_with_spacewire_addresses +
+        test_pattern3_reply_address_length),
+      /* All are expected to have protocol identifier 1. */
+      testing::Values(1)));
+
+static uint8_t patterns_with_non_rmap_protocols[][RMAP_HEADER_MINIMUM_SIZE] = {
+  { 13, 0, 17 },
+  { 13, 2, 17 },
+  { 13, 123, 17 },
+  { 13, 0xFF, 17 }
+};
+INSTANTIATE_TEST_CASE_P(
+    NonRmapPatterns,
+    ProtocolInPattern,
+    testing::Values(
+      std::make_tuple(patterns_with_non_rmap_protocols[0], 0),
+      std::make_tuple(patterns_with_non_rmap_protocols[1], 2),
+      std::make_tuple(patterns_with_non_rmap_protocols[2], 123),
+      std::make_tuple(patterns_with_non_rmap_protocols[3], 0xFF)));
+
+TEST(SetProtocol, GetGives1AfterSet)
+{
+  uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
+
+  rmap_set_protocol(buf);
+  EXPECT_EQ(rmap_get_protocol(buf), 1);
+
+  std::fill(buf, buf + sizeof(buf), 123);
+  rmap_set_protocol(buf);
+  EXPECT_EQ(rmap_get_protocol(buf), 1);
+}
+
 TEST(RmapCrcCalculate, ZeroesInDataGivesZeroCrc)
 {
   unsigned char data[17] = {};

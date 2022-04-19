@@ -120,6 +120,14 @@ typedef enum {
   RMAP_ECSS_TOO_MUCH_DATA
 } rmap_status_t;
 
+/** Size constants for RMAP packets. */
+enum {
+  RMAP_COMMAND_HEADER_STATIC_SIZE = 16,
+  RMAP_WRITE_REPLY_HEADER_STATIC_SIZE = 8,
+  RMAP_READ_REPLY_HEADER_STATIC_SIZE = 12,
+  RMAP_HEADER_MINIMUM_SIZE = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE
+};
+
 /** Common representation of an RMAP write or read command header for sending.
  */
 typedef struct {
@@ -232,6 +240,26 @@ typedef struct {
     rmap_receive_read_reply_header_t read_reply;
   } t;
 } rmap_receive_header_t;
+
+/** Get the protocol identifier field from a potential RMAP header.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @return Protocol identifier field.
+ */
+uint8_t rmap_get_protocol(const uint8_t *header);
+
+/** Set the protocol identifier for RMAP in a potential RMAP header.
+ *
+ * Set the protocol identifier to 1, which is the identifier for RMAP.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[out] header Potential RMAP header.
+ */
+void rmap_set_protocol(uint8_t *header);
 
 /** Initialize a reply header for given command header.
  *

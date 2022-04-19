@@ -7,11 +7,6 @@
 #define RMAP_REPLY_ADDRESS_LENGTH_MAX 12
 #define RMAP_DATA_LENGTH_MAX ((1 << 24) - 1)
 
-#define RMAP_COMMAND_HEADER_STATIC_SIZE 16
-#define RMAP_WRITE_REPLY_HEADER_STATIC_SIZE 8
-#define RMAP_READ_REPLY_HEADER_STATIC_SIZE 12
-#define RMAP_HEADER_MINIMUM_SIZE RMAP_WRITE_REPLY_HEADER_STATIC_SIZE
-
 #define RMAP_INSTRUCTION_PACKET_TYPE_SHIFT 6
 #define RMAP_INSTRUCTION_PACKET_TYPE_MASK \
   (3 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT)
@@ -51,28 +46,12 @@ typedef enum {
   RMAP_PACKET_TYPE_REPLY
 } packet_type_t;
 
-/** Get the protocol identifier field from a potential RMAP header.
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- *
- * @param[in] header Potential RMAP header.
- *
- * @return Protocol identifier field.
- */
-static uint8_t get_protocol(const uint8_t *const header)
+uint8_t rmap_get_protocol(const uint8_t *const header)
 {
   return header[1];
 }
 
-/** Set the protocol identifier for RMAP in a potential RMAP header.
- *
- * Set the protocol identifier to 1, which is the identifier for RMAP.
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- *
- * @param[out] header Potential RMAP header.
- */
-static void set_protocol(uint8_t *const header)
+void rmap_set_protocol(uint8_t *const header)
 {
   header[1] = 1;
 }
@@ -845,7 +824,7 @@ static rmap_status_t verify_header(
     return RMAP_INCOMPLETE_HEADER;
   }
 
-  if (get_protocol(header) != 1) {
+  if (rmap_get_protocol(header) != 1) {
     return RMAP_NO_RMAP_PROTOCOL;
   }
 
@@ -1078,7 +1057,7 @@ static rmap_status_t rmap_initialize_header(
     return RMAP_NOT_ENOUGH_SPACE;
   }
 
-  set_protocol(header);
+  rmap_set_protocol(header);
   set_instruction(header, instruction);
 
   return RMAP_OK;
