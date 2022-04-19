@@ -623,6 +623,28 @@ void rmap_set_initiator_logical_address(
     uint8_t *header,
     uint8_t initiator_logical_address);
 
+/** Get the transaction identifier field from a verified RMAP header.
+ *
+ * @pre @p header must contain a verified RMAP header.
+ *
+ * @param[in] header Verified RMAP header.
+ *
+ * @return Transaction identifier field.
+ */
+uint16_t rmap_get_transaction_identifier(const uint8_t *header);
+
+/** Set the transaction identifier field in an initialized RMAP header.
+ *
+ * @pre @p header must contain an initialized RMAP header.
+ *
+ * @param[out] header Initialized RMAP header.
+ * @param transaction_identifier Transaction identifier field to copy into
+ *        @p header.
+ */
+void rmap_set_transaction_identifier(
+    uint8_t *header,
+    uint16_t transaction_identifier);
+
 /** Initialize an RMAP header.
  *
  * * Verify that the header would fit in @p max_size.

@@ -911,6 +911,102 @@ INSTANTIATE_TEST_CASE_P(
         std::vector<uint8_t>({ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }),
         std::vector<uint8_t>({ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }))));
 
+TEST(RmapGetTransationIdentifier, Patterns)
+{
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(
+        test_pattern0_unverified_incrementing_write_with_reply),
+      0x0000);
+
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(test_pattern0_expected_write_reply),
+      0x0000);
+
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(test_pattern1_incrementing_read),
+      0x0001);
+
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(test_pattern1_expected_read_reply),
+      0x0001);
+
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(
+        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+        test_pattern2_target_address_length),
+      0x0002);
+
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(
+        test_pattern2_expected_write_reply_with_spacewire_addresses +
+        test_pattern2_reply_address_length),
+      0x0002);
+
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(
+        test_pattern3_incrementing_read_with_spacewire_addresses +
+        test_pattern3_target_address_length),
+      0x0003);
+
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(
+        test_pattern3_expected_read_reply_with_spacewire_addresses +
+        test_pattern3_reply_address_length),
+      0x0003);
+}
+
+typedef std::tuple<rmap_packet_type_t, int, size_t> SetTransactionIdentifierParameters;
+
+class SetTransactionIdentifier :
+  public testing::TestWithParam<SetTransactionIdentifierParameters>
+{
+};
+
+TEST_P(SetTransactionIdentifier, GetGivesMatchingAfterSet)
+{
+  uint8_t header[64];
+
+  auto packet_type = std::get<0>(GetParam());
+  auto command_code = std::get<1>(GetParam());
+  auto reply_address_size = std::get<2>(GetParam());
+
+  ASSERT_EQ(
+      rmap_initialize_header(
+        header,
+        sizeof(header),
+        packet_type,
+        command_code,
+        reply_address_size),
+      RMAP_OK);
+  rmap_set_transaction_identifier(header, 0);
+  EXPECT_EQ(rmap_get_transaction_identifier(header), 0);
+  rmap_set_transaction_identifier(header, 1);
+  EXPECT_EQ(rmap_get_transaction_identifier(header), 1);
+  rmap_set_transaction_identifier(header, 12345);
+  EXPECT_EQ(rmap_get_transaction_identifier(header), 12345);
+  rmap_set_transaction_identifier(header, 0xFFFF);
+  EXPECT_EQ(rmap_get_transaction_identifier(header), 0xFFFF);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    WriteWithoutReply,
+    SetTransactionIdentifier,
+    testing::Values(
+      std::make_tuple(
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE,
+        0)));
+
+INSTANTIATE_TEST_CASE_P(
+    CommandsAndRepliesWithReply,
+    SetTransactionIdentifier,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_COMMAND, RMAP_PACKET_TYPE_REPLY),
+      testing::Values(
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_REPLY),
+      testing::Range((size_t)0, (size_t)(12 + 1))));
+
 typedef std::tuple<size_t, rmap_packet_type_t, int, size_t, rmap_status_t>
 InitializeHeaderParameters;
 
