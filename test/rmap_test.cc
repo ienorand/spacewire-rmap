@@ -454,58 +454,58 @@ TEST(RmapCrcCalculate, TestPattern1Reply)
   EXPECT_EQ(data_calculated_including_received_crc, 0);
 }
 
-TEST(RmapHeaderDeserialize, Nullptr)
+TEST(RmapHeaderDeserializeDeathTest, Nullptr)
 {
   size_t serialized_size;
   rmap_receive_header_t header;
 
-  EXPECT_EQ(
+  EXPECT_DEATH(
       rmap_header_deserialize(
         NULL,
         &header,
         (unsigned char *)test_pattern1_incrementing_read,
         sizeof(test_pattern1_incrementing_read)),
-      RMAP_NULLPTR);
+      "");
 
-  EXPECT_EQ(
+  EXPECT_DEATH(
       rmap_header_deserialize(
         &serialized_size,
         NULL,
         (unsigned char *)test_pattern1_incrementing_read,
         sizeof(test_pattern1_incrementing_read)),
-      RMAP_NULLPTR);
+      "");
 
-  EXPECT_EQ(
+  EXPECT_DEATH(
       rmap_header_deserialize(
         &serialized_size,
         &header,
         NULL,
         sizeof(test_pattern1_incrementing_read)),
-      RMAP_NULLPTR);
+      "");
 
-  EXPECT_EQ(
+  EXPECT_DEATH(
       rmap_header_deserialize(
         NULL,
         NULL,
         (unsigned char *)test_pattern1_incrementing_read,
         sizeof(test_pattern1_incrementing_read)),
-      RMAP_NULLPTR);
+      "");
 
-  EXPECT_EQ(
+  EXPECT_DEATH(
       rmap_header_deserialize(
         &serialized_size,
         NULL,
         NULL,
         sizeof(test_pattern1_incrementing_read)),
-      RMAP_NULLPTR);
+      "");
 
-  EXPECT_EQ(
+  EXPECT_DEATH(
       rmap_header_deserialize(
         NULL,
         NULL,
         NULL,
         sizeof(test_pattern1_incrementing_read)),
-      RMAP_NULLPTR);
+      "");
 }
 
 typedef std::tuple<int, int, rmap_status_t> SerializedPacketTypeCommandCodesStatusParameters;
@@ -1194,7 +1194,7 @@ TEST(RmapHeaderDeserialize, TestPattern2Reply)
   EXPECT_EQ(header.t.read_reply.transaction_identifier, 0x0002);
 }
 
-TEST(RmapHeaderSerialize, Nullptr)
+TEST(RmapHeaderSerializeDeathTest, Nullptr)
 {
   size_t serialized_size;
   rmap_send_header_t header_tmp;
@@ -1229,33 +1229,33 @@ TEST(RmapHeaderSerialize, Nullptr)
   header_tmp.t.command.target_address.data = NULL;
   const rmap_send_header_t invalid_header_null_addresses = header_tmp;
 
-  EXPECT_EQ(
+  EXPECT_DEATH(
       rmap_header_serialize(NULL, data, sizeof(data), &valid_header),
-      RMAP_NULLPTR);
-  EXPECT_EQ(
+      "");
+  EXPECT_DEATH(
       rmap_header_serialize(
         &serialized_size,
         NULL,
         sizeof(data),
         &valid_header),
-      RMAP_NULLPTR);
-  EXPECT_EQ(
+      "");
+  EXPECT_DEATH(
       rmap_header_serialize(
         &serialized_size,
         data,
         sizeof(data),
         &invalid_header_null_target_address),
-      RMAP_NULLPTR);
-  EXPECT_EQ(
+      "");
+  EXPECT_DEATH(
       rmap_header_serialize(
         &serialized_size,
         data,
         sizeof(data),
         &invalid_header_null_addresses),
-      RMAP_NULLPTR);
-  EXPECT_EQ(
+      "");
+  EXPECT_DEATH(
       rmap_header_serialize(NULL, NULL, sizeof(data), NULL),
-      RMAP_NULLPTR);
+      "");
 }
 
 TEST(RmapHeaderSerialize, InvalidPacketType)
@@ -2683,14 +2683,14 @@ TEST(RmapHeaderSerialize, TestPattern3Reply)
         serialized_size));
 }
 
-TEST(RmapHeaderInitializeReply, Nullptr)
+TEST(RmapHeaderInitializeReplyDeathTest, Nullptr)
 {
   rmap_send_header_t reply;
   rmap_receive_header_t receive_header;
   size_t serialized_size;
 
-  EXPECT_EQ(rmap_header_initialize_reply(NULL, NULL), RMAP_NULLPTR);
-  EXPECT_EQ(rmap_header_initialize_reply(&reply, NULL), RMAP_NULLPTR);
+  EXPECT_DEATH(rmap_header_initialize_reply(NULL, NULL), "");
+  EXPECT_DEATH(rmap_header_initialize_reply(&reply, NULL), "");
 
   ASSERT_EQ(
       rmap_header_deserialize(
@@ -2700,9 +2700,9 @@ TEST(RmapHeaderInitializeReply, Nullptr)
         sizeof(test_pattern0_unverified_incrementing_write_with_reply)),
       RMAP_OK);
   ASSERT_EQ(receive_header.type, RMAP_TYPE_COMMAND);
-  EXPECT_EQ(
+  EXPECT_DEATH(
       rmap_header_initialize_reply(NULL, &receive_header.t.command),
-      RMAP_NULLPTR);
+      "");
 }
 
 TEST(RmapHeaderInitializeReply, NoReply)

@@ -30,13 +30,6 @@ typedef enum {
   /** Success. */
   RMAP_OK,
 
-  /** A required pointer parameter was NULL.
-   *
-   * This is only used to indicate errors by the library function caller, not
-   * errors that can occur as part of the protocol operation.
-   */
-  RMAP_NULLPTR,
-
   /** Not enough space in provided parameters to complete operation.
    *
    * This is only used to indicate errors by the library function caller, not
@@ -240,7 +233,6 @@ typedef struct {
  * @param[out] reply RMAP reply header object.
  * @param[in] command RMAP command header object.
  *
- * @retval RMAP_NULLPTR @p reply or @p command is NULL.
  * @retval RMAP_NO_REPLY No reply should be sent for this command based on the
  *         command codes.
  * @retval RMAP_OK Success, the reply has been initialized in @p reply.
@@ -254,7 +246,6 @@ rmap_status_t rmap_header_initialize_reply(
  * @param[out] serialized_size Size of the header if serialized.
  * @param[in] header RMAP header object.
  *
- * @retval RMAP_NULLPTR @p serialized_size or @p header is NULL.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
  *         12.
  * @retval RMAP_UNUSED_PACKET_TYPE The value of @p header->type is invalid.
@@ -273,15 +264,15 @@ rmap_status_t rmap_header_calculate_serialized_size(
  * a command with contained an unused command code, where the reply must
  * contain the same unused command code as the command.
  *
+ * @pre If the target_address.length member of the header object is nonzero,
+ *      the target_address.data member of the header object must be non-NULL.
+ *
  * @param[out] serialized_size Size of the serialized header.
  * @param[out] data Destination for the serialized header.
  * @param data_size Maximum size available in @p data for the serialized
  *            header.
  * @param[in] header RMAP header object.
  *
- * @retval RMAP_NULLPTR @p serialized_size, @p data or @p header is NULL, or
- *         the target_address member of the header object is NULL with a
- *         non-zero length set.
  * @retval RMAP_NOT_ENOUGH_SPACE The serialized header would be larger than @p
  *         data_size.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG The reply address length is greater than
@@ -319,6 +310,9 @@ rmap_status_t rmap_header_serialize(
  * from a read command with contained an unused command code, where the reply
  * must contain the same unused command code as the command.
  *
+ * @pre If the target_address.length member of the header object is nonzero,
+ *      the target_address.data member of the header object must be non-NULL.
+ *
  * @param[out] serialized_offset Offset of the serialized header in @p data.
  * @param[out] serialized_size Size of the serialized header.
  * @param[out] data Destination for the serialized header.
@@ -328,9 +322,6 @@ rmap_status_t rmap_header_serialize(
  * @param payload_size Size of the payload in @p data.
  * @param[in] header RMAP header object.
  *
- * @retval RMAP_NULLPTR @p serialized_size, @p serialized_offset, @p data or @p
- *         header is NULL, or the target_address member of the header object is
- *         NULL with a non-zero length set.
  * @retval RMAP_ECSS_TOO_MUCH_DATA The packet type and command codes indicated
  *         that this was a read command or a write reply.
  * @retval RMAP_NOT_ENOUGH_SPACE The serialized header would not fit before the
@@ -391,8 +382,6 @@ rmap_status_t rmap_packet_serialize_inplace(
  * @param[in] data Start of the RMAP packet.
  * @param data_size Size of the RMAP packet in @p data.
  *
- * @retval RMAP_NULLPTR @p serialized_size, @p header or @p data is NULL. No
- *         deserialized header is provided.
  * @retval RMAP_INCOMPLETE_HEADER @p data_size is not large enough to contain
  *         the RMAP header. No deserialized header is provided.
  * @retval RMAP_INCOMPLETE_PACKET @p data_size is not large enough to contain

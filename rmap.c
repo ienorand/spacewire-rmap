@@ -317,8 +317,6 @@ static size_t calculate_reply_address_padded_size(const uint8_t instruction)
  *        @p reply_address0.
  * @param[in] header Verified RMAP command header.
  *
- * @retval RMAP_NULLPTR @p reply_address0, @p reply_address_size or @p header
- *         is NULL.
  * @retval RMAP_NOT_ENOUGH_SPACE @p reply_address_max_size is less than the
  *         size of the reply address.
  * @retval RMAP_OK Reply address was successfully copied to @p reply_address0
@@ -333,9 +331,9 @@ static rmap_status_t rmap_get_reply_address(
   const uint8_t *reply_address_padded;
   uint8_t *reply_address;
 
-  if (!reply_address0 || !reply_address_size || !header) {
-    return RMAP_NULLPTR;
-  }
+  assert(reply_address0);
+  assert(reply_address_size);
+  assert(header);
 
   const size_t reply_address_padded_size =
     calculate_reply_address_padded_size(get_instruction(header));
@@ -718,7 +716,6 @@ static void rmap_calculate_and_set_header_crc(uint8_t *const header)
  * @param[in] header Potential RMAP header.
  * @param size Number of bytes in @p header.
  *
- * @retval RMAP_NULLPTR @p header is NULL.
  * @retval RMAP_INCOMPLETE_HEADER @p size is too small to fit the whole header.
  * @retval RMAP_NO_RMAP_PROTOCOL The protocol field indicates that this is not
  *         an RMAP packet.
@@ -737,9 +734,7 @@ static rmap_status_t verify_header(
 {
   size_t header_size;
 
-  if (!header) {
-    return RMAP_NULLPTR;
-  }
+  assert(header);
 
   if (size < RMAP_HEADER_MINIMUM_SIZE) {
     return RMAP_INCOMPLETE_HEADER;
@@ -804,7 +799,6 @@ static rmap_status_t verify_header(
  *        zero-padding used to calculate and set the reply address length
  *        field.
  *
- * @retval RMAP_NULLPTR @p instruction is NULL.
  * @retval RMAP_UNUSED_PACKET_TYPE @p packet_type contains an unrepresentable
  *         packet type.
  * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains an
@@ -823,9 +817,7 @@ static rmap_status_t make_instruction(
     const int command_code,
     const size_t reply_address_unpadded_size)
 {
-  if (!instruction) {
-    return RMAP_NULLPTR;
-  }
+  assert(instruction);
 
   *instruction = 0;
 
@@ -900,7 +892,6 @@ static rmap_status_t make_instruction(
  *        zero-padding used to calculate and set the reply address length
  *        field.
  *
- * @retval RMAP_NULLPTR @p header is NULL.
  * @retval RMAP_UNUSED_PACKET_TYPE @p packet_type contains an unrepresentable
  *         packet type.
  * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains an
@@ -924,9 +915,7 @@ static rmap_status_t rmap_initialize_header(
 {
   uint8_t instruction;
 
-  if (!header) {
-    return RMAP_NULLPTR;
-  }
+  assert(header);
 
   const rmap_status_t status = make_instruction(
       &instruction,
@@ -956,13 +945,11 @@ static rmap_status_t serialize_command_header(
   rmap_status_t status;
   size_t target_address_padding_size;
 
-  if (!serialized_size || !data || !header) {
-    return RMAP_NULLPTR;
-  }
+  assert(serialized_size);
+  assert(data);
+  assert(header);
 
-  if (header->target_address.length > 0 && !header->target_address.data) {
-    return RMAP_NULLPTR;
-  }
+  assert(header->target_address.length == 0 || header->target_address.data);
 
   if (header->data_length > RMAP_DATA_LENGTH_MAX) {
     return RMAP_DATA_LENGTH_TOO_BIG;
@@ -1028,9 +1015,9 @@ static rmap_status_t serialize_write_reply_header(
   rmap_status_t status;
   size_t reply_address_padding_size;
 
-  if (!serialized_size || !data || !header) {
-    return RMAP_NULLPTR;
-  }
+  assert(serialized_size);
+  assert(data);
+  assert(header);
 
   if (header->reply_address.length + RMAP_HEADER_MINIMUM_SIZE > data_size) {
     return RMAP_NOT_ENOUGH_SPACE;
@@ -1088,9 +1075,9 @@ static rmap_status_t serialize_read_reply_header(
   rmap_status_t status;
   size_t reply_address_padding_size;
 
-  if (!serialized_size || !data || !header) {
-    return RMAP_NULLPTR;
-  }
+  assert(serialized_size);
+  assert(data);
+  assert(header);
 
   if (header->data_length > RMAP_DATA_LENGTH_MAX) {
     return RMAP_DATA_LENGTH_TOO_BIG;
@@ -1149,9 +1136,8 @@ rmap_status_t rmap_header_initialize_reply(
     rmap_send_header_t *const reply,
     const rmap_receive_command_header_t *const command)
 {
-  if (!reply || !command) {
-    return RMAP_NULLPTR;
-  }
+  assert(reply);
+  assert(command);
 
   if (!(command->command_codes & RMAP_COMMAND_CODE_REPLY)) {
     return RMAP_NO_REPLY;
@@ -1204,9 +1190,8 @@ rmap_status_t rmap_header_calculate_serialized_size(
   size_t prefix_address_size;
   size_t reply_address_unpadded_size;
 
-  if (!header || !serialized_size) {
-    return RMAP_NULLPTR;
-  }
+  assert(header);
+  assert(serialized_size);
 
   packet_type = RMAP_PACKET_TYPE_COMMAND;
   command_code = 0;
@@ -1254,9 +1239,8 @@ rmap_status_t rmap_header_serialize(
   rmap_status_t rmap_status;
   size_t serialized_size_tmp;
 
-  if (!header || !serialized_size) {
-    return RMAP_NULLPTR;
-  }
+  assert(header);
+  assert(serialized_size);
 
   is_unused_command_code = false;
 
@@ -1298,7 +1282,6 @@ rmap_status_t rmap_header_serialize(
       return RMAP_UNUSED_PACKET_TYPE;
   }
   switch (rmap_status) {
-    case RMAP_NULLPTR:
     case RMAP_NOT_ENOUGH_SPACE:
     case RMAP_REPLY_ADDRESS_TOO_LONG:
     case RMAP_DATA_LENGTH_TOO_BIG:
@@ -1337,9 +1320,10 @@ rmap_status_t rmap_packet_serialize_inplace(
   size_t header_serialized_size;
   bool is_unused_command_code;
 
-  if (!serialized_offset || !serialized_size || !data || !header) {
-    return RMAP_NULLPTR;
-  }
+  assert(serialized_offset);
+  assert(serialized_size);
+  assert(data);
+  assert(header);
 
   if ((header->type == RMAP_TYPE_COMMAND &&
       !(header->t.command.command_codes & RMAP_COMMAND_CODE_WRITE)) ||
@@ -1360,7 +1344,6 @@ rmap_status_t rmap_packet_serialize_inplace(
         header);
   if (rmap_status != RMAP_OK) {
     assert(
-        rmap_status == RMAP_NULLPTR ||
         rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
         rmap_status == RMAP_UNUSED_PACKET_TYPE);
     return rmap_status;
@@ -1378,7 +1361,6 @@ rmap_status_t rmap_packet_serialize_inplace(
       payload_offset,
       header);
   switch (rmap_status) {
-    case RMAP_NULLPTR:
     case RMAP_REPLY_ADDRESS_TOO_LONG:
     case RMAP_DATA_LENGTH_TOO_BIG:
       return rmap_status;
@@ -1415,9 +1397,9 @@ rmap_status_t rmap_header_deserialize(
   unsigned char command_code;
   bool is_reply_without_reply;
 
-  if (!serialized_size || !header || !data) {
-    return RMAP_NULLPTR;
-  }
+  assert(serialized_size);
+  assert(header);
+  assert(data);
 
   status = verify_header(data, data_size);
   switch (status) {
@@ -1562,9 +1544,6 @@ const char *rmap_status_text(const rmap_status_t status)
   switch (status) {
     case RMAP_OK:
       return "RMAP_OK";
-
-    case RMAP_NULLPTR:
-      return "RMAP_NULLPTR";
 
     case RMAP_NOT_ENOUGH_SPACE:
       return "RMAP_NOT_ENOUGH_SPACE";
