@@ -1069,6 +1069,82 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_COMMAND_CODE_REPLY),
       testing::Range((size_t)0, (size_t)(12 + 1))));
 
+TEST(RmapGetAddress, Patterns)
+{
+  EXPECT_EQ(
+      rmap_get_address(
+        test_pattern0_unverified_incrementing_write_with_reply),
+      0xA0000000);
+
+  EXPECT_EQ(
+      rmap_get_address(test_pattern1_incrementing_read),
+      0xA0000000);
+
+  EXPECT_EQ(
+      rmap_get_address(
+        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+        test_pattern2_target_address_length),
+      0xA0000010);
+
+  EXPECT_EQ(
+      rmap_get_address(
+        test_pattern3_incrementing_read_with_spacewire_addresses +
+        test_pattern3_target_address_length),
+      0xA0000010);
+}
+
+typedef std::tuple<rmap_packet_type_t, int, size_t> SetAddressParameters;
+
+class SetAddress :
+  public testing::TestWithParam<SetAddressParameters>
+{
+};
+
+TEST_P(SetAddress, GetGivesMatchingAfterSet)
+{
+  uint8_t header[64];
+
+  auto packet_type = std::get<0>(GetParam());
+  auto command_code = std::get<1>(GetParam());
+  auto reply_address_size = std::get<2>(GetParam());
+
+  ASSERT_EQ(
+      rmap_initialize_header(
+        header,
+        sizeof(header),
+        packet_type,
+        command_code,
+        reply_address_size),
+      RMAP_OK);
+  rmap_set_address(header, 0);
+  EXPECT_EQ(rmap_get_address(header), 0);
+  rmap_set_address(header, 1);
+  EXPECT_EQ(rmap_get_address(header), 1);
+  rmap_set_address(header, 1234567890);
+  EXPECT_EQ(rmap_get_address(header), 1234567890);
+  rmap_set_address(header, 0xFFFFFFFF);
+  EXPECT_EQ(rmap_get_address(header), 0xFFFFFFFF);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    WriteWithoutReply,
+    SetAddress,
+    testing::Values(
+      std::make_tuple(
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE,
+        0)));
+
+INSTANTIATE_TEST_CASE_P(
+    CommandsWithReply,
+    SetAddress,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_COMMAND),
+      testing::Values(
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_REPLY),
+      testing::Range((size_t)0, (size_t)(12 + 1))));
+
 typedef std::tuple<size_t, rmap_packet_type_t, int, size_t, rmap_status_t>
 InitializeHeaderParameters;
 

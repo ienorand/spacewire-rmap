@@ -664,6 +664,25 @@ uint8_t rmap_get_extended_address(const uint8_t *header);
  */
 void rmap_set_extended_address(uint8_t *header, uint8_t extended_address);
 
+/** Get the address field from a verified RMAP command header.
+ *
+ * @pre @p header must contain a verified RMAP command header.
+ *
+ * @param[in] header Verified RMAP command header.
+ *
+ * @return Address field.
+ */
+uint32_t rmap_get_address(const uint8_t *header);
+
+/** Set the address field in an initialized RMAP command header.
+ *
+ * @pre @p header must contain an initialized RMAP command header.
+ *
+ * @param[out] header Initialized RMAP command header.
+ * @param address Address field to copy into @p header.
+ */
+void rmap_set_address(uint8_t *header, uint32_t address);
+
 /** Initialize an RMAP header.
  *
  * * Verify that the header would fit in @p max_size.
