@@ -56,27 +56,12 @@ void rmap_set_protocol(uint8_t *const header)
   header[1] = 1;
 }
 
-/** Get the instruction field from a potential RMAP header.
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- *
- * @param[in] header Potential RMAP header.
- *
- * @return Instruction field.
- */
-static uint8_t get_instruction(const uint8_t *const header)
+uint8_t rmap_get_instruction(const uint8_t *const header)
 {
   return header[2];
 }
 
-/** Set the instruction field in a potential RMAP header.
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- *
- * @param[out] header Potential RMAP header.
- * @param instruction Instruction field to copy into @p header.
- */
-static void set_instruction(uint8_t *const header, const uint8_t instruction)
+void rmap_set_instruction(uint8_t *const header, const uint8_t instruction)
 {
   header[2] = instruction;
 }
@@ -111,7 +96,7 @@ static bool is_command(const uint8_t instruction)
  */
 static bool rmap_is_command(const uint8_t *const header)
 {
-  return is_command(get_instruction(header));
+  return is_command(rmap_get_instruction(header));
 }
 
 /** Determine if the packet type is "unused" in an instruction field.
@@ -150,7 +135,7 @@ static bool is_write(const uint8_t instruction)
  */
 static bool rmap_is_write(const uint8_t *const header)
 {
-  return is_write(get_instruction(header));
+  return is_write(rmap_get_instruction(header));
 }
 
 /** Determine if the command type is "verified" in an instruction field.
@@ -182,7 +167,7 @@ static bool is_verify_data_before_write(const uint8_t instruction)
  */
 static bool rmap_is_verify_data_before_write(const uint8_t *const header)
 {
-  return is_verify_data_before_write(get_instruction(header));
+  return is_verify_data_before_write(rmap_get_instruction(header));
 }
 
 /** Determine if the command type is "with-reply" in an instruction field.
@@ -216,7 +201,7 @@ static bool is_with_reply(const uint8_t instruction)
  */
 static bool rmap_is_with_reply(const uint8_t *const header)
 {
-  return is_with_reply(get_instruction(header));
+  return is_with_reply(rmap_get_instruction(header));
 }
 
 /** Determine if the command type is "incrementing" in an instruction field.
@@ -252,7 +237,7 @@ static bool is_increment_address(const uint8_t instruction)
  */
 static bool rmap_is_increment_address(const uint8_t *const header)
 {
-  return is_increment_address(get_instruction(header));
+  return is_increment_address(rmap_get_instruction(header));
 }
 
 /** Determine if the command code is "unused" in an instruction field.
@@ -383,7 +368,7 @@ static rmap_status_t rmap_get_reply_address(
   assert(header);
 
   const size_t reply_address_padded_size =
-    calculate_reply_address_padded_size(get_instruction(header));
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
   reply_address_padded = header + 4;
 
   reply_address = reply_address0;
@@ -435,7 +420,7 @@ static void rmap_set_reply_address(
   reply_address_padded = header + 4;
 
   const size_t padding_size =
-    calculate_reply_address_padded_size(get_instruction(header)) -
+    calculate_reply_address_padded_size(rmap_get_instruction(header)) -
     reply_address_size;
   memset(reply_address_padded, 0x00, padding_size);
 
@@ -498,7 +483,7 @@ static uint8_t rmap_get_initiator_logical_address(const uint8_t *const header)
 {
   if (rmap_is_command(header)) {
     size_t reply_address_padded_size =
-      calculate_reply_address_padded_size(get_instruction(header));
+      calculate_reply_address_padded_size(rmap_get_instruction(header));
     return header[4 + reply_address_padded_size];
   }
 
@@ -520,7 +505,7 @@ static void rmap_set_initiator_logical_address(
 {
   if (rmap_is_command(header)) {
     size_t reply_address_padded_size =
-      calculate_reply_address_padded_size(get_instruction(header));
+      calculate_reply_address_padded_size(rmap_get_instruction(header));
     header[4 + reply_address_padded_size] = initiator_logical_address;
     return;
   }
@@ -544,7 +529,7 @@ static uint16_t rmap_get_transaction_identifier(const uint8_t *const header)
   offset = 4 + 1;
   if (rmap_is_command(header)) {
     size_t reply_address_padded_size =
-      calculate_reply_address_padded_size(get_instruction(header));
+      calculate_reply_address_padded_size(rmap_get_instruction(header));
     offset += reply_address_padded_size;
   }
 
@@ -568,7 +553,7 @@ static void rmap_set_transaction_identifier(
   offset = 4 + 1;
   if (rmap_is_command(header)) {
     size_t reply_address_padded_size =
-      calculate_reply_address_padded_size(get_instruction(header));
+      calculate_reply_address_padded_size(rmap_get_instruction(header));
     offset += reply_address_padded_size;
   }
 
@@ -601,7 +586,7 @@ static void set_reserved(uint8_t *const header)
 static uint8_t rmap_get_extended_address(const uint8_t *const header)
 {
   size_t reply_address_padded_size =
-    calculate_reply_address_padded_size(get_instruction(header));
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
   return header[4 + reply_address_padded_size + 3];
 }
 
@@ -617,7 +602,7 @@ static void rmap_set_extended_address(
     const uint8_t extended_address)
 {
   size_t reply_address_padded_size =
-    calculate_reply_address_padded_size(get_instruction(header));
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
   header[4 + reply_address_padded_size + 3] = extended_address;
 }
 
@@ -632,7 +617,7 @@ static void rmap_set_extended_address(
 static uint32_t rmap_get_address(const uint8_t *const header)
 {
   size_t reply_address_padded_size =
-    calculate_reply_address_padded_size(get_instruction(header));
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
   const size_t offset = 4 + reply_address_padded_size + 4;
   return ((uint32_t)header[offset + 0] << 24) |
     (header[offset + 1] << 16) |
@@ -650,7 +635,7 @@ static uint32_t rmap_get_address(const uint8_t *const header)
 static void rmap_set_address(uint8_t *const header, const uint32_t address)
 {
   size_t reply_address_padded_size =
-    calculate_reply_address_padded_size(get_instruction(header));
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
   const size_t offset = 4 + reply_address_padded_size + 4;
 
   header[offset + 0] = (address >> 24) & 0xFF;
@@ -695,7 +680,7 @@ static size_t calculate_header_size(const uint8_t instruction)
  */
 static size_t rmap_calculate_header_size(const uint8_t *const header)
 {
-  return calculate_header_size(get_instruction(header));
+  return calculate_header_size(rmap_get_instruction(header));
 }
 
 /** Get the data length field from a verified RMAP command or read reply
@@ -713,7 +698,7 @@ static uint32_t get_header_data_length(const uint8_t *header)
 {
   size_t offset;
 
-  const uint8_t instruction = get_instruction(header);
+  const uint8_t instruction = rmap_get_instruction(header);
 
   offset = RMAP_READ_REPLY_HEADER_STATIC_SIZE - 4;
   if (is_command(instruction)) {
@@ -746,7 +731,7 @@ static void rmap_set_data_length(
 {
   size_t offset;
 
-  const uint8_t instruction = get_instruction(header);
+  const uint8_t instruction = rmap_get_instruction(header);
 
   offset = RMAP_READ_REPLY_HEADER_STATIC_SIZE - 4;
   if (is_command(instruction)) {
@@ -778,7 +763,7 @@ static size_t get_raw_data_length(
     const uint8_t *const packet,
     const size_t size)
 {
-  return size - (calculate_header_size(get_instruction(packet)) + 1);
+  return size - (calculate_header_size(rmap_get_instruction(packet)) + 1);
 }
 
 /** Calculate and set the header CRC field in an initialized RMAP header.
@@ -789,7 +774,8 @@ static size_t get_raw_data_length(
  */
 static void rmap_calculate_and_set_header_crc(uint8_t *const header)
 {
-  const size_t header_size = calculate_header_size(get_instruction(header));
+  const size_t header_size =
+    calculate_header_size(rmap_get_instruction(header));
   header[header_size - 1] = rmap_crc_calculate(header, header_size - 1);
 }
 
@@ -828,7 +814,7 @@ static rmap_status_t verify_header(
     return RMAP_NO_RMAP_PROTOCOL;
   }
 
-  const uint8_t instruction = get_instruction(header);
+  const uint8_t instruction = rmap_get_instruction(header);
 
   header_size = calculate_header_size(instruction);
 
@@ -889,7 +875,8 @@ static rmap_status_t verify_data(
 {
   assert(packet);
 
-  const size_t data_offset = calculate_header_size(get_instruction(packet));
+  const size_t data_offset =
+    calculate_header_size(rmap_get_instruction(packet));
   const size_t data_length = get_header_data_length(packet);
 
   if (size < data_offset + data_length + 1) {
@@ -1058,7 +1045,7 @@ static rmap_status_t rmap_initialize_header(
   }
 
   rmap_set_protocol(header);
-  set_instruction(header, instruction);
+  rmap_set_instruction(header, instruction);
 
   return RMAP_OK;
 }
@@ -1121,14 +1108,16 @@ static rmap_status_t serialize_command_header(
       packet,
       header->reply_address.data,
       header->reply_address.length);
-  rmap_set_initiator_logical_address(packet, header->initiator_logical_address);
+  rmap_set_initiator_logical_address(
+      packet,
+      header->initiator_logical_address);
   rmap_set_transaction_identifier(packet, header->transaction_identifier);
   rmap_set_extended_address(packet, header->extended_address);
   rmap_set_address(packet, header->address);
   rmap_set_data_length(packet, header->data_length);
   rmap_calculate_and_set_header_crc(packet);
 
-  *serialized_size = calculate_header_size(get_instruction(packet));
+  *serialized_size = calculate_header_size(rmap_get_instruction(packet));
 
   return RMAP_OK;
 }
@@ -1190,7 +1179,7 @@ static rmap_status_t serialize_write_reply_header(
   rmap_set_transaction_identifier(packet, header->transaction_identifier);
   rmap_calculate_and_set_header_crc(packet);
 
-  *serialized_size = calculate_header_size(get_instruction(packet));
+  *serialized_size = calculate_header_size(rmap_get_instruction(packet));
 
   return RMAP_OK;
 }
@@ -1258,7 +1247,7 @@ static rmap_status_t serialize_read_reply_header(
   rmap_set_data_length(packet, header->data_length);
   rmap_calculate_and_set_header_crc(packet);
 
-  *serialized_size = calculate_header_size(get_instruction(packet));
+  *serialized_size = calculate_header_size(rmap_get_instruction(packet));
 
   return RMAP_OK;
 }
@@ -1548,7 +1537,7 @@ rmap_status_t rmap_header_deserialize(
       break;
   }
 
-  const uint8_t instruction = get_instruction(data);
+  const uint8_t instruction = rmap_get_instruction(data);
 
   /* Other errors currently take precedence over reply-without-reply, so avoid
    * reporting it directly.

@@ -4,6 +4,34 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define RMAP_INSTRUCTION_PACKET_TYPE_SHIFT 6
+#define RMAP_INSTRUCTION_PACKET_TYPE_MASK \
+  (3 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT)
+
+#define RMAP_INSTRUCTION_COMMAND_CODE_SHIFT 2
+#define RMAP_INSTRUCTION_COMMAND_CODE_MASK \
+  (0xF << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT)
+
+#define RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT 5
+#define RMAP_INSTRUCTION_COMMAND_WRITE_MASK \
+  (1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT)
+
+#define RMAP_INSTRUCTION_COMMAND_VERIFY_SHIFT 4
+#define RMAP_INSTRUCTION_COMMAND_VERIFY_MASK \
+  (1 << RMAP_INSTRUCTION_COMMAND_VERIFY_SHIFT)
+
+#define RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT 3
+#define RMAP_INSTRUCTION_COMMAND_REPLY_MASK \
+  (1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT)
+
+#define RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT 2
+#define RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK \
+  (1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT)
+
+#define RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT 0
+#define RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK \
+  (3 << RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT)
+
 /** Representation of an RMAP header type. */
 typedef enum {
   RMAP_TYPE_COMMAND,
@@ -260,6 +288,25 @@ uint8_t rmap_get_protocol(const uint8_t *header);
  * @param[out] header Potential RMAP header.
  */
 void rmap_set_protocol(uint8_t *header);
+
+/** Get the instruction field from a potential RMAP header.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @return Instruction field.
+ */
+uint8_t rmap_get_instruction(const uint8_t *header);
+
+/** Set the instruction field in a potential RMAP header.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[out] header Potential RMAP header.
+ * @param instruction Instruction field to copy into @p header.
+ */
+void rmap_set_instruction(uint8_t *header, uint8_t instruction);
 
 /** Initialize a reply header for given command header.
  *

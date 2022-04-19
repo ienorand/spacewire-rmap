@@ -421,6 +421,107 @@ TEST(SetProtocol, GetGives1AfterSet)
   EXPECT_EQ(rmap_get_protocol(buf), 1);
 }
 
+class InstructionInPattern :
+  public testing::TestWithParam<PatternGetByteParameters>
+{
+};
+
+TEST_P(InstructionInPattern, GetInstruction)
+{
+  EXPECT_EQ(
+      rmap_get_instruction(std::get<0>(GetParam())),
+      std::get<1>(GetParam()));
+}
+
+INSTANTIATE_TEST_CASE_P(
+    TestPatterns,
+    InstructionInPattern,
+    testing::Values(
+      std::make_tuple(
+        test_pattern0_unverified_incrementing_write_with_reply,
+        1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+        1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+        1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
+        1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
+      std::make_tuple(
+        test_pattern0_expected_write_reply,
+        0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+        1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+        1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
+        1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
+      std::make_tuple(
+        test_pattern1_incrementing_read,
+        1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+        1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+        1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
+      std::make_tuple(
+        test_pattern1_expected_read_reply,
+        0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+        1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+        1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
+      std::make_tuple(
+          test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+          test_pattern2_target_address_length,
+          1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          (test_pattern2_reply_address_length_padded / 4) <<
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
+      std::make_tuple(
+          test_pattern2_expected_write_reply_with_spacewire_addresses +
+          test_pattern2_reply_address_length,
+          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          (test_pattern2_reply_address_length_padded / 4) <<
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
+      std::make_tuple(
+          test_pattern3_incrementing_read_with_spacewire_addresses +
+          test_pattern3_target_address_length,
+          1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          (test_pattern3_reply_address_length / 4) <<
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
+      std::make_tuple(
+          test_pattern3_expected_read_reply_with_spacewire_addresses +
+          test_pattern3_reply_address_length,
+          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          (test_pattern3_reply_address_length / 4) <<
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT)));
+
+TEST(SetInstruction, GetGivesMatchingAfterSet)
+{
+  uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
+
+  rmap_set_instruction(buf, 0);
+  EXPECT_EQ(rmap_get_instruction(buf), 0);
+
+  rmap_set_instruction(buf, 1);
+  EXPECT_EQ(rmap_get_instruction(buf), 1);
+
+  rmap_set_instruction(buf, 123);
+  EXPECT_EQ(rmap_get_instruction(buf), 123);
+
+  rmap_set_instruction(
+      buf,
+      RMAP_INSTRUCTION_PACKET_TYPE_MASK |
+      RMAP_INSTRUCTION_COMMAND_CODE_MASK |
+      RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK);
+  EXPECT_EQ(
+      rmap_get_instruction(buf),
+      RMAP_INSTRUCTION_PACKET_TYPE_MASK |
+      RMAP_INSTRUCTION_COMMAND_CODE_MASK |
+      RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK);
+
+  rmap_set_instruction(buf, 0xFF);
+  EXPECT_EQ(rmap_get_instruction(buf), 0xFF);
+}
+
 TEST(RmapCrcCalculate, ZeroesInDataGivesZeroCrc)
 {
   unsigned char data[17] = {};
