@@ -601,6 +601,28 @@ void rmap_set_target_logical_address(
     uint8_t *header,
     uint8_t target_logical_address);
 
+/** Get the initiator logical address field from a verified RMAP header.
+ *
+ * @pre @p header must contain a verified RMAP header.
+ *
+ * @param[in] header Verified RMAP header.
+ *
+ * @return Initiator logical address field.
+ */
+uint8_t rmap_get_initiator_logical_address(const uint8_t *header);
+
+/** Set the initiator logical address field in an initialized RMAP header.
+ *
+ * @pre @p header must contain an initialized RMAP header.
+ *
+ * @param[out] header Initialized RMAP header.
+ * @param initiator_logical_address Initiator logical address field to copy
+ *        into @p header.
+ */
+void rmap_set_initiator_logical_address(
+    uint8_t *header,
+    uint8_t initiator_logical_address);
+
 /** Initialize an RMAP header.
  *
  * * Verify that the header would fit in @p max_size.

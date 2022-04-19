@@ -393,7 +393,8 @@ INSTANTIATE_TEST_CASE_P(
           1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
         std::make_tuple(rmap_get_key, 0),
-        std::make_tuple(rmap_get_target_logical_address, 0xFE))));
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
 INSTANTIATE_TEST_CASE_P(
     TestPattern0ReplyAccessorByteChecks,
@@ -409,7 +410,8 @@ INSTANTIATE_TEST_CASE_P(
           1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
         std::make_tuple(rmap_get_key, 0),
-        std::make_tuple(rmap_get_target_logical_address, 0xFE))));
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
 INSTANTIATE_TEST_CASE_P(
     TestPattern1AccessorByteChecks,
@@ -424,7 +426,8 @@ INSTANTIATE_TEST_CASE_P(
           1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
         std::make_tuple(rmap_get_key, 0),
-        std::make_tuple(rmap_get_target_logical_address, 0xFE))));
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
 INSTANTIATE_TEST_CASE_P(
     TestPattern1ReplyAccessorByteChecks,
@@ -439,7 +442,8 @@ INSTANTIATE_TEST_CASE_P(
           1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
         std::make_tuple(rmap_get_key, 0),
-        std::make_tuple(rmap_get_target_logical_address, 0xFE))));
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
 INSTANTIATE_TEST_CASE_P(
     TestPattern2AccessorByteChecks,
@@ -459,7 +463,8 @@ INSTANTIATE_TEST_CASE_P(
           (test_pattern2_reply_address_length_padded / 4) <<
           RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
         std::make_tuple(rmap_get_key, 0),
-        std::make_tuple(rmap_get_target_logical_address, 0xFE))));
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
 INSTANTIATE_TEST_CASE_P(
     TestPattern2ReplyAccessorByteChecks,
@@ -479,7 +484,8 @@ INSTANTIATE_TEST_CASE_P(
           (test_pattern2_reply_address_length_padded / 4) <<
           RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
         std::make_tuple(rmap_get_key, 0),
-        std::make_tuple(rmap_get_target_logical_address, 0xFE))));
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
 INSTANTIATE_TEST_CASE_P(
     TestPattern3AccessorByteChecks,
@@ -498,7 +504,8 @@ INSTANTIATE_TEST_CASE_P(
           (test_pattern3_reply_address_length / 4) <<
           RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
         std::make_tuple(rmap_get_key, 0),
-        std::make_tuple(rmap_get_target_logical_address, 0xFE))));
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
 INSTANTIATE_TEST_CASE_P(
     TestPattern3ReplyAccessorByteChecks,
@@ -517,7 +524,8 @@ INSTANTIATE_TEST_CASE_P(
           (test_pattern3_reply_address_length / 4) <<
           RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
         std::make_tuple(rmap_get_key, 0),
-        std::make_tuple(rmap_get_target_logical_address, 0xFE))));
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
 static uint8_t patterns_with_non_rmap_protocols[][RMAP_HEADER_MINIMUM_SIZE] = {
   { 13, 0, 17 },
@@ -589,7 +597,8 @@ INSTANTIATE_TEST_CASE_P(
       std::make_tuple(rmap_set_instruction, rmap_get_instruction),
       std::make_tuple(rmap_set_key, rmap_get_key),
       std::make_tuple(rmap_set_status, rmap_get_status),
-      std::make_tuple(rmap_set_target_logical_address, rmap_get_target_logical_address)));
+      std::make_tuple(rmap_set_target_logical_address, rmap_get_target_logical_address),
+      std::make_tuple(rmap_set_initiator_logical_address, rmap_get_initiator_logical_address)));
 
 TEST(SetInstruction, GetGivesMatchingAfterSetValidValue)
 {
