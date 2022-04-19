@@ -345,29 +345,14 @@ static void set_reserved(uint8_t *const header)
   header[7] = 0;
 }
 
-/** Get the extended address field from a verified RMAP command header.
- *
- * @pre @p header must contain a verified RMAP command header.
- *
- * @param[in] header Verified RMAP command header.
- *
- * @return Extended address field.
- */
-static uint8_t rmap_get_extended_address(const uint8_t *const header)
+uint8_t rmap_get_extended_address(const uint8_t *const header)
 {
   size_t reply_address_padded_size =
     calculate_reply_address_padded_size(rmap_get_instruction(header));
   return header[4 + reply_address_padded_size + 3];
 }
 
-/** Set the extended address field in an initialized RMAP command header.
- *
- * @pre @p header must contain an initialized RMAP command header.
- *
- * @param[out] header Initialized RMAP command header.
- * @param extended_address Extended address field to copy into @p header.
- */
-static void rmap_set_extended_address(
+void rmap_set_extended_address(
     uint8_t *const header,
     const uint8_t extended_address)
 {

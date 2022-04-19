@@ -645,6 +645,25 @@ void rmap_set_transaction_identifier(
     uint8_t *header,
     uint16_t transaction_identifier);
 
+/** Get the extended address field from a verified RMAP command header.
+ *
+ * @pre @p header must contain a verified RMAP command header.
+ *
+ * @param[in] header Verified RMAP command header.
+ *
+ * @return Extended address field.
+ */
+uint8_t rmap_get_extended_address(const uint8_t *header);
+
+/** Set the extended address field in an initialized RMAP command header.
+ *
+ * @pre @p header must contain an initialized RMAP command header.
+ *
+ * @param[out] header Initialized RMAP command header.
+ * @param extended_address Extended address field to copy into @p header.
+ */
+void rmap_set_extended_address(uint8_t *header, uint8_t extended_address);
+
 /** Initialize an RMAP header.
  *
  * * Verify that the header would fit in @p max_size.
