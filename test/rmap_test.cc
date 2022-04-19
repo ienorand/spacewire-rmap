@@ -391,7 +391,8 @@ INSTANTIATE_TEST_CASE_P(
           1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT))));
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
+        std::make_tuple(rmap_get_key, 0))));
 
 INSTANTIATE_TEST_CASE_P(
     TestPattern0ReplyAccessorByteChecks,
@@ -418,7 +419,8 @@ INSTANTIATE_TEST_CASE_P(
           rmap_get_instruction,
           1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT))));
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
+        std::make_tuple(rmap_get_key, 0))));
 
 INSTANTIATE_TEST_CASE_P(
     TestPattern1ReplyAccessorByteChecks,
@@ -449,7 +451,8 @@ INSTANTIATE_TEST_CASE_P(
           1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
           (test_pattern2_reply_address_length_padded / 4) <<
-          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT))));
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
+        std::make_tuple(rmap_get_key, 0))));
 
 INSTANTIATE_TEST_CASE_P(
     TestPattern2ReplyAccessorByteChecks,
@@ -484,7 +487,8 @@ INSTANTIATE_TEST_CASE_P(
           1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
           (test_pattern3_reply_address_length / 4) <<
-          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT))));
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
+        std::make_tuple(rmap_get_key, 0))));
 
 INSTANTIATE_TEST_CASE_P(
     TestPattern3ReplyAccessorByteChecks,
@@ -564,6 +568,23 @@ TEST(SetInstruction, GetGivesMatchingAfterSet)
 
   rmap_set_instruction(buf, 0xFF);
   EXPECT_EQ(rmap_get_instruction(buf), 0xFF);
+}
+
+TEST(SetKey, GetGivesMatchingAfterSet)
+{
+  uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
+
+  rmap_set_key(buf, 0);
+  EXPECT_EQ(rmap_get_key(buf), 0);
+
+  rmap_set_key(buf, 1);
+  EXPECT_EQ(rmap_get_key(buf), 1);
+
+  rmap_set_key(buf, 123);
+  EXPECT_EQ(rmap_get_key(buf), 123);
+
+  rmap_set_key(buf, 0xFF);
+  EXPECT_EQ(rmap_get_key(buf), 0xFF);
 }
 
 typedef std::tuple<bool (*)(const uint8_t *), bool>

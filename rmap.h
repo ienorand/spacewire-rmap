@@ -489,6 +489,25 @@ bool rmap_is_instruction_unused_command_code(uint8_t instruction);
  */
 bool rmap_is_unused_command_code(const uint8_t *header);
 
+/** Get the key field from a verified RMAP command header.
+ *
+ * @pre @p header must contain a verified RMAP command header.
+ *
+ * @param[in] header Verified RMAP command header.
+ *
+ * @return Key field.
+ */
+uint8_t rmap_get_key(const uint8_t *command_header);
+
+/** Set the key field in a potential RMAP command header.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[out] header Potential RMAP header.
+ * @param key Key field to copy into @p header.
+ */
+void rmap_set_key(uint8_t *header, uint8_t key);
+
 /** Initialize a reply header for given command header.
  *
  * Initialize a reply header object with all members set to match a reply to a
