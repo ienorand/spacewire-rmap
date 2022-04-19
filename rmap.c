@@ -165,27 +165,12 @@ void rmap_set_key(uint8_t *const header, const uint8_t key)
   header[3] = key;
 }
 
-/** Get the status field from verified RMAP reply header.
- *
- * @pre @p header must contain a verified RMAP reply header.
- *
- * @param[in] header Verified RMAP reply header.
- *
- * @return Status field.
- */
-static uint8_t rmap_get_status(const uint8_t *const header)
+uint8_t rmap_get_status(const uint8_t *const header)
 {
   return header[3];
 }
 
-/** Set the status field in a potential RMAP reply header.
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- *
- * @param[out] header Potential RMAP header.
- * @param status Status field to copy into @p header.
- */
-static void rmap_set_status(uint8_t *const header, const uint8_t status)
+void rmap_set_status(uint8_t *const header, const uint8_t status)
 {
   header[3] = status;
 }
