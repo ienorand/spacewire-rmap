@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #define RMAP_INSTRUCTION_PACKET_TYPE_SHIFT 6
 #define RMAP_INSTRUCTION_PACKET_TYPE_MASK \
@@ -307,6 +308,186 @@ uint8_t rmap_get_instruction(const uint8_t *header);
  * @param instruction Instruction field to copy into @p header.
  */
 void rmap_set_instruction(uint8_t *header, uint8_t instruction);
+
+/** Determine if the packet type is "command" in an instruction field.
+ *
+ * The reserved bit in the packet type field is ignored and unused packet types
+ * are reported as commands or replies based only on the command/reply bit.
+ *
+ * @param instruction Instruction field.
+ *
+ * @retval true Packet type is "command".
+ * @retval false Packet type is "reply".
+ */
+bool rmap_is_instruction_command(uint8_t instruction);
+
+/** Determine if the packet type is "command" in a potential RMAP header.
+ *
+ * The reserved bit in the packet type field is ignored and unused packet types
+ * are reported as commands or replies based only on the command/reply bit.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Packet type is "command".
+ * @retval false Packet type is "reply".
+ */
+bool rmap_is_command(const uint8_t *header);
+
+/** Determine if the packet type is "unused" in an instruction field.
+ *
+ * Determine if the packet type field indicates a reserved packet type.
+ *
+ * @param instruction Instruction field.
+ *
+ * @retval true Packet type is "unused".
+ * @retval false Packet type is "command" or "reply".
+ */
+bool rmap_is_instruction_unused_packet_type(uint8_t instruction);
+
+/** Determine if the packet type is "unused" in a potential RMAP header.
+ *
+ * Determine if the packet type field indicates a reserved packet type.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Packet type is "unused".
+ * @retval false Packet type is "command" or "reply".
+ */
+bool rmap_is_unused_packet_type(const uint8_t *header);
+
+/** Determine if the command type is "write" in an instruction field.
+ *
+ * @param instruction Instruction field.
+ *
+ * @retval true Command type is "write".
+ * @retval false Command type is "read".
+ */
+bool rmap_is_instruction_write(uint8_t instruction);
+
+/** Determine if the command type is "write" in a potential RMAP header.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Command type is "write".
+ * @retval false Command type is "read".
+ */
+bool rmap_is_write(const uint8_t *header);
+
+/** Determine if the command type is "verified" in an instruction field.
+ *
+ * Determine if the command type indicates that data shall be verified before
+ * writing (or have been verified before writing if this is a reply).
+ *
+ * @param instruction Instruction field.
+ *
+ * @retval true Command type is "verified".
+ * @retval false Command type is "non-verified".
+ */
+bool rmap_is_instruction_verify_data_before_write(uint8_t instruction);
+
+/** Determine if the command type is "verified" in a potential RMAP header.
+ *
+ * Determine if the command type indicates that data shall be verified before
+ * writing (or have been verified before writing if this is a reply).
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Command type is "verified".
+ * @retval false Command type is "non-verified".
+ */
+bool rmap_is_verify_data_before_write(const uint8_t *header);
+
+/** Determine if the command type is "with-reply" in an instruction field.
+ *
+ * Determine if the command type indicates that the command shall be
+ * acknowledged with a reply after completion (or have been acknowledged with a
+ * reply if this is the reply).
+ *
+ * @param instruction Instruction field.
+ *
+ * @retval true Command type is "with-reply".
+ * @retval false Command type is "without-reply".
+ */
+bool rmap_is_instruction_with_reply(uint8_t instruction);
+
+/** Determine if the  command type is "with-reply" in a potential RMAP header.
+ *
+ * Determine if the command type indicates that the command shall be
+ * acknowledged with a reply after completion (or have been acknowledged with a
+ * reply if this is the reply).
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Command type is "with-reply".
+ * @retval false Command type is "without-reply".
+ */
+bool rmap_is_with_reply(const uint8_t *header);
+
+/** Determine if the command type is "incrementing" in an instruction field.
+ *
+ * Determine if the command type indicates that the operation (read or write)
+ * shall be done with sequential memory addresses (as opposed to with a single
+ * memory address) (or have been done with sequential memory addresses if this
+ * is a reply).
+ *
+ * @param instruction Instruction field.
+ *
+ * @retval true Command type is "incrementing".
+ * @retval false Command type is "single-address".
+ */
+bool rmap_is_instruction_increment_address(uint8_t instruction);
+
+/** Determine if the command type is "incrementing" in a potential RMAP header.
+ *
+ * Determine if the command type indicates that the operation (read or write)
+ * shall be done with sequential memory addresses (as opposed to with a single
+ * memory address) (or have been done with sequential memory addresses if this
+ * is a reply).
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Command type is "incrementing".
+ * @retval false Command type is "single-address".
+ */
+bool rmap_is_increment_address(const uint8_t *header);
+
+/** Determine if the command code is "unused" in an instruction field.
+ *
+ * Determine if the command code represents an invalid command type which is
+ * not used by the RMAP protocol.
+ *
+ * @param instruction Instruction field.
+ *
+ * @retval true Command code represents an "unused" command type.
+ * @retval false Command code represents a valid command type.
+ */
+bool rmap_is_instruction_unused_command_code(uint8_t instruction);
+
+/** Determine if the command code is "unused" in a potential RMAP header.
+ *
+ * Determine if the command code represents an invalid command type which is
+ * not used by the RMAP protocol.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Command code represents an "unused" command type.
+ * @retval false Command code represents a valid command type.
+ */
+bool rmap_is_unused_command_code(const uint8_t *header);
 
 /** Initialize a reply header for given command header.
  *

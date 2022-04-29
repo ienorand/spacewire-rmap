@@ -522,6 +522,139 @@ TEST(SetInstruction, GetGivesMatchingAfterSet)
   EXPECT_EQ(rmap_get_instruction(buf), 0xFF);
 }
 
+typedef std::tuple<bool (*)(const uint8_t *), bool>
+    AccessorBoolCheckParameters;
+typedef std::tuple<const uint8_t *, AccessorBoolCheckParameters>
+    PatternAccessorBoolCheckParameters;
+
+class AccessorBoolCheckInPattern :
+  public testing::TestWithParam<PatternAccessorBoolCheckParameters>
+{
+};
+
+TEST_P(AccessorBoolCheckInPattern, Check)
+{
+  auto pattern = std::get<0>(GetParam());
+  auto accessor = std::get<0>(std::get<1>(GetParam()));
+  auto expected = std::get<1>(std::get<1>(GetParam()));
+
+  EXPECT_EQ(accessor(pattern), expected);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern0AccessorBoolChecks,
+    AccessorBoolCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern0_unverified_incrementing_write_with_reply),
+      testing::Values(
+        std::make_tuple(rmap_is_command, true),
+        std::make_tuple(rmap_is_unused_packet_type, false),
+        std::make_tuple(rmap_is_write, true),
+        std::make_tuple(rmap_is_verify_data_before_write, false),
+        std::make_tuple(rmap_is_with_reply, true),
+        std::make_tuple(rmap_is_increment_address, true),
+        std::make_tuple(rmap_is_unused_command_code, false))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern0ReplyAccessorBoolChecks,
+    AccessorBoolCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern0_expected_write_reply),
+      testing::Values(
+        std::make_tuple(rmap_is_command, false),
+        std::make_tuple(rmap_is_unused_packet_type, false),
+        std::make_tuple(rmap_is_write, true),
+        std::make_tuple(rmap_is_verify_data_before_write, false),
+        std::make_tuple(rmap_is_with_reply, true),
+        std::make_tuple(rmap_is_increment_address, true),
+        std::make_tuple(rmap_is_unused_command_code, false))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern1AccessorBoolChecks,
+    AccessorBoolCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern1_incrementing_read),
+      testing::Values(
+        std::make_tuple(rmap_is_command, true),
+        std::make_tuple(rmap_is_unused_packet_type, false),
+        std::make_tuple(rmap_is_write, false),
+        std::make_tuple(rmap_is_verify_data_before_write, false),
+        std::make_tuple(rmap_is_with_reply, true),
+        std::make_tuple(rmap_is_increment_address, true),
+        std::make_tuple(rmap_is_unused_command_code, false))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern1ReplyAccessorBoolChecks,
+    AccessorBoolCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern1_expected_read_reply),
+      testing::Values(
+        std::make_tuple(rmap_is_command, false),
+        std::make_tuple(rmap_is_unused_packet_type, false),
+        std::make_tuple(rmap_is_write, false),
+        std::make_tuple(rmap_is_verify_data_before_write, false),
+        std::make_tuple(rmap_is_with_reply, true),
+        std::make_tuple(rmap_is_increment_address, true),
+        std::make_tuple(rmap_is_unused_command_code, false))));
+
+TEST(RmapIsUnusedPacketType, UnusedPacketType)
+{
+  uint8_t instruction;
+
+  uint8_t pattern[
+    sizeof(test_pattern0_unverified_incrementing_write_with_reply)];
+  uint8_t pattern_reply[sizeof(test_pattern0_expected_write_reply)];
+
+  memcpy(
+      pattern,
+      test_pattern0_unverified_incrementing_write_with_reply,
+      sizeof(test_pattern0_unverified_incrementing_write_with_reply));
+
+  memcpy(
+      pattern_reply,
+      test_pattern0_expected_write_reply,
+      sizeof(test_pattern0_expected_write_reply));
+
+  EXPECT_EQ(rmap_is_unused_packet_type(pattern), false);
+  EXPECT_EQ(rmap_is_unused_packet_type(pattern_reply), false);
+
+  instruction = rmap_get_instruction(pattern);
+  rmap_set_instruction(pattern, instruction | 1 << 7);
+  EXPECT_EQ(rmap_is_unused_packet_type(pattern), true);
+
+  instruction = rmap_get_instruction(pattern_reply);
+  rmap_set_instruction(pattern_reply, instruction | 1 << 7);
+  EXPECT_EQ(rmap_is_unused_packet_type(pattern_reply), true);
+}
+
+TEST(RmapIsUnusedCommandCode, UnusedCommandCodes)
+{
+  uint8_t pattern[
+    sizeof(test_pattern0_unverified_incrementing_write_with_reply)];
+
+  memcpy(
+      pattern,
+      test_pattern0_unverified_incrementing_write_with_reply,
+      sizeof(test_pattern0_unverified_incrementing_write_with_reply));
+
+  EXPECT_EQ(rmap_is_unused_command_code(pattern), false);
+
+  rmap_set_instruction(pattern, 1 << 6 | 0x0 << 2);
+  EXPECT_EQ(rmap_is_unused_command_code(pattern), true);
+
+  rmap_set_instruction(pattern, 1 << 6 | 0x1 << 2);
+  EXPECT_EQ(rmap_is_unused_command_code(pattern), true);
+
+  rmap_set_instruction(pattern, 1 << 6 | 0x4 << 2);
+  EXPECT_EQ(rmap_is_unused_command_code(pattern), true);
+
+  rmap_set_instruction(pattern, 1 << 6 | 0x5 << 2);
+  EXPECT_EQ(rmap_is_unused_command_code(pattern), true);
+
+  rmap_set_instruction(pattern, 1 << 6 | 0x6 << 2);
+  EXPECT_EQ(rmap_is_unused_command_code(pattern), true);
+}
+
 TEST(RmapCrcCalculate, ZeroesInDataGivesZeroCrc)
 {
   unsigned char data[17] = {};

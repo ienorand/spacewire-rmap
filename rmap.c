@@ -66,188 +66,70 @@ void rmap_set_instruction(uint8_t *const header, const uint8_t instruction)
   header[2] = instruction;
 }
 
-/** Determine if the packet type is "command" in an instruction field.
- *
- * The reserved bit in the packet type field is ignored and unused packet types
- * are reported as commands or replies based only on the command/reply bit.
- *
- * @param instruction Instruction field.
- *
- * @retval true Packet type is "command".
- * @retval false Packet type is "reply".
- */
-static bool is_command(const uint8_t instruction)
+bool rmap_is_instruction_command(const uint8_t instruction)
 {
   return ((instruction & RMAP_INSTRUCTION_PACKET_TYPE_MASK) >>
     RMAP_INSTRUCTION_PACKET_TYPE_SHIFT) & 0x1;
 }
 
-/** Determine if the packet type is "command" in a potential RMAP header.
- *
- * The reserved bit in the packet type field is ignored and unused packet types
- * are reported as commands or replies based only on the command/reply bit.
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- *
- * @param[in] header Potential RMAP header.
- *
- * @retval true Packet type is "command".
- * @retval false Packet type is "reply".
- */
-static bool rmap_is_command(const uint8_t *const header)
+bool rmap_is_command(const uint8_t *const header)
 {
-  return is_command(rmap_get_instruction(header));
+  return rmap_is_instruction_command(rmap_get_instruction(header));
 }
 
-/** Determine if the packet type is "unused" in an instruction field.
- *
- * @param instruction Instruction field.
- *
- * @retval true Packet type is "unused".
- * @retval false Packet type is "command" or "reply".
- */
-static bool is_unused_packet_type(const uint8_t instruction)
+bool rmap_is_instruction_unused_packet_type(const uint8_t instruction)
 {
   return ((instruction & RMAP_INSTRUCTION_PACKET_TYPE_MASK) >>
     RMAP_INSTRUCTION_PACKET_TYPE_SHIFT) & 0x2;
 }
 
-/** Determine if the command type is "write" in an instruction field.
- *
- * @param instruction Instruction field.
- *
- * @retval true Command type is "write".
- * @retval false Command type is "read".
- */
-static bool is_write(const uint8_t instruction)
+bool rmap_is_unused_packet_type(const uint8_t *const header)
+{
+  return rmap_is_instruction_unused_packet_type(rmap_get_instruction(header));
+}
+
+bool rmap_is_instruction_write(const uint8_t instruction)
 {
   return instruction & RMAP_INSTRUCTION_COMMAND_WRITE_MASK;
 }
 
-/** Determine if the command type is "write" in a potential RMAP header.
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- *
- * @param[in] header Potential RMAP header.
- *
- * @retval true Command type is "write".
- * @retval false Command type is "read".
- */
-static bool rmap_is_write(const uint8_t *const header)
+bool rmap_is_write(const uint8_t *const header)
 {
-  return is_write(rmap_get_instruction(header));
+  return rmap_is_instruction_write(rmap_get_instruction(header));
 }
 
-/** Determine if the command type is "verified" in an instruction field.
- *
- * Determine if the command type indicates that data shall be verified before
- * writing (or have been verified before writing if this is a reply).
- *
- * @param instruction Instruction field.
- *
- * @retval true Command type is "verified".
- * @retval false Command type is "non-verified".
- */
-static bool is_verify_data_before_write(const uint8_t instruction)
+bool rmap_is_instruction_verify_data_before_write(const uint8_t instruction)
 {
   return instruction & RMAP_INSTRUCTION_COMMAND_VERIFY_MASK;
 }
 
-/** Determine if the command type is "verified" in a potential RMAP header.
- *
- * Determine if the command type indicates that data shall be verified before
- * writing (or have been verified before writing if this is a reply).
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- *
- * @param[in] header Potential RMAP header.
- *
- * @retval true Command type is "verified".
- * @retval false Command type is "non-verified".
- */
-static bool rmap_is_verify_data_before_write(const uint8_t *const header)
+bool rmap_is_verify_data_before_write(const uint8_t *const header)
 {
-  return is_verify_data_before_write(rmap_get_instruction(header));
+  return
+    rmap_is_instruction_verify_data_before_write(rmap_get_instruction(header));
 }
 
-/** Determine if the command type is "with-reply" in an instruction field.
- *
- * Determine if the command type indicates that the command shall be
- * acknowledged with a reply after completion (or have been acknowledged with a
- * reply if this is the reply).
- *
- * @param instruction Instruction field.
- *
- * @retval true Command type is "with-reply".
- * @retval false Command type is "without-reply".
- */
-static bool is_with_reply(const uint8_t instruction)
+bool rmap_is_instruction_with_reply(const uint8_t instruction)
 {
   return instruction & RMAP_INSTRUCTION_COMMAND_REPLY_MASK;
 }
 
-/** Determine if the  command type is "with-reply" in a potential RMAP header.
- *
- * Determine if the command type indicates that the command shall be
- * acknowledged with a reply after completion (or have been acknowledged with a
- * reply if this is the reply).
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- *
- * @param[in] header Potential RMAP header.
- *
- * @retval true Command type is "with-reply".
- * @retval false Command type is "without-reply".
- */
-static bool rmap_is_with_reply(const uint8_t *const header)
+bool rmap_is_with_reply(const uint8_t *const header)
 {
-  return is_with_reply(rmap_get_instruction(header));
+  return rmap_is_instruction_with_reply(rmap_get_instruction(header));
 }
 
-/** Determine if the command type is "incrementing" in an instruction field.
- *
- * Determine if the command type indicates that the operation (read or write)
- * shall be done with sequential memory addresses (as opposed to with a single
- * memory address) (or have been done with sequential memory addresses if this
- * is a reply).
- *
- * @param instruction Instruction field.
- *
- * @retval true Command type is "incrementing".
- * @retval false Command type is "single-address".
- */
-static bool is_increment_address(const uint8_t instruction)
+bool rmap_is_instruction_increment_address(const uint8_t instruction)
 {
   return instruction & RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK;
 }
 
-/** Determine if the command type is "incrementing" in a potential RMAP header.
- *
- * Determine if the command type indicates that the operation (read or write)
- * shall be done with sequential memory addresses (as opposed to with a single
- * memory address) (or have been done with sequential memory addresses if this
- * is a reply).
- *
- * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
- *
- * @param[in] header Potential RMAP header.
- *
- * @retval true Command type is "incrementing".
- * @retval false Command type is "single-address".
- */
-static bool rmap_is_increment_address(const uint8_t *const header)
+bool rmap_is_increment_address(const uint8_t *const header)
 {
-  return is_increment_address(rmap_get_instruction(header));
+  return rmap_is_instruction_increment_address(rmap_get_instruction(header));
 }
 
-/** Determine if the command code is "unused" in an instruction field.
- *
- * @param instruction Instruction field.
- *
- * @retval true Command code represents an "unused" command type.
- * @retval false Command code represents a valid command type.
- */
-static bool is_unused_command_code(const uint8_t instruction)
+bool rmap_is_instruction_unused_command_code(const uint8_t instruction)
 {
   const int raw_unshifted = instruction & RMAP_INSTRUCTION_COMMAND_CODE_MASK;
 
@@ -266,6 +148,11 @@ static bool is_unused_command_code(const uint8_t instruction)
   }
 
   return false;
+}
+
+bool rmap_is_unused_command_code(const uint8_t *const header)
+{
+  return rmap_is_instruction_unused_command_code(rmap_get_instruction(header));
 }
 
 /** Get the key field from a verified RMAP command header.
@@ -656,12 +543,12 @@ static void rmap_set_address(uint8_t *const header, const uint32_t address)
  */
 static size_t calculate_header_size(const uint8_t instruction)
 {
-  if (is_command(instruction)) {
+  if (rmap_is_instruction_command(instruction)) {
       return RMAP_COMMAND_HEADER_STATIC_SIZE +
         calculate_reply_address_padded_size(instruction);
   }
 
-  if (is_write(instruction)) {
+  if (rmap_is_instruction_write(instruction)) {
     return RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
   }
 
@@ -701,10 +588,10 @@ static uint32_t get_header_data_length(const uint8_t *header)
   const uint8_t instruction = rmap_get_instruction(header);
 
   offset = RMAP_READ_REPLY_HEADER_STATIC_SIZE - 4;
-  if (is_command(instruction)) {
+  if (rmap_is_instruction_command(instruction)) {
     offset = RMAP_COMMAND_HEADER_STATIC_SIZE +
       calculate_reply_address_padded_size(instruction) - 4;
-  } else if (is_write(instruction)) {
+  } else if (rmap_is_instruction_write(instruction)) {
     /* Write reply has no data. */
     return 0;
   }
@@ -734,7 +621,7 @@ static void rmap_set_data_length(
   const uint8_t instruction = rmap_get_instruction(header);
 
   offset = RMAP_READ_REPLY_HEADER_STATIC_SIZE - 4;
-  if (is_command(instruction)) {
+  if (rmap_is_instruction_command(instruction)) {
     offset = RMAP_COMMAND_HEADER_STATIC_SIZE +
       calculate_reply_address_padded_size(instruction) - 4;
   }
@@ -830,23 +717,23 @@ static rmap_status_t verify_header(
     return RMAP_HEADER_CRC_ERROR;
   }
 
-  if (!is_command(instruction)) {
-    if (is_unused_packet_type(instruction)) {
+  if (!rmap_is_instruction_command(instruction)) {
+    if (rmap_is_instruction_unused_packet_type(instruction)) {
       /* Reply packet type with packet type reserved bit set */
       return RMAP_UNUSED_PACKET_TYPE;
     }
 
-    if (!is_with_reply(instruction)) {
+    if (!rmap_is_instruction_with_reply(instruction)) {
       /* Reply packet type without command code reply bit set. */
       return RMAP_UNUSED_COMMAND_CODE;
     }
   }
 
-  if (is_unused_packet_type(instruction)) {
+  if (rmap_is_instruction_unused_packet_type(instruction)) {
     return RMAP_UNUSED_PACKET_TYPE;
   }
 
-  if (is_unused_command_code(instruction)) {
+  if (rmap_is_instruction_unused_command_code(instruction)) {
     return RMAP_UNUSED_COMMAND_CODE;
   }
 
@@ -963,7 +850,7 @@ static rmap_status_t make_instruction(
     return RMAP_NO_REPLY;
   }
 
-  if (is_unused_command_code(*instruction)) {
+  if (rmap_is_instruction_unused_command_code(*instruction)) {
     return RMAP_UNUSED_COMMAND_CODE;
   }
 
@@ -1543,27 +1430,28 @@ rmap_status_t rmap_header_deserialize(
    * reporting it directly.
    */
   is_reply_without_reply = false;
-  if (!is_command(instruction) && !is_with_reply(instruction)) {
+  if (!rmap_is_instruction_command(instruction) &&
+      !rmap_is_instruction_with_reply(instruction)) {
     is_reply_without_reply = true;
   }
 
   command_code = 0;
-  if (is_write(instruction)) {
+  if (rmap_is_instruction_write(instruction)) {
     command_code |= RMAP_COMMAND_CODE_WRITE;
   }
-  if (is_verify_data_before_write(instruction)) {
+  if (rmap_is_instruction_verify_data_before_write(instruction)) {
     command_code |= RMAP_COMMAND_CODE_VERIFY;
   }
-  if (is_with_reply(instruction)) {
+  if (rmap_is_instruction_with_reply(instruction)) {
     command_code |= RMAP_COMMAND_CODE_REPLY;
   }
-  if (is_increment_address(instruction)) {
+  if (rmap_is_instruction_increment_address(instruction)) {
     command_code |= RMAP_COMMAND_CODE_INCREMENT;
   }
 
   *serialized_size = calculate_header_size(instruction);
 
-  if (is_command(instruction)) {
+  if (rmap_is_instruction_command(instruction)) {
     header->type = RMAP_TYPE_COMMAND;
     header->t.command.target_logical_address =
       rmap_get_target_logical_address(data);
@@ -1588,16 +1476,18 @@ rmap_status_t rmap_header_deserialize(
 
     header->t.command.data_length = get_header_data_length(data);
 
-    if (!is_write(instruction) && data_size > *serialized_size) {
+    if (!rmap_is_instruction_write(instruction) &&
+        data_size > *serialized_size) {
       /* Data characters in read command are invalid. */
       return RMAP_ECSS_TOO_MUCH_DATA;
     }
 
-    if (is_unused_packet_type(instruction)) {
+    if (rmap_is_instruction_unused_packet_type(instruction)) {
       return RMAP_UNUSED_PACKET_TYPE;
     }
 
-    if (is_reply_without_reply || is_unused_command_code(instruction)) {
+    if (is_reply_without_reply ||
+        rmap_is_instruction_unused_command_code(instruction)) {
       return RMAP_UNUSED_COMMAND_CODE;
     }
 
@@ -1606,7 +1496,7 @@ rmap_status_t rmap_header_deserialize(
 
   /* Reply packet type. */
 
-  if (is_write(instruction)) {
+  if (rmap_is_instruction_write(instruction)) {
     header->type = RMAP_TYPE_WRITE_REPLY;
     header->t.write_reply.initiator_logical_address =
       rmap_get_initiator_logical_address(data);
@@ -1623,11 +1513,12 @@ rmap_status_t rmap_header_deserialize(
     }
 
     // TODO: Should this be "packet error" or "invalid reply" only?
-    if (is_unused_packet_type(instruction)) {
+    if (rmap_is_instruction_unused_packet_type(instruction)) {
       return RMAP_UNUSED_PACKET_TYPE;
     }
 
-    if (is_reply_without_reply || is_unused_command_code(instruction)) {
+    if (is_reply_without_reply ||
+        rmap_is_instruction_unused_command_code(instruction)) {
       return RMAP_UNUSED_COMMAND_CODE;
     }
 
@@ -1648,11 +1539,11 @@ rmap_status_t rmap_header_deserialize(
   header->t.read_reply.data_length = get_header_data_length(data);
 
   // TODO: Should this be "packet error" or "invalid reply" only?
-  if (is_unused_packet_type(instruction)) {
+  if (rmap_is_instruction_unused_packet_type(instruction)) {
     return RMAP_UNUSED_PACKET_TYPE;
   }
 
-  if (is_unused_command_code(instruction)) {
+  if (rmap_is_instruction_unused_command_code(instruction)) {
     return RMAP_UNUSED_COMMAND_CODE;
   }
 
