@@ -33,12 +33,20 @@
 #define RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK \
   (3 << RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT)
 
+#define RMAP_REPLY_ADDRESS_LENGTH_MAX 12
+
 /** Representation of an RMAP header type. */
 typedef enum {
   RMAP_TYPE_COMMAND,
   RMAP_TYPE_WRITE_REPLY,
   RMAP_TYPE_READ_REPLY
 } rmap_type_t;
+
+/** Representation of RMAP packet type */
+typedef enum {
+  RMAP_PACKET_TYPE_COMMAND,
+  RMAP_PACKET_TYPE_REPLY
+} rmap_packet_type_t;
 
 /** Representation of RMAP command codes. */
 enum {
@@ -526,6 +534,54 @@ uint8_t rmap_get_status(const uint8_t *header);
  * @param status Status field to copy into @p header.
  */
 void rmap_set_status(uint8_t *header, uint8_t status);
+
+/** Initialize an RMAP header.
+ *
+ * * Verify that the header would fit in @p max_size.
+ * * Set the protocol identifier field to indicate an RMAP packet.
+ * * Set the instruction field based on the provided parameters.
+ *
+ * The prefix spacewire address is not set.
+ *
+ * The instruction field fully defines the format of an RMAP packet, so all
+ * further writes via accessor function will be valid if this initialization
+ * succeeds
+ *
+ * @p packet_type uses a different representation of packet types compared to
+ * the RMAP representation in the instruction field.
+ *
+ * @p command_code uses a different representation of command code flags
+ * compared to the RMAP representation in the instruction field.
+ *
+ * @param[out] header Destination for the header.
+ * @param max_size Maximum number of bytes to write into @p header.
+ * @param packet_type Packet type to set in instruction field.
+ * @param command_code Representation of command code flags to set in
+ *        instruction field.
+ * @param reply_address_unpadded_size Reply address size without leading
+ *        zero-padding used to calculate and set the reply address length
+ *        field.
+ *
+ * @retval RMAP_UNUSED_PACKET_TYPE @p packet_type contains an unrepresentable
+ *         packet type.
+ * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains an
+ *         unrepresentable command code.
+ * @retval RMAP_UNUSED_COMMAND_CODE @p command_code contains a reserved command
+ *         code.
+ * @retval RMAP_NO_REPLY @p packet_type is a reply but @p command_code does not
+ *         contain a with-reply command code.
+ * @retval RMAP_REPLY_ADDRESS_TOO_LONG @p reply_address_unpadded_size is larger
+ *         than RMAP_REPLY_ADDRESS_LENGTH_MAX.
+ * @retval RMAP_NOT_ENOUGH_SPACE @p max_size is less than the size of the
+ *         header.
+ * @retval RMAP_OK RMAP header initialized successfully.
+ */
+rmap_status_t rmap_initialize_header(
+    uint8_t *header,
+    size_t max_size,
+    rmap_packet_type_t packet_type,
+    int command_code,
+    size_t reply_address_unpadded_size);
 
 /** Initialize a reply header for given command header.
  *
