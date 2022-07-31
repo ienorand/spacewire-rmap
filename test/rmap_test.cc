@@ -360,39 +360,148 @@ static const uint8_t test_pattern3_expected_read_reply_with_spacewire_addresses[
   0xB4
 };
 
-typedef std::tuple<const uint8_t *, uint8_t> PatternGetByteParameters;
+typedef std::tuple<uint8_t (*)(const uint8_t *), uint8_t>
+    AccessorByteCheckParameters;
+typedef std::tuple<const uint8_t *, AccessorByteCheckParameters>
+    PatternAccessorByteCheckParameters;
 
-class ProtocolInPattern :
-  public testing::TestWithParam<PatternGetByteParameters>
+class AccessorByteCheckInPattern :
+  public testing::TestWithParam<PatternAccessorByteCheckParameters>
 {
 };
 
-TEST_P(ProtocolInPattern, GetProtocol)
+TEST_P(AccessorByteCheckInPattern, Check)
 {
-  EXPECT_EQ(
-      rmap_get_protocol(std::get<0>(GetParam())),
-      std::get<1>(GetParam()));
+  auto pattern = std::get<0>(GetParam());
+  auto accessor = std::get<0>(std::get<1>(GetParam()));
+  auto expected = std::get<1>(std::get<1>(GetParam()));
+
+  EXPECT_EQ(accessor(pattern), expected);
 }
 
 INSTANTIATE_TEST_CASE_P(
-    TestPatterns,
-    ProtocolInPattern,
+    TestPattern0AccessorByteChecks,
+    AccessorByteCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern0_unverified_incrementing_write_with_reply),
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern0ReplyAccessorByteChecks,
+    AccessorByteCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern0_expected_write_reply),
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern1AccessorByteChecks,
+    AccessorByteCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern1_incrementing_read),
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern1ReplyAccessorByteChecks,
+    AccessorByteCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern1_expected_read_reply),
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern2AccessorByteChecks,
+    AccessorByteCheckInPattern,
     testing::Combine(
       testing::Values(
-        test_pattern0_unverified_incrementing_write_with_reply,
-        test_pattern0_expected_write_reply,
-        test_pattern1_incrementing_read,
-        test_pattern1_expected_read_reply,
         test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
-        test_pattern2_target_address_length,
+        test_pattern2_target_address_length),
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          (test_pattern2_reply_address_length_padded / 4) <<
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern2ReplyAccessorByteChecks,
+    AccessorByteCheckInPattern,
+    testing::Combine(
+      testing::Values(
         test_pattern2_expected_write_reply_with_spacewire_addresses +
-        test_pattern2_reply_address_length,
+        test_pattern2_reply_address_length),
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          (test_pattern2_reply_address_length_padded / 4) <<
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern3AccessorByteChecks,
+    AccessorByteCheckInPattern,
+    testing::Combine(
+      testing::Values(
         test_pattern3_incrementing_read_with_spacewire_addresses +
-        test_pattern3_target_address_length,
+        test_pattern3_target_address_length),
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          (test_pattern3_reply_address_length / 4) <<
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern3ReplyAccessorByteChecks,
+    AccessorByteCheckInPattern,
+    testing::Combine(
+      testing::Values(
         test_pattern3_expected_read_reply_with_spacewire_addresses +
         test_pattern3_reply_address_length),
-      /* All are expected to have protocol identifier 1. */
-      testing::Values(1)));
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
+          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          (test_pattern3_reply_address_length / 4) <<
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT))));
 
 static uint8_t patterns_with_non_rmap_protocols[][RMAP_HEADER_MINIMUM_SIZE] = {
   { 13, 0, 17 },
@@ -402,12 +511,20 @@ static uint8_t patterns_with_non_rmap_protocols[][RMAP_HEADER_MINIMUM_SIZE] = {
 };
 INSTANTIATE_TEST_CASE_P(
     NonRmapPatterns,
-    ProtocolInPattern,
+    AccessorByteCheckInPattern,
     testing::Values(
-      std::make_tuple(patterns_with_non_rmap_protocols[0], 0),
-      std::make_tuple(patterns_with_non_rmap_protocols[1], 2),
-      std::make_tuple(patterns_with_non_rmap_protocols[2], 123),
-      std::make_tuple(patterns_with_non_rmap_protocols[3], 0xFF)));
+      std::make_tuple(
+        patterns_with_non_rmap_protocols[0],
+        std::make_tuple(rmap_get_protocol, 0)),
+      std::make_tuple(
+        patterns_with_non_rmap_protocols[1],
+        std::make_tuple(rmap_get_protocol, 2)),
+      std::make_tuple(
+        patterns_with_non_rmap_protocols[2],
+        std::make_tuple(rmap_get_protocol, 123)),
+      std::make_tuple(
+        patterns_with_non_rmap_protocols[3],
+        std::make_tuple(rmap_get_protocol, 0xFF))));
 
 TEST(SetProtocol, GetGives1AfterSet)
 {
@@ -420,79 +537,6 @@ TEST(SetProtocol, GetGives1AfterSet)
   rmap_set_protocol(buf);
   EXPECT_EQ(rmap_get_protocol(buf), 1);
 }
-
-class InstructionInPattern :
-  public testing::TestWithParam<PatternGetByteParameters>
-{
-};
-
-TEST_P(InstructionInPattern, GetInstruction)
-{
-  EXPECT_EQ(
-      rmap_get_instruction(std::get<0>(GetParam())),
-      std::get<1>(GetParam()));
-}
-
-INSTANTIATE_TEST_CASE_P(
-    TestPatterns,
-    InstructionInPattern,
-    testing::Values(
-      std::make_tuple(
-        test_pattern0_unverified_incrementing_write_with_reply,
-        1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-        1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-        1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
-        1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
-      std::make_tuple(
-        test_pattern0_expected_write_reply,
-        0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-        1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-        1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
-        1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
-      std::make_tuple(
-        test_pattern1_incrementing_read,
-        1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-        1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-        1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
-      std::make_tuple(
-        test_pattern1_expected_read_reply,
-        0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-        1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-        1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
-      std::make_tuple(
-          test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
-          test_pattern2_target_address_length,
-          1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
-          (test_pattern2_reply_address_length_padded / 4) <<
-          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
-      std::make_tuple(
-          test_pattern2_expected_write_reply_with_spacewire_addresses +
-          test_pattern2_reply_address_length,
-          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
-          (test_pattern2_reply_address_length_padded / 4) <<
-          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
-      std::make_tuple(
-          test_pattern3_incrementing_read_with_spacewire_addresses +
-          test_pattern3_target_address_length,
-          1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
-          (test_pattern3_reply_address_length / 4) <<
-          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
-      std::make_tuple(
-          test_pattern3_expected_read_reply_with_spacewire_addresses +
-          test_pattern3_reply_address_length,
-          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
-          (test_pattern3_reply_address_length / 4) <<
-          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT)));
 
 TEST(SetInstruction, GetGivesMatchingAfterSet)
 {
