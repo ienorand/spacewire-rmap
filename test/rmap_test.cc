@@ -554,18 +554,46 @@ TEST(SetProtocol, GetGives1AfterSet)
   EXPECT_EQ(rmap_get_protocol(buf), 1);
 }
 
-TEST(SetInstruction, GetGivesMatchingAfterSet)
+typedef std::tuple<void (*)(uint8_t *, uint8_t), uint8_t (*)(const uint8_t *)>
+AccessorByteSetGetParameters;
+
+class AccessorByteSetGet :
+  public testing::TestWithParam<AccessorByteSetGetParameters>
+{
+};
+
+TEST_P(AccessorByteSetGet, GetGivesMatchingAfterSet)
 {
   uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
 
-  rmap_set_instruction(buf, 0);
-  EXPECT_EQ(rmap_get_instruction(buf), 0);
+  auto accessor_set = std::get<0>(GetParam());
+  auto accessor_get = std::get<1>(GetParam());
 
-  rmap_set_instruction(buf, 1);
-  EXPECT_EQ(rmap_get_instruction(buf), 1);
+  accessor_set(buf, 0);
+  EXPECT_EQ(accessor_get(buf), 0);
 
-  rmap_set_instruction(buf, 123);
-  EXPECT_EQ(rmap_get_instruction(buf), 123);
+  accessor_set(buf, 1);
+  EXPECT_EQ(accessor_get(buf), 1);
+
+  accessor_set(buf, 123);
+  EXPECT_EQ(accessor_get(buf), 123);
+
+  accessor_set(buf, 0xFF);
+  EXPECT_EQ(accessor_get(buf), 0xFF);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    Acessors,
+    AccessorByteSetGet,
+    testing::Values(
+      std::make_tuple(rmap_set_instruction, rmap_get_instruction),
+      std::make_tuple(rmap_set_key, rmap_get_key),
+      std::make_tuple(rmap_set_status, rmap_get_status),
+      std::make_tuple(rmap_set_target_logical_address, rmap_get_target_logical_address)));
+
+TEST(SetInstruction, GetGivesMatchingAfterSetValidValue)
+{
+  uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
 
   rmap_set_instruction(
       buf,
@@ -577,60 +605,6 @@ TEST(SetInstruction, GetGivesMatchingAfterSet)
       RMAP_INSTRUCTION_PACKET_TYPE_MASK |
       RMAP_INSTRUCTION_COMMAND_CODE_MASK |
       RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK);
-
-  rmap_set_instruction(buf, 0xFF);
-  EXPECT_EQ(rmap_get_instruction(buf), 0xFF);
-}
-
-TEST(SetKey, GetGivesMatchingAfterSet)
-{
-  uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
-
-  rmap_set_key(buf, 0);
-  EXPECT_EQ(rmap_get_key(buf), 0);
-
-  rmap_set_key(buf, 1);
-  EXPECT_EQ(rmap_get_key(buf), 1);
-
-  rmap_set_key(buf, 123);
-  EXPECT_EQ(rmap_get_key(buf), 123);
-
-  rmap_set_key(buf, 0xFF);
-  EXPECT_EQ(rmap_get_key(buf), 0xFF);
-}
-
-TEST(SetStatus, GetGivesMatchingAfterSet)
-{
-  uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
-
-  rmap_set_status(buf, 0);
-  EXPECT_EQ(rmap_get_status(buf), 0);
-
-  rmap_set_status(buf, 1);
-  EXPECT_EQ(rmap_get_status(buf), 1);
-
-  rmap_set_status(buf, 123);
-  EXPECT_EQ(rmap_get_status(buf), 123);
-
-  rmap_set_status(buf, 0xFF);
-  EXPECT_EQ(rmap_get_status(buf), 0xFF);
-}
-
-TEST(SetTargetLogicalAddress, GetGivesMatchingAfterSet)
-{
-  uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
-
-  rmap_set_target_logical_address(buf, 0);
-  EXPECT_EQ(rmap_get_target_logical_address(buf), 0);
-
-  rmap_set_target_logical_address(buf, 1);
-  EXPECT_EQ(rmap_get_target_logical_address(buf), 1);
-
-  rmap_set_target_logical_address(buf, 123);
-  EXPECT_EQ(rmap_get_target_logical_address(buf), 123);
-
-  rmap_set_target_logical_address(buf, 0xFF);
-  EXPECT_EQ(rmap_get_target_logical_address(buf), 0xFF);
 }
 
 typedef std::tuple<bool (*)(const uint8_t *), bool>
