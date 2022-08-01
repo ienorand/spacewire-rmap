@@ -562,7 +562,8 @@ TEST(SetProtocol, GetGives1AfterSet)
   EXPECT_EQ(rmap_get_protocol(buf), 1);
 }
 
-typedef std::tuple<void (*)(uint8_t *, uint8_t), uint8_t (*)(const uint8_t *)>
+typedef std::tuple<std::tuple<rmap_packet_type_t, int, size_t>,
+        std::tuple<void (*)(uint8_t *, uint8_t), uint8_t (*)(const uint8_t *)>>
 AccessorByteSetGetParameters;
 
 class AccessorByteSetGet :
@@ -572,33 +573,84 @@ class AccessorByteSetGet :
 
 TEST_P(AccessorByteSetGet, GetGivesMatchingAfterSet)
 {
-  uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
+  uint8_t header[64];
 
-  auto accessor_set = std::get<0>(GetParam());
-  auto accessor_get = std::get<1>(GetParam());
+  auto packet_type = std::get<0>(std::get<0>(GetParam()));
+  auto command_code = std::get<1>(std::get<0>(GetParam()));
+  auto reply_address_size = std::get<2>(std::get<0>(GetParam()));
 
-  accessor_set(buf, 0);
-  EXPECT_EQ(accessor_get(buf), 0);
+  auto accessor_set = std::get<0>(std::get<1>(GetParam()));
+  auto accessor_get = std::get<1>(std::get<1>(GetParam()));
 
-  accessor_set(buf, 1);
-  EXPECT_EQ(accessor_get(buf), 1);
-
-  accessor_set(buf, 123);
-  EXPECT_EQ(accessor_get(buf), 123);
-
-  accessor_set(buf, 0xFF);
-  EXPECT_EQ(accessor_get(buf), 0xFF);
+  ASSERT_EQ(
+      rmap_initialize_header(
+        header,
+        sizeof(header),
+        packet_type,
+        command_code,
+        reply_address_size),
+      RMAP_OK);
+  accessor_set(header, 0);
+  EXPECT_EQ(accessor_get(header), 0);
+  accessor_set(header, 1);
+  EXPECT_EQ(accessor_get(header), 1);
+  accessor_set(header, 123);
+  EXPECT_EQ(accessor_get(header), 123);
+  accessor_set(header, 0xFF);
+  EXPECT_EQ(accessor_get(header), 0xFF);
 }
 
+/* When this fixture is instantiated for instruction field accessors, it
+ * verifies correct overwriting of the instruction field in an already
+ * initialized header.
+ *
+ * For other accessors, the instantiation verifies that set and get matches
+ * with different header types and reply address lengths.
+ *
+ * Status and key accessors do perform some invalid accesses as part of these
+ * tests, since only valid for some header types, but these are expected to
+ * succeed anyway.
+ */
+
 INSTANTIATE_TEST_CASE_P(
-    Acessors,
+    WriteWithoutReply,
     AccessorByteSetGet,
-    testing::Values(
-      std::make_tuple(rmap_set_instruction, rmap_get_instruction),
-      std::make_tuple(rmap_set_key, rmap_get_key),
-      std::make_tuple(rmap_set_status, rmap_get_status),
-      std::make_tuple(rmap_set_target_logical_address, rmap_get_target_logical_address),
-      std::make_tuple(rmap_set_initiator_logical_address, rmap_get_initiator_logical_address)));
+    testing::Combine(
+      testing::Combine(
+        testing::Values(RMAP_PACKET_TYPE_COMMAND),
+        testing::Values(RMAP_COMMAND_CODE_WRITE),
+        testing::Values(0)),
+      testing::Values(
+        std::make_tuple(rmap_set_instruction, rmap_get_instruction),
+        std::make_tuple(rmap_set_key, rmap_get_key),
+        std::make_tuple(rmap_set_status, rmap_get_status),
+        std::make_tuple(
+          rmap_set_target_logical_address,
+          rmap_get_target_logical_address),
+        std::make_tuple(
+          rmap_set_initiator_logical_address,
+          rmap_get_initiator_logical_address))));
+
+INSTANTIATE_TEST_CASE_P(
+    CommandsAndRepliesWithReply,
+    AccessorByteSetGet,
+    testing::Combine(
+      testing::Combine(
+        testing::Values(RMAP_PACKET_TYPE_COMMAND, RMAP_PACKET_TYPE_REPLY),
+        testing::Values(
+          RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+          RMAP_COMMAND_CODE_REPLY),
+        testing::Range((size_t)0, (size_t)(12 + 1))),
+      testing::Values(
+        std::make_tuple(rmap_set_instruction, rmap_get_instruction),
+        std::make_tuple(rmap_set_key, rmap_get_key),
+        std::make_tuple(rmap_set_status, rmap_get_status),
+        std::make_tuple(
+          rmap_set_target_logical_address,
+          rmap_get_target_logical_address),
+        std::make_tuple(
+          rmap_set_initiator_logical_address,
+          rmap_get_initiator_logical_address))));
 
 TEST(SetInstruction, GetGivesMatchingAfterSetValidValue)
 {
