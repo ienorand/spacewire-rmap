@@ -434,7 +434,7 @@ static size_t rmap_calculate_header_size(const uint8_t *const header)
  *
  * @return Data length field.
  */
-static uint32_t get_header_data_length(const uint8_t *header)
+static uint32_t get_header_data_length(const uint8_t *const header)
 {
   size_t offset;
 
