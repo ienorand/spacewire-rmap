@@ -1552,6 +1552,88 @@ INSTANTIATE_TEST_CASE_P(
         testing::Range((size_t)0, (size_t)RMAP_REPLY_ADDRESS_LENGTH_MAX + 1),
         testing::Values(RMAP_READ_REPLY_HEADER_STATIC_SIZE))));
 
+TEST(RmapCalculateAndSetHeaderCrc, PatternsShouldNotChange)
+{
+  std::vector<uint8_t> expected_packet;
+  std::vector<uint8_t> packet;
+
+  packet.clear();
+  packet.insert(
+      packet.end(),
+      std::begin(test_pattern0_unverified_incrementing_write_with_reply),
+      std::end(test_pattern0_unverified_incrementing_write_with_reply));
+  expected_packet = packet;
+  rmap_calculate_and_set_header_crc(packet.data());
+  EXPECT_EQ(packet, expected_packet);
+
+  packet.clear();
+  packet.insert(
+      packet.end(),
+      std::begin(test_pattern0_expected_write_reply),
+      std::end(test_pattern0_expected_write_reply));
+  expected_packet = packet;
+  rmap_calculate_and_set_header_crc(packet.data());
+  EXPECT_EQ(packet, expected_packet);
+
+  packet.clear();
+  packet.insert(
+      packet.end(),
+      std::begin(test_pattern1_incrementing_read),
+      std::end(test_pattern1_incrementing_read));
+  expected_packet = packet;
+  rmap_calculate_and_set_header_crc(packet.data());
+  EXPECT_EQ(packet, expected_packet);
+
+  packet.clear();
+  packet.insert(
+      packet.end(),
+      std::begin(test_pattern1_expected_read_reply),
+      std::end(test_pattern1_expected_read_reply));
+  expected_packet = packet;
+  rmap_calculate_and_set_header_crc(packet.data());
+  EXPECT_EQ(packet, expected_packet);
+
+  packet.clear();
+  packet.insert(
+      packet.end(),
+      std::begin(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) +
+      test_pattern2_target_address_length,
+      std::end(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses));
+  expected_packet = packet;
+  rmap_calculate_and_set_header_crc(packet.data());
+  EXPECT_EQ(packet, expected_packet);
+
+  packet.clear();
+  packet.insert(
+      packet.end(),
+      std::begin(test_pattern2_expected_write_reply_with_spacewire_addresses) +
+      test_pattern2_reply_address_length,
+      std::end(test_pattern2_expected_write_reply_with_spacewire_addresses));
+  expected_packet = packet;
+  rmap_calculate_and_set_header_crc(packet.data());
+  EXPECT_EQ(packet, expected_packet);
+
+  packet.clear();
+  packet.insert(
+      packet.end(),
+      std::begin(test_pattern3_incrementing_read_with_spacewire_addresses) +
+      test_pattern3_target_address_length,
+      std::end(test_pattern3_incrementing_read_with_spacewire_addresses));
+  expected_packet = packet;
+  rmap_calculate_and_set_header_crc(packet.data());
+  EXPECT_EQ(packet, expected_packet);
+
+  packet.clear();
+  packet.insert(
+      packet.end(),
+      std::begin(test_pattern3_expected_read_reply_with_spacewire_addresses) +
+      test_pattern3_reply_address_length,
+      std::end(test_pattern3_expected_read_reply_with_spacewire_addresses));
+  expected_packet = packet;
+  rmap_calculate_and_set_header_crc(packet.data());
+  EXPECT_EQ(packet, expected_packet);
+}
+
 typedef std::tuple<size_t, rmap_packet_type_t, int, size_t, rmap_status_t>
 InitializeHeaderParameters;
 

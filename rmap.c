@@ -441,13 +441,7 @@ size_t rmap_get_raw_data_length(const uint8_t *const packet, const size_t size)
   return size - (calculate_header_size(rmap_get_instruction(packet)) + 1);
 }
 
-/** Calculate and set the header CRC field in an initialized RMAP header.
- *
- * @pre @p header must contain an initialized RMAP header.
- *
- * @param[in] header Initialized RMAP header.
- */
-static void rmap_calculate_and_set_header_crc(uint8_t *const header)
+void rmap_calculate_and_set_header_crc(uint8_t *const header)
 {
   const size_t header_size =
     calculate_header_size(rmap_get_instruction(header));

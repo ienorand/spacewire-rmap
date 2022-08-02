@@ -742,6 +742,14 @@ void rmap_set_data_length(uint8_t *header, uint32_t data_length);
  */
 size_t rmap_get_raw_data_length(const uint8_t *packet, size_t size);
 
+/** Calculate and set the header CRC field in an initialized RMAP header.
+ *
+ * @pre @p header must contain an initialized RMAP header.
+ *
+ * @param[in] header Initialized RMAP header.
+ */
+void rmap_calculate_and_set_header_crc(uint8_t *header);
+
 /** Calculate the RMAP header size from a potential RMAP header.
  *
  * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
