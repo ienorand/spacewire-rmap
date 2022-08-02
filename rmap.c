@@ -331,16 +331,7 @@ void rmap_set_transaction_identifier(
   header[offset + 1] = transaction_identifier & 0xFF;
 }
 
-/** Set the reserved field in a potential RMAP read reply header.
- *
- * Set the reserved field to 0x00.
- *
- * @pre @p header must contain at least RMAP_READ_REPLY_HEADER_STATIC_SIZE
- *      bytes.
- *
- * @param[out] header Potential RMAP read reply header.
- */
-static void set_reserved(uint8_t *const header)
+void rmap_set_reserved(uint8_t *const header)
 {
   header[7] = 0;
 }
@@ -891,7 +882,7 @@ static rmap_status_t serialize_read_reply_header(
   rmap_set_status(packet, header->status);
   rmap_set_target_logical_address(packet, header->target_logical_address);
   rmap_set_transaction_identifier(packet, header->transaction_identifier);
-  set_reserved(packet);
+  rmap_set_reserved(packet);
   rmap_set_data_length(packet, header->data_length);
   rmap_calculate_and_set_header_crc(packet);
 

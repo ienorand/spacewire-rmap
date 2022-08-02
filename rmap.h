@@ -650,6 +650,17 @@ void rmap_set_transaction_identifier(
     uint8_t *header,
     uint16_t transaction_identifier);
 
+/** Set the reserved field in a potential RMAP read reply header.
+ *
+ * Set the reserved field to 0x00.
+ *
+ * @pre @p header must contain at least RMAP_READ_REPLY_HEADER_STATIC_SIZE
+ *      bytes.
+ *
+ * @param[out] header Potential RMAP read reply header.
+ */
+void rmap_set_reserved(uint8_t *header);
+
 /** Get the extended address field from a verified RMAP command header.
  *
  * @pre @p header must contain a verified RMAP command header.
