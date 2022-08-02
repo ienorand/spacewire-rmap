@@ -549,20 +549,20 @@ void rmap_set_status(uint8_t *header, uint8_t status);
  *
  * @pre @p header must contain a verified RMAP command header.
  *
- * @param[out] reply_address0 Destination for reply address.
- * @param[out] reply_address_size Number of bytes copied into @p reply_address0
+ * @param[out] reply_address Destination for reply address.
+ * @param[out] reply_address_size Number of bytes copied into @p reply_address
  *             on success.
  * @param reply_address_max_size Number of bytes available in
- *        @p reply_address0.
+ *        @p reply_address.
  * @param[in] header Verified RMAP command header.
  *
  * @retval RMAP_NOT_ENOUGH_SPACE @p reply_address_max_size is less than the
  *         size of the reply address.
- * @retval RMAP_OK Reply address was successfully copied to @p reply_address0
+ * @retval RMAP_OK Reply address was successfully copied to @p reply_address
  *         and its size is given in @p reply_address_size.
  */
 rmap_status_t rmap_get_reply_address(
-    uint8_t *reply_address0,
+    uint8_t *reply_address,
     size_t *reply_address_size,
     size_t reply_address_max_size,
     const uint8_t *header);

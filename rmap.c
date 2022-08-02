@@ -185,15 +185,14 @@ static size_t calculate_reply_address_padded_size(const uint8_t instruction)
 }
 
 rmap_status_t rmap_get_reply_address(
-    uint8_t *const reply_address0,
+    uint8_t *reply_address,
     size_t *const reply_address_size,
     const size_t reply_address_max_size,
     const uint8_t *const header)
 {
   const uint8_t *reply_address_padded;
-  uint8_t *reply_address;
 
-  assert(reply_address0);
+  assert(reply_address);
   assert(reply_address_size);
   assert(header);
 
@@ -201,7 +200,8 @@ rmap_status_t rmap_get_reply_address(
     calculate_reply_address_padded_size(rmap_get_instruction(header));
   reply_address_padded = header + 4;
 
-  reply_address = reply_address0;
+  uint8_t *const reply_address0 = reply_address;
+
   *reply_address_size = 0;
   for (size_t i = 0; i < reply_address_padded_size; ++i) {
     /* Ignore leading zeroes. */
