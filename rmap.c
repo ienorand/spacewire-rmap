@@ -453,6 +453,60 @@ size_t rmap_calculate_header_size(const uint8_t *const header)
   return calculate_header_size(rmap_get_instruction(header));
 }
 
+/** Verify the integrity of a potential RMAP header.
+ *
+ * Verify that the data in @p header:
+ * * Contains an RMAP header based on the protocol field.
+ * * Is large enough to fit the whole RMAP header based on its type.
+ * * Has a valid RMAP header CRC.
+ *
+ * No verification of the instruction field is performed.
+ *
+ * @p size May be larger than the size of the header being verified.
+ *
+ * @param[in] header Potential RMAP header.
+ * @param size Number of bytes in @p header.
+ *
+ * @retval RMAP_INCOMPLETE_HEADER @p size is too small to fit the whole header.
+ * @retval RMAP_NO_RMAP_PROTOCOL The protocol field indicates that this is not
+ *         an RMAP header.
+ * @retval RMAP_HEADER_CRC_ERROR The header CRC indicates that errors are
+ *         present in the header.
+ * @retval RMAP_OK Header is a complete RMAP header.
+ */
+static rmap_status_t rmap_verify_header_integrity(
+    const uint8_t *const header,
+    const size_t size)
+{
+  size_t header_size;
+
+  assert(header);
+
+  if (size < RMAP_HEADER_MINIMUM_SIZE) {
+    return RMAP_INCOMPLETE_HEADER;
+  }
+
+  if (rmap_get_protocol(header) != 1) {
+    return RMAP_NO_RMAP_PROTOCOL;
+  }
+
+  header_size = calculate_header_size(rmap_get_instruction(header));
+
+  if (size < header_size) {
+    return RMAP_INCOMPLETE_HEADER;
+  }
+
+  const uint8_t crc = rmap_crc_calculate(header, header_size);
+  /* If the received crc is included in the crc calculation, the result should
+   * be 0.
+   */
+  if (crc != 0) {
+    return RMAP_HEADER_CRC_ERROR;
+  }
+
+  return RMAP_OK;
+}
+
 /** Verify a potential RMAP instruction.
  *
  * @param instruction Potential RMAP instruction.
@@ -513,35 +567,17 @@ static rmap_status_t verify_header(
     const uint8_t *const header,
     const size_t size)
 {
-  size_t header_size;
+  rmap_status_t status;
 
   assert(header);
 
-  if (size < RMAP_HEADER_MINIMUM_SIZE) {
-    return RMAP_INCOMPLETE_HEADER;
+  status = rmap_verify_header_integrity(header, size);
+  if (status != RMAP_OK)
+  {
+    return status;
   }
 
-  if (rmap_get_protocol(header) != 1) {
-    return RMAP_NO_RMAP_PROTOCOL;
-  }
-
-  const uint8_t instruction = rmap_get_instruction(header);
-
-  header_size = calculate_header_size(instruction);
-
-  if (size < header_size) {
-    return RMAP_INCOMPLETE_HEADER;
-  }
-
-  const uint8_t crc = rmap_crc_calculate(header, header_size);
-  /* If the received crc is included in the crc calculation, the result should
-   * be 0.
-   */
-  if (crc != 0) {
-    return RMAP_HEADER_CRC_ERROR;
-  }
-
-  return verify_instruction(instruction);
+  return verify_instruction(rmap_get_instruction(header));
 }
 
 /** Verify the data field in a packet with a verified RMAP write command or
