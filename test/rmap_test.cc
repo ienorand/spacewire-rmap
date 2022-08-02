@@ -623,7 +623,9 @@ INSTANTIATE_TEST_CASE_P(
       testing::Combine(
         testing::Values(RMAP_PACKET_TYPE_COMMAND),
         testing::Values(RMAP_COMMAND_CODE_WRITE),
-        testing::Values(0)),
+        testing::Range(
+          (size_t)0,
+          (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))),
       testing::Values(
         std::make_tuple(rmap_set_instruction, rmap_get_instruction),
         std::make_tuple(rmap_set_key, rmap_get_key),
@@ -1479,20 +1481,12 @@ TEST_P(CalculateHeaderSize, GetGivesMatchingAfterInitalizing)
 }
 
 INSTANTIATE_TEST_CASE_P(
-    WriteCommandWithoutReply,
-    CalculateHeaderSize,
-    testing::Values(
-      std::make_tuple(
-        RMAP_PACKET_TYPE_COMMAND,
-        RMAP_COMMAND_CODE_WRITE,
-        std::make_tuple((size_t)0, (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE))));
-
-INSTANTIATE_TEST_CASE_P(
-    CommandWithReply,
+    Command,
     CalculateHeaderSize,
     testing::Combine(
       testing::Values(RMAP_PACKET_TYPE_COMMAND),
       testing::Values(
+        RMAP_COMMAND_CODE_WRITE,
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
         RMAP_COMMAND_CODE_REPLY),
       testing::Values(
