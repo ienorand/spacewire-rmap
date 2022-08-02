@@ -647,7 +647,9 @@ INSTANTIATE_TEST_CASE_P(
         testing::Values(
           RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
           RMAP_COMMAND_CODE_REPLY),
-        testing::Range((size_t)0, (size_t)(12 + 1))),
+        testing::Range(
+          (size_t)0,
+          (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))),
       testing::Values(
         std::make_tuple(rmap_set_instruction, rmap_get_instruction),
         std::make_tuple(rmap_set_key, rmap_get_key),
@@ -1067,7 +1069,7 @@ INSTANTIATE_TEST_CASE_P(
       testing::Values(
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
         RMAP_COMMAND_CODE_REPLY),
-      testing::Range((size_t)0, (size_t)(12 + 1))));
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
 TEST(RmapGetAddress, Patterns)
 {
@@ -1143,7 +1145,7 @@ INSTANTIATE_TEST_CASE_P(
       testing::Values(
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
         RMAP_COMMAND_CODE_REPLY),
-      testing::Range((size_t)0, (size_t)(12 + 1))));
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
 TEST(RmapGetHeaderDataLength, Patterns)
 {
@@ -1258,7 +1260,7 @@ INSTANTIATE_TEST_CASE_P(
     testing::Combine(
       testing::Values(RMAP_PACKET_TYPE_COMMAND),
       testing::Values(RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY),
-      testing::Range((size_t)0, (size_t)(12 + 1))));
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
 INSTANTIATE_TEST_CASE_P(
     ReadReply,
@@ -1266,7 +1268,7 @@ INSTANTIATE_TEST_CASE_P(
     testing::Combine(
       testing::Values(RMAP_PACKET_TYPE_REPLY),
       testing::Values(RMAP_COMMAND_CODE_REPLY),
-      testing::Range((size_t)0, (size_t)(12 + 1))));
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
 class GetRawDataLengthWriteWithReply : public testing::TestWithParam<size_t>
 {
@@ -1318,7 +1320,7 @@ TEST_P(GetRawDataLengthWriteWithReply, GetGivesMatchingAfterSet)
 INSTANTIATE_TEST_CASE_P(
     ReplyAddressLengths,
     GetRawDataLengthWriteWithReply,
-    testing::Range((size_t)0, (size_t)(12 + 1)));
+    testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)));
 
 TEST(GetRawDataLength, GetGivesMatchingRawAfterSetInWriteWithoutReply)
 {
@@ -1759,7 +1761,7 @@ INSTANTIATE_TEST_CASE_P(
         64,
         RMAP_PACKET_TYPE_COMMAND,
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
-        12 + 1,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX + 1,
         RMAP_REPLY_ADDRESS_TOO_LONG),
       std::make_tuple(
         64,
@@ -1771,7 +1773,7 @@ INSTANTIATE_TEST_CASE_P(
         64,
         RMAP_PACKET_TYPE_REPLY,
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
-        12 + 1,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX + 1,
         RMAP_REPLY_ADDRESS_TOO_LONG),
       std::make_tuple(
         64,
@@ -1783,7 +1785,7 @@ INSTANTIATE_TEST_CASE_P(
         64,
         RMAP_PACKET_TYPE_COMMAND,
         RMAP_COMMAND_CODE_REPLY,
-        12 + 1,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX + 1,
         RMAP_REPLY_ADDRESS_TOO_LONG),
       std::make_tuple(
         64,
@@ -1795,7 +1797,7 @@ INSTANTIATE_TEST_CASE_P(
         64,
         RMAP_PACKET_TYPE_REPLY,
         RMAP_COMMAND_CODE_REPLY,
-        12 + 1,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX + 1,
         RMAP_REPLY_ADDRESS_TOO_LONG),
       std::make_tuple(
         64,
@@ -1877,7 +1879,7 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_WRITE_REPLY_HEADER_STATIC_SIZE - 1,
         RMAP_PACKET_TYPE_REPLY,
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
-        12,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX,
         RMAP_NOT_ENOUGH_SPACE),
       std::make_tuple(
         RMAP_WRITE_REPLY_HEADER_STATIC_SIZE,
@@ -1889,7 +1891,7 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_WRITE_REPLY_HEADER_STATIC_SIZE,
         RMAP_PACKET_TYPE_REPLY,
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
-        12,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX,
         RMAP_OK)));
 
 INSTANTIATE_TEST_CASE_P(
@@ -1965,7 +1967,7 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_READ_REPLY_HEADER_STATIC_SIZE - 1,
         RMAP_PACKET_TYPE_REPLY,
         RMAP_COMMAND_CODE_REPLY,
-        12,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX,
         RMAP_NOT_ENOUGH_SPACE),
       std::make_tuple(
         RMAP_READ_REPLY_HEADER_STATIC_SIZE,
@@ -1977,7 +1979,7 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_READ_REPLY_HEADER_STATIC_SIZE,
         RMAP_PACKET_TYPE_REPLY,
         RMAP_COMMAND_CODE_REPLY,
-        12,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX,
         RMAP_OK)));
 
 TEST(RmapCrcCalculate, ZeroesInDataGivesZeroCrc)
