@@ -1402,6 +1402,156 @@ TEST(GetRawDataLength, GetGivesMatchingRawAfterSetInReadReply)
       data_length);
 }
 
+TEST(RmapCalculateHeaderSize, Patterns)
+{
+  EXPECT_EQ(
+      rmap_calculate_header_size(
+        test_pattern0_unverified_incrementing_write_with_reply),
+      RMAP_COMMAND_HEADER_STATIC_SIZE);
+
+  EXPECT_EQ(
+      rmap_calculate_header_size(test_pattern0_expected_write_reply),
+      RMAP_WRITE_REPLY_HEADER_STATIC_SIZE);
+
+  EXPECT_EQ(
+      rmap_calculate_header_size(test_pattern1_incrementing_read),
+      RMAP_COMMAND_HEADER_STATIC_SIZE);
+
+  EXPECT_EQ(
+      rmap_calculate_header_size(test_pattern1_expected_read_reply),
+      RMAP_READ_REPLY_HEADER_STATIC_SIZE);
+
+  EXPECT_EQ(
+      rmap_calculate_header_size(
+        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+        test_pattern2_target_address_length),
+      RMAP_COMMAND_HEADER_STATIC_SIZE +
+      test_pattern2_reply_address_length_padded);
+
+  EXPECT_EQ(
+      rmap_calculate_header_size(
+        test_pattern2_expected_write_reply_with_spacewire_addresses +
+        test_pattern2_reply_address_length),
+      RMAP_WRITE_REPLY_HEADER_STATIC_SIZE);
+
+  EXPECT_EQ(
+      rmap_calculate_header_size(
+        test_pattern3_incrementing_read_with_spacewire_addresses +
+        test_pattern3_target_address_length),
+      RMAP_COMMAND_HEADER_STATIC_SIZE + test_pattern3_reply_address_length);
+
+  EXPECT_EQ(
+      rmap_calculate_header_size(
+        test_pattern3_expected_read_reply_with_spacewire_addresses +
+        test_pattern3_reply_address_length),
+      RMAP_READ_REPLY_HEADER_STATIC_SIZE);
+}
+
+typedef std::tuple<rmap_packet_type_t, int, std::tuple<size_t, size_t>>
+CalculateHeaderSizeParameters;
+
+class CalculateHeaderSize :
+  public testing::TestWithParam<CalculateHeaderSizeParameters>
+{
+};
+
+TEST_P(CalculateHeaderSize, GetGivesMatchingAfterInitalizing)
+{
+  uint8_t header[64];
+
+  auto packet_type = std::get<0>(GetParam());
+  auto command_code = std::get<1>(GetParam());
+  auto reply_address_unpadded_size = std::get<0>(std::get<2>(GetParam()));
+  auto expected = std::get<1>(std::get<2>(GetParam()));
+
+  ASSERT_EQ(
+      rmap_initialize_header(
+        header,
+        sizeof(header),
+        packet_type,
+        command_code,
+        reply_address_unpadded_size),
+      RMAP_OK);
+
+  EXPECT_EQ(rmap_calculate_header_size(header), expected);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    WriteCommandWithoutReply,
+    CalculateHeaderSize,
+    testing::Values(
+      std::make_tuple(
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE,
+        std::make_tuple((size_t)0, (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE))));
+
+INSTANTIATE_TEST_CASE_P(
+    CommandWithReply,
+    CalculateHeaderSize,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_COMMAND),
+      testing::Values(
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_REPLY),
+      testing::Values(
+        std::make_tuple((size_t)0, (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE),
+        std::make_tuple(
+          (size_t)1,
+          (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 4),
+        std::make_tuple(
+          (size_t)2,
+          (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 4),
+        std::make_tuple(
+          (size_t)3,
+          (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 4),
+        std::make_tuple(
+          (size_t)4,
+          (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 4),
+        std::make_tuple(
+          (size_t)5,
+          (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 8),
+        std::make_tuple(
+          (size_t)6,
+          (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 8),
+        std::make_tuple(
+          (size_t)7,
+          (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 8),
+        std::make_tuple(
+            (size_t)8,
+            (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 8),
+        std::make_tuple(
+            (size_t)9,
+            (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 12),
+        std::make_tuple(
+            (size_t)10,
+            (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 12),
+        std::make_tuple(
+            (size_t)11,
+            (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 12),
+        std::make_tuple(
+            (size_t)12,
+            (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 12))));
+
+INSTANTIATE_TEST_CASE_P(
+    WriteReply,
+    CalculateHeaderSize,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_REPLY),
+      testing::Values(RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY),
+      testing::Combine(
+        testing::Range((size_t)0, (size_t)RMAP_REPLY_ADDRESS_LENGTH_MAX + 1),
+        testing::Values(RMAP_WRITE_REPLY_HEADER_STATIC_SIZE))));
+
+INSTANTIATE_TEST_CASE_P(
+    ReadReply,
+    CalculateHeaderSize,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_REPLY),
+      testing::Values(RMAP_COMMAND_CODE_REPLY),
+      testing::Combine(
+        testing::Range((size_t)0, (size_t)RMAP_REPLY_ADDRESS_LENGTH_MAX + 1),
+        testing::Values(RMAP_READ_REPLY_HEADER_STATIC_SIZE))));
+
 typedef std::tuple<size_t, rmap_packet_type_t, int, size_t, rmap_status_t>
 InitializeHeaderParameters;
 

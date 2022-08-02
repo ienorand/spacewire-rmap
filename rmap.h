@@ -731,6 +731,18 @@ void rmap_set_data_length(uint8_t *header, uint32_t data_length);
  */
 size_t rmap_get_raw_data_length(const uint8_t *packet, size_t size);
 
+/** Calculate the RMAP header size from a potential RMAP header.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ * @pre @p header must have a valid packet type field.
+ * @pre @p header must have a valid command field.
+ *
+ * @param header Potential RMAP header.
+ *
+ * @return RMAP header size.
+ */
+size_t rmap_calculate_header_size(const uint8_t *header);
+
 /** Initialize an RMAP header.
  *
  * * Verify that the header would fit in @p max_size.
