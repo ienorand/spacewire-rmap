@@ -994,6 +994,9 @@ rmap_status_t rmap_packet_serialize_inplace(
  *         header is provided.
  * @Retval RMAP_UNUSED_COMMAND_CODE The command code combination is invalid for
  *         the packet type. A deserialized header is provided.
+ * @retval RMAP_INVALID_REPLY The packet type field indicates that this is a
+ *         reply but the command code field do not have the reply bit set. A
+ *         deserialized header is provided.
  * @retval RMAP_ECSS_TOO_MUCH_DATA The @p data_size indicates a packet size
  *         which is too large based on the packet type and data length (if
  *         applicable/verified). A deserialized header is provided.

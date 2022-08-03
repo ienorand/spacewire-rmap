@@ -513,10 +513,11 @@ static rmap_status_t rmap_verify_header_integrity(
  *
  * @retval RMAP_UNUSED_PACKET_TYPE The packet type field has the reserved bit
  *         set.
- * TODO: Should be INVALID_REPLY_ERROR
  * @retval RMAP_UNUSED_COMMAND_CODE The command field contains a reserved
  *         command code or the packet type is a reply without the with-reply
  *         bit set.
+ * @retval RMAP_INVALID_REPLY The packet type field indicates that this is a
+ *         reply but the command code field do not have the reply bit set.
  * @retval RMAP_OK Instruction is valid.
  */
 static rmap_status_t verify_instruction(const uint8_t instruction)
@@ -529,7 +530,7 @@ static rmap_status_t verify_instruction(const uint8_t instruction)
 
     if (!rmap_is_instruction_with_reply(instruction)) {
       /* Reply packet type without command code reply bit set. */
-      return RMAP_UNUSED_COMMAND_CODE;
+      return RMAP_INVALID_REPLY;
     }
   }
 
@@ -561,6 +562,8 @@ static rmap_status_t verify_instruction(const uint8_t instruction)
  * @retval RMAP_UNUSED_COMMAND_CODE The command field contains a reserved
  *         command code or the packet type is a reply without the with-reply
  *         bit set.
+ * @retval RMAP_INVALID_REPLY The packet type field indicates that this is a
+ *         reply but the command code field do not have the reply bit set.
  * @retval RMAP_OK Header is valid.
  */
 static rmap_status_t verify_header(
@@ -1285,8 +1288,11 @@ rmap_status_t rmap_header_deserialize(
       return RMAP_UNUSED_PACKET_TYPE;
     }
 
-    if (is_reply_without_reply ||
-        rmap_is_instruction_unused_command_code(instruction)) {
+    if (is_reply_without_reply) {
+      return RMAP_INVALID_REPLY;
+    }
+
+    if (rmap_is_instruction_unused_command_code(instruction)) {
       return RMAP_UNUSED_COMMAND_CODE;
     }
 
