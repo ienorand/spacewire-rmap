@@ -629,6 +629,10 @@ static rmap_status_t verify_data(
 
 /** Make an RMAP instruction field.
  *
+ * Creating invalid instruction fields with unused packet types or unused
+ * command codes is supported in order to allow ceating invalid RMAP headers
+ * for testing purposes.
+ *
  * @p packet_type uses a different representation of packet types compared to
  * the RMAP representation in the instruction field.
  *
@@ -636,21 +640,18 @@ static rmap_status_t verify_data(
  * compared to the RMAP representation in the instruction field.
  *
  * @param[out] instruction Destination for instruction field.
- * @param packet_type Packet type to set in instruction field.
+ * @param packet_type Representation of packet type to set in instruction
+ *        field.
  * @param command_code Representation of command code flags to set in
  *        instruction field.
  * @param reply_address_unpadded_size Reply address size without leading
  *        zero-padding used to calculate and set the reply address length
  *        field.
  *
- * @retval RMAP_UNUSED_PACKET_TYPE @p packet_type contains an unrepresentable
+ * @retval RMAP_INVALID_PACKET_TYPE @p packet_type contains an unrepresentable
  *         packet type.
  * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains an
  *         unrepresentable command code.
- * @retval RMAP_UNUSED_COMMAND_CODE @p command_code contains a reserved command
- *         code.
- * @retval RMAP_NO_REPLY @p packet_type is a reply but @p command_code does not
- *         contain a with-reply command code.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG @p reply_address_unpadded_size is larger
  *         than RMAP_REPLY_ADDRESS_LENGTH_MAX.
  * @retval RMAP_OK Instruction created successfully.
@@ -665,10 +666,25 @@ static rmap_status_t make_instruction(
 
   *instruction = 0;
 
-  if (packet_type == RMAP_PACKET_TYPE_COMMAND) {
-    *instruction |= 1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
-  } else if (packet_type != RMAP_PACKET_TYPE_REPLY) {
-    return RMAP_UNUSED_PACKET_TYPE;
+  switch (packet_type) {
+    case RMAP_PACKET_TYPE_COMMAND:
+      *instruction |= 0x1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
+      break;
+
+    case RMAP_PACKET_TYPE_REPLY:
+      *instruction |= 0x0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
+      break;
+
+    case RMAP_PACKET_TYPE_COMMAND_RESERVED:
+      *instruction |= 0x3 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
+      break;
+
+    case RMAP_PACKET_TYPE_REPLY_RESERVED:
+      *instruction |= 0x2 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
+      break;
+
+    default:
+      return RMAP_INVALID_PACKET_TYPE;
   }
 
   if (command_code < 0 || command_code > RMAP_COMMAND_CODES_ALL) {
@@ -686,15 +702,6 @@ static rmap_status_t make_instruction(
   }
   if (command_code & RMAP_COMMAND_CODE_INCREMENT) {
     *instruction |= 1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT;
-  }
-
-  if (packet_type == RMAP_PACKET_TYPE_REPLY &&
-      !(*instruction & RMAP_INSTRUCTION_COMMAND_REPLY_MASK)) {
-    return RMAP_NO_REPLY;
-  }
-
-  if (rmap_is_instruction_unused_command_code(*instruction)) {
-    return RMAP_UNUSED_COMMAND_CODE;
   }
 
   if (reply_address_unpadded_size > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
@@ -725,8 +732,15 @@ rmap_status_t rmap_initialize_header(
       packet_type,
       command_code,
       reply_address_unpadded_size);
-  if (status != RMAP_OK) {
-    return status;
+  switch (status) {
+    case RMAP_INVALID_PACKET_TYPE:
+    case RMAP_INVALID_COMMAND_CODE:
+    case RMAP_REPLY_ADDRESS_TOO_LONG:
+      return status;
+
+    default:
+      assert(status == RMAP_OK);
+      break;
   }
 
   if (calculate_header_size(instruction) > max_size) {
@@ -779,14 +793,18 @@ static rmap_status_t serialize_command_header(
   const size_t packet_max_size =
     data_size - (header->target_address.length - target_address_padding_size);
 
-
-  /* TODO: Does not allow unused packet types or unused command codes. */
   status = rmap_initialize_header(
       packet,
       packet_max_size,
       RMAP_PACKET_TYPE_COMMAND,
       header->command_codes,
       header->reply_address.length);
+  if (status != RMAP_OK) {
+    return status;
+  }
+
+  /* No support for serializing invalid headers. */
+  status = verify_instruction(rmap_get_instruction(packet));
   if (status != RMAP_OK) {
     return status;
   }
@@ -845,7 +863,6 @@ static rmap_status_t serialize_write_reply_header(
   const size_t packet_max_size =
     data_size - (header->reply_address.length - reply_address_padding_size);
 
-  /* TODO: Does not allow unused packet types or unused command codes. */
   status = rmap_initialize_header(
       packet,
       packet_max_size,
@@ -853,6 +870,15 @@ static rmap_status_t serialize_write_reply_header(
       header->command_codes,
       header->reply_address.length);
   if (status != RMAP_OK) {
+    return status;
+  }
+
+  /* No support for serializing invalid headers. */
+  status = verify_instruction(rmap_get_instruction(packet));
+  if (status != RMAP_OK) {
+    if (status == RMAP_INVALID_REPLY) {
+      status = RMAP_NO_REPLY;
+    }
     return status;
   }
 
@@ -911,7 +937,6 @@ static rmap_status_t serialize_read_reply_header(
   const size_t packet_max_size =
     data_size - (header->reply_address.length - reply_address_padding_size);
 
-  /* TODO: Does not allow unused packet types or unused command codes. */
   status = rmap_initialize_header(
       packet,
       packet_max_size,
@@ -919,6 +944,15 @@ static rmap_status_t serialize_read_reply_header(
       header->command_codes,
       header->reply_address.length);
   if (status != RMAP_OK) {
+    return status;
+  }
+
+  /* No support for serializing invalid headers. */
+  status = verify_instruction(rmap_get_instruction(packet));
+  if (status != RMAP_OK) {
+    if (status == RMAP_INVALID_REPLY) {
+      status = RMAP_NO_REPLY;
+    }
     return status;
   }
 
@@ -1384,6 +1418,9 @@ const char *rmap_status_text(const rmap_status_t status)
 
     case RMAP_UNUSED_PACKET_TYPE:
       return "RMAP_UNUSED_PACKET_TYPE";
+
+    case RMAP_INVALID_PACKET_TYPE:
+      return "RMAP_INVALID_PACKET_TYPE";
 
     case RMAP_UNUSED_COMMAND_CODE:
       return "RMAP_UNUSED_COMMAND_CODE";

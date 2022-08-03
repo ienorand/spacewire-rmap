@@ -1659,21 +1659,38 @@ TEST_P(InitializeHeader, ParameterChecks)
 }
 
 INSTANTIATE_TEST_CASE_P(
-    UnusedPacketTypes,
+    ReservedPacketTypes,
     InitializeHeader,
     testing::Values(
       std::make_tuple(
         64,
-        (rmap_packet_type_t)(RMAP_PACKET_TYPE_REPLY + 1),
+        RMAP_PACKET_TYPE_COMMAND_RESERVED,
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
         0,
-        RMAP_UNUSED_PACKET_TYPE),
+        RMAP_OK),
+      std::make_tuple(
+        64,
+        RMAP_PACKET_TYPE_REPLY_RESERVED,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        0,
+        RMAP_OK)));
+
+INSTANTIATE_TEST_CASE_P(
+    InvalidPacketTypes,
+    InitializeHeader,
+    testing::Values(
+      std::make_tuple(
+        64,
+        (rmap_packet_type_t)(RMAP_PACKET_TYPE_REPLY_RESERVED + 1),
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        0,
+        RMAP_INVALID_PACKET_TYPE),
       std::make_tuple(
         64,
         (rmap_packet_type_t)0xFF,
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
         0,
-        RMAP_UNUSED_PACKET_TYPE)));
+        RMAP_INVALID_PACKET_TYPE)));
 
 INSTANTIATE_TEST_CASE_P(
     InvalidCommandCodes,
@@ -1710,7 +1727,7 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_PACKET_TYPE_REPLY,
         RMAP_COMMAND_CODE_WRITE,
         0,
-        RMAP_NO_REPLY)));
+        RMAP_OK)));
 
 INSTANTIATE_TEST_CASE_P(
     UnusedCommandCodes,
@@ -1721,31 +1738,31 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_PACKET_TYPE_COMMAND,
         0,
         0,
-        RMAP_UNUSED_COMMAND_CODE),
+        RMAP_OK),
       std::make_tuple(
         64,
         RMAP_PACKET_TYPE_COMMAND,
         RMAP_COMMAND_CODE_INCREMENT,
         0,
-        RMAP_UNUSED_COMMAND_CODE),
+        RMAP_OK),
       std::make_tuple(
         64,
         RMAP_PACKET_TYPE_COMMAND,
         RMAP_COMMAND_CODE_VERIFY,
         0,
-        RMAP_UNUSED_COMMAND_CODE),
+        RMAP_OK),
       std::make_tuple(
         64,
         RMAP_PACKET_TYPE_COMMAND,
         RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT,
         0,
-        RMAP_UNUSED_COMMAND_CODE),
+        RMAP_OK),
       std::make_tuple(
         64,
         RMAP_PACKET_TYPE_COMMAND,
         RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY,
         0,
-        RMAP_UNUSED_COMMAND_CODE)));
+        RMAP_OK)));
 
 INSTANTIATE_TEST_CASE_P(
     ReplyAddressTooLong,

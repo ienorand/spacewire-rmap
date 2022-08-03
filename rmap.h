@@ -43,7 +43,10 @@ typedef enum {
 /** Representation of RMAP packet type */
 typedef enum {
   RMAP_PACKET_TYPE_COMMAND,
-  RMAP_PACKET_TYPE_REPLY
+  RMAP_PACKET_TYPE_REPLY,
+  RMAP_PACKET_TYPE_COMMAND_RESERVED,
+  RMAP_PACKET_TYPE_REPLY_RESERVED
+
 } rmap_packet_type_t;
 
 /** Representation of RMAP command codes. */
@@ -109,6 +112,13 @@ typedef enum {
 
   /** The packet type field has the reserved bit set. */
   RMAP_UNUSED_PACKET_TYPE,
+
+  /** The provided packet_type is an unrepresentable packet type.
+   *
+   * This is only used to indicate errors by the library function caller, not
+   * errors that can occur as part of the protocol operation.
+   */
+  RMAP_INVALID_PACKET_TYPE,
 
   /** The command field contains a reserved command code. */
   RMAP_UNUSED_COMMAND_CODE,
@@ -774,6 +784,10 @@ size_t rmap_calculate_header_size(const uint8_t *header);
  * further writes via accessor function will be valid if this initialization
  * succeeds
  *
+ * Creating invalid headers with unused packet types or unused command codes is
+ * supported in order to allow ceating invalid RMAP packets for testing
+ * purposes.
+ *
  * @p packet_type uses a different representation of packet types compared to
  * the RMAP representation in the instruction field.
  *
@@ -789,14 +803,10 @@ size_t rmap_calculate_header_size(const uint8_t *header);
  *        zero-padding used to calculate and set the reply address length
  *        field.
  *
- * @retval RMAP_UNUSED_PACKET_TYPE @p packet_type contains an unrepresentable
+ * @retval RMAP_INVALID_PACKET_TYPE @p packet_type contains an unrepresentable
  *         packet type.
  * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains an
  *         unrepresentable command code.
- * @retval RMAP_UNUSED_COMMAND_CODE @p command_code contains a reserved command
- *         code.
- * @retval RMAP_NO_REPLY @p packet_type is a reply but @p command_code does not
- *         contain a with-reply command code.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG @p reply_address_unpadded_size is larger
  *         than RMAP_REPLY_ADDRESS_LENGTH_MAX.
  * @retval RMAP_NOT_ENOUGH_SPACE @p max_size is less than the size of the
