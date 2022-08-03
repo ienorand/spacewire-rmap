@@ -507,22 +507,14 @@ static rmap_status_t rmap_verify_header_integrity(
   return RMAP_OK;
 }
 
-/** Verify a potential RMAP instruction.
- *
- * @param instruction Potential RMAP instruction.
- *
- * @retval RMAP_UNUSED_PACKET_TYPE The packet type field has the reserved bit
- *         set.
- * @retval RMAP_UNUSED_COMMAND_CODE The command field contains a reserved
- *         command code or the packet type is a reply without the with-reply
- *         bit set.
- * @retval RMAP_INVALID_REPLY The packet type field indicates that this is a
- *         reply but the command code field do not have the reply bit set.
- * @retval RMAP_OK Instruction is valid.
- */
-static rmap_status_t verify_instruction(const uint8_t instruction)
+rmap_status_t rmap_verify_header_instruction(const uint8_t *const header)
 {
+  const uint8_t instruction = rmap_get_instruction(header);
+
   if (!rmap_is_instruction_command(instruction)) {
+    /* TODO: Based on RMAP standard, unused packet type is also "invalid
+     * reply".
+     */
     if (rmap_is_instruction_unused_packet_type(instruction)) {
       /* Reply packet type with packet type reserved bit set */
       return RMAP_UNUSED_PACKET_TYPE;
@@ -580,7 +572,7 @@ static rmap_status_t verify_header(
     return status;
   }
 
-  return verify_instruction(rmap_get_instruction(header));
+  return rmap_verify_header_instruction(header);
 }
 
 /** Verify the data field in a packet with a verified RMAP write command or
@@ -804,7 +796,7 @@ static rmap_status_t serialize_command_header(
   }
 
   /* No support for serializing invalid headers. */
-  status = verify_instruction(rmap_get_instruction(packet));
+  status = rmap_verify_header_instruction(packet);
   if (status != RMAP_OK) {
     return status;
   }
@@ -874,7 +866,7 @@ static rmap_status_t serialize_write_reply_header(
   }
 
   /* No support for serializing invalid headers. */
-  status = verify_instruction(rmap_get_instruction(packet));
+  status = rmap_verify_header_instruction(packet);
   if (status != RMAP_OK) {
     if (status == RMAP_INVALID_REPLY) {
       status = RMAP_NO_REPLY;
@@ -948,7 +940,7 @@ static rmap_status_t serialize_read_reply_header(
   }
 
   /* No support for serializing invalid headers. */
-  status = verify_instruction(rmap_get_instruction(packet));
+  status = rmap_verify_header_instruction(packet);
   if (status != RMAP_OK) {
     if (status == RMAP_INVALID_REPLY) {
       status = RMAP_NO_REPLY;

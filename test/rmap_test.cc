@@ -1630,6 +1630,193 @@ TEST(RmapCalculateAndSetHeaderCrc, PatternsShouldNotChange)
   EXPECT_EQ(packet, expected_packet);
 }
 
+typedef std::tuple<rmap_packet_type_t, int, size_t, rmap_status_t>
+VerifyHeaderInstructionParameters;
+
+class VerifyHeaderInstruction :
+  public testing::TestWithParam<VerifyHeaderInstructionParameters>
+{
+};
+
+TEST_P(VerifyHeaderInstruction, VerifyAfterInitializing)
+{
+  uint8_t header[64];
+
+  auto packet_type = std::get<0>(GetParam());
+  auto command_code = std::get<1>(GetParam());
+  auto reply_address_unpadded_size = std::get<2>(GetParam());
+  auto expected_status = std::get<3>(GetParam());
+
+  ASSERT_EQ(
+      rmap_initialize_header(
+        header,
+        sizeof(header),
+        packet_type,
+        command_code,
+        reply_address_unpadded_size),
+      RMAP_OK);
+
+  EXPECT_EQ(rmap_verify_header_instruction(header), expected_status);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    ReservedPacketTypes,
+    VerifyHeaderInstruction,
+    testing::Combine(
+      testing::Values(
+        RMAP_PACKET_TYPE_COMMAND_RESERVED,
+        RMAP_PACKET_TYPE_REPLY_RESERVED),
+      testing::Range(
+        0,
+        (RMAP_COMMAND_CODE_WRITE |
+         RMAP_COMMAND_CODE_VERIFY |
+         RMAP_COMMAND_CODE_REPLY |
+         RMAP_COMMAND_CODE_INCREMENT) + 1),
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
+      testing::Values(RMAP_UNUSED_PACKET_TYPE)));
+
+INSTANTIATE_TEST_CASE_P(
+    CommandWithUnusedCommandCodes,
+    VerifyHeaderInstruction,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_COMMAND),
+      testing::Values(
+        0,
+        RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_VERIFY,
+        RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY),
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
+      testing::Values(RMAP_UNUSED_COMMAND_CODE)));
+
+INSTANTIATE_TEST_CASE_P(
+    ReplyWithoutReplyBit,
+    VerifyHeaderInstruction,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_REPLY),
+      testing::Values(
+        0,
+        RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_VERIFY,
+        RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_WRITE,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_VERIFY,
+        RMAP_COMMAND_CODE_WRITE |
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_INCREMENT),
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
+      testing::Values(RMAP_INVALID_REPLY)));
+
+INSTANTIATE_TEST_CASE_P(
+    ReplyWithUnusedCommandCodes,
+    VerifyHeaderInstruction,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_REPLY),
+      testing::Values(RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY),
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
+      testing::Values(RMAP_UNUSED_COMMAND_CODE)));
+
+INSTANTIATE_TEST_CASE_P(
+    ValidCommands,
+    VerifyHeaderInstruction,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_COMMAND),
+      testing::Values(
+        RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_WRITE,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_WRITE |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_VERIFY,
+        RMAP_COMMAND_CODE_WRITE |
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_WRITE |
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_WRITE |
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT),
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
+      testing::Values(RMAP_OK)));
+
+INSTANTIATE_TEST_CASE_P(
+    ValidReplies,
+    VerifyHeaderInstruction,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_REPLY),
+      testing::Values(
+        RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_WRITE |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_COMMAND_CODE_WRITE |
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_WRITE |
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT),
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
+      testing::Values(RMAP_OK)));
+
+TEST(VerifyHeaderInstruction, Patterns)
+{
+  EXPECT_EQ(
+      rmap_verify_header_instruction(
+        test_pattern0_unverified_incrementing_write_with_reply),
+      RMAP_OK);
+
+  EXPECT_EQ(
+      rmap_verify_header_instruction(test_pattern0_expected_write_reply),
+      RMAP_OK);
+
+  EXPECT_EQ(
+      rmap_verify_header_instruction(test_pattern1_incrementing_read),
+      RMAP_OK);
+
+  EXPECT_EQ(
+      rmap_verify_header_instruction(test_pattern1_expected_read_reply),
+      RMAP_OK);
+
+  EXPECT_EQ(
+      rmap_verify_header_instruction(
+        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+        test_pattern2_target_address_length),
+      RMAP_OK);
+
+  EXPECT_EQ(
+      rmap_verify_header_instruction(
+        test_pattern2_expected_write_reply_with_spacewire_addresses +
+        test_pattern2_reply_address_length),
+      RMAP_OK);
+
+  EXPECT_EQ(
+      rmap_verify_header_instruction(
+        test_pattern3_incrementing_read_with_spacewire_addresses +
+        test_pattern3_target_address_length),
+      RMAP_OK);
+
+  EXPECT_EQ(
+      rmap_verify_header_instruction(
+        test_pattern3_expected_read_reply_with_spacewire_addresses +
+        test_pattern3_reply_address_length),
+      RMAP_OK);
+}
+
 typedef std::tuple<size_t, rmap_packet_type_t, int, size_t, rmap_status_t>
 InitializeHeaderParameters;
 

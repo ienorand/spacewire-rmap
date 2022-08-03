@@ -772,6 +772,24 @@ void rmap_calculate_and_set_header_crc(uint8_t *header);
  */
 size_t rmap_calculate_header_size(const uint8_t *header);
 
+/** Verify the instruction field in a potential RMAP header.
+ *
+ * @pre The RMAP header in @p header must have been verified to be complete via
+ *      rmap_verify_header_integrity().
+ *
+ * @param header Potential RMAP header.
+ *
+ * @retval RMAP_UNUSED_PACKET_TYPE The packet type field has the reserved bit
+ *         set.
+ * @retval RMAP_UNUSED_COMMAND_CODE The command field contains a reserved
+ *         command code or the packet type is a reply without the with-reply
+ *         bit set.
+ * @retval RMAP_INVALID_REPLY The packet type field indicates that this is a
+ *         reply but the command code field do not have the reply bit set.
+ * @retval RMAP_OK Instruction is valid.
+ */
+rmap_status_t rmap_verify_header_instruction(const uint8_t *header);
+
 /** Initialize an RMAP header.
  *
  * * Verify that the header would fit in @p max_size.
