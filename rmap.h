@@ -1020,7 +1020,7 @@ rmap_status_t rmap_packet_serialize_inplace(
  *         applicable/verified). A deserialized header is provided.
  * @retval RMAP_UNUSED_PACKET_TYPE The packet type is invalid. A deserialized
  *         header is provided.
- * @Retval RMAP_UNUSED_COMMAND_CODE The command code combination is invalid for
+ * @retval RMAP_UNUSED_COMMAND_CODE The command code combination is invalid for
  *         the packet type. A deserialized header is provided.
  * @retval RMAP_INVALID_REPLY The packet type field indicates that this is a
  *         reply but the command code field do not have the reply bit set. A
