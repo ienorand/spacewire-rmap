@@ -1548,108 +1548,28 @@ INSTANTIATE_TEST_CASE_P(
         testing::Range((size_t)0, (size_t)RMAP_REPLY_ADDRESS_LENGTH_MAX + 1),
         testing::Values(RMAP_READ_REPLY_HEADER_STATIC_SIZE))));
 
-TEST(RmapCalculateAndSetHeaderCrc, PatternsShouldNotChange)
-{
-  std::vector<uint8_t> expected_packet;
-  std::vector<uint8_t> packet;
+typedef std::tuple<const uint8_t *, size_t> PatternParameters;
 
+class TestPatterns : public testing::TestWithParam<PatternParameters>
+{
+};
+
+TEST_P(TestPatterns, RmapCalculateAndSetHeaderCrcPatternsShouldNotChange)
+{
+  auto pattern = std::get<0>(GetParam());
+  auto pattern_size = std::get<1>(GetParam());
+
+  std::vector<uint8_t> packet(pattern, pattern + pattern_size);
+  const auto expected_packet = packet;
   /* CRC is corrupted first, to make sure that an implementation that does
    * nothing cannot pass the test.
    */
-
-  packet.clear();
-  packet.insert(
-      packet.end(),
-      std::begin(test_pattern0_unverified_incrementing_write_with_reply),
-      std::end(test_pattern0_unverified_incrementing_write_with_reply));
-  expected_packet = packet;
-  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
-  rmap_calculate_and_set_header_crc(packet.data());
-  EXPECT_EQ(packet, expected_packet);
-
-  packet.clear();
-  packet.insert(
-      packet.end(),
-      std::begin(test_pattern0_expected_write_reply),
-      std::end(test_pattern0_expected_write_reply));
-  expected_packet = packet;
-  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
-  rmap_calculate_and_set_header_crc(packet.data());
-  EXPECT_EQ(packet, expected_packet);
-
-  packet.clear();
-  packet.insert(
-      packet.end(),
-      std::begin(test_pattern1_incrementing_read),
-      std::end(test_pattern1_incrementing_read));
-  expected_packet = packet;
-  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
-  rmap_calculate_and_set_header_crc(packet.data());
-  EXPECT_EQ(packet, expected_packet);
-
-  packet.clear();
-  packet.insert(
-      packet.end(),
-      std::begin(test_pattern1_expected_read_reply),
-      std::end(test_pattern1_expected_read_reply));
-  expected_packet = packet;
-  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
-  rmap_calculate_and_set_header_crc(packet.data());
-  EXPECT_EQ(packet, expected_packet);
-
-  packet.clear();
-  packet.insert(
-      packet.end(),
-      std::begin(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) +
-      test_pattern2_target_address_length,
-      std::end(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses));
-  expected_packet = packet;
-  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
-  rmap_calculate_and_set_header_crc(packet.data());
-  EXPECT_EQ(packet, expected_packet);
-
-  packet.clear();
-  packet.insert(
-      packet.end(),
-      std::begin(test_pattern2_expected_write_reply_with_spacewire_addresses) +
-      test_pattern2_reply_address_length,
-      std::end(test_pattern2_expected_write_reply_with_spacewire_addresses));
-  expected_packet = packet;
-  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
-  rmap_calculate_and_set_header_crc(packet.data());
-  EXPECT_EQ(packet, expected_packet);
-
-  packet.clear();
-  packet.insert(
-      packet.end(),
-      std::begin(test_pattern3_incrementing_read_with_spacewire_addresses) +
-      test_pattern3_target_address_length,
-      std::end(test_pattern3_incrementing_read_with_spacewire_addresses));
-  expected_packet = packet;
-  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
-  rmap_calculate_and_set_header_crc(packet.data());
-  EXPECT_EQ(packet, expected_packet);
-
-  packet.clear();
-  packet.insert(
-      packet.end(),
-      std::begin(test_pattern3_expected_read_reply_with_spacewire_addresses) +
-      test_pattern3_reply_address_length,
-      std::end(test_pattern3_expected_read_reply_with_spacewire_addresses));
-  expected_packet = packet;
   packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
   rmap_calculate_and_set_header_crc(packet.data());
   EXPECT_EQ(packet, expected_packet);
 }
 
-typedef std::tuple<const uint8_t *, size_t> PatternParameters;
-
-class VerifyHeaderIntegrity :
-  public testing::TestWithParam<PatternParameters>
-{
-};
-
-TEST_P(VerifyHeaderIntegrity, Ok)
+TEST_P(TestPatterns, VerifyHeaderIntegrityOk)
 {
   auto pattern = std::get<0>(GetParam());
   auto pattern_size = std::get<1>(GetParam());
@@ -1657,7 +1577,7 @@ TEST_P(VerifyHeaderIntegrity, Ok)
   EXPECT_EQ(rmap_verify_header_integrity(pattern, pattern_size), RMAP_OK);
 }
 
-TEST_P(VerifyHeaderIntegrity, NoRmapProtocol)
+TEST_P(TestPatterns, VerifyHeaderIntegrityNoRmapProtocol)
 {
   uint8_t protocol;
 
@@ -1680,7 +1600,7 @@ TEST_P(VerifyHeaderIntegrity, NoRmapProtocol)
   }
 }
 
-TEST_P(VerifyHeaderIntegrity, CrcErrorFromCorruptKeyOrStatus)
+TEST_P(TestPatterns, VerifyHeaderIntegrityCrcErrorFromCorruptKeyOrStatus)
 {
   unsigned int i;
 
@@ -1701,7 +1621,7 @@ TEST_P(VerifyHeaderIntegrity, CrcErrorFromCorruptKeyOrStatus)
   }
 }
 
-TEST_P(VerifyHeaderIntegrity, CrcErrorFromCorruptCrcField)
+TEST_P(TestPatterns, VerifyHeaderIntegrityCrcErrorFromCorruptCrcField)
 {
   unsigned int i;
 
@@ -1720,7 +1640,7 @@ TEST_P(VerifyHeaderIntegrity, CrcErrorFromCorruptCrcField)
   }
 }
 
-TEST_P(VerifyHeaderIntegrity, IncompleteHeader)
+TEST_P(TestPatterns, VerifyHeaderIntegrityIncompleteHeader)
 {
   size_t incomplete_header_size;
 
@@ -1749,7 +1669,7 @@ TEST_P(VerifyHeaderIntegrity, IncompleteHeader)
       expected_status);
 }
 
-TEST_P(VerifyHeaderIntegrity, CompleteHeaderOnly)
+TEST_P(TestPatterns, VerifyHeaderIntegrityCompleteHeaderOnly)
 {
   auto pattern = std::get<0>(GetParam());
 
@@ -1760,9 +1680,16 @@ TEST_P(VerifyHeaderIntegrity, CompleteHeaderOnly)
       RMAP_OK);
 }
 
+TEST_P(TestPatterns, VerifyHeaderInstructionOk)
+{
+  auto pattern = std::get<0>(GetParam());
+
+  EXPECT_EQ(rmap_verify_header_instruction(pattern), RMAP_OK);
+}
+
 INSTANTIATE_TEST_CASE_P(
-    Patterns,
-    VerifyHeaderIntegrity,
+    AllPatterns,
+    TestPatterns,
     testing::Values(
       std::make_tuple(
         test_pattern0_unverified_incrementing_write_with_reply,
@@ -1939,50 +1866,6 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_COMMAND_CODE_INCREMENT),
       testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
       testing::Values(RMAP_OK)));
-
-TEST(VerifyHeaderInstruction, Patterns)
-{
-  EXPECT_EQ(
-      rmap_verify_header_instruction(
-        test_pattern0_unverified_incrementing_write_with_reply),
-      RMAP_OK);
-
-  EXPECT_EQ(
-      rmap_verify_header_instruction(test_pattern0_expected_write_reply),
-      RMAP_OK);
-
-  EXPECT_EQ(
-      rmap_verify_header_instruction(test_pattern1_incrementing_read),
-      RMAP_OK);
-
-  EXPECT_EQ(
-      rmap_verify_header_instruction(test_pattern1_expected_read_reply),
-      RMAP_OK);
-
-  EXPECT_EQ(
-      rmap_verify_header_instruction(
-        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
-        test_pattern2_target_address_length),
-      RMAP_OK);
-
-  EXPECT_EQ(
-      rmap_verify_header_instruction(
-        test_pattern2_expected_write_reply_with_spacewire_addresses +
-        test_pattern2_reply_address_length),
-      RMAP_OK);
-
-  EXPECT_EQ(
-      rmap_verify_header_instruction(
-        test_pattern3_incrementing_read_with_spacewire_addresses +
-        test_pattern3_target_address_length),
-      RMAP_OK);
-
-  EXPECT_EQ(
-      rmap_verify_header_instruction(
-        test_pattern3_expected_read_reply_with_spacewire_addresses +
-        test_pattern3_reply_address_length),
-      RMAP_OK);
-}
 
 typedef std::tuple<size_t, rmap_packet_type_t, int, size_t, rmap_status_t>
 InitializeHeaderParameters;
