@@ -453,28 +453,7 @@ size_t rmap_calculate_header_size(const uint8_t *const header)
   return calculate_header_size(rmap_get_instruction(header));
 }
 
-/** Verify the integrity of a potential RMAP header.
- *
- * Verify that the data in @p header:
- * * Contains an RMAP header based on the protocol field.
- * * Is large enough to fit the whole RMAP header based on its type.
- * * Has a valid RMAP header CRC.
- *
- * No verification of the instruction field is performed.
- *
- * @p size May be larger than the size of the header being verified.
- *
- * @param[in] header Potential RMAP header.
- * @param size Number of bytes in @p header.
- *
- * @retval RMAP_INCOMPLETE_HEADER @p size is too small to fit the whole header.
- * @retval RMAP_NO_RMAP_PROTOCOL The protocol field indicates that this is not
- *         an RMAP header.
- * @retval RMAP_HEADER_CRC_ERROR The header CRC indicates that errors are
- *         present in the header.
- * @retval RMAP_OK Header is a complete RMAP header.
- */
-static rmap_status_t rmap_verify_header_integrity(
+rmap_status_t rmap_verify_header_integrity(
     const uint8_t *const header,
     const size_t size)
 {
