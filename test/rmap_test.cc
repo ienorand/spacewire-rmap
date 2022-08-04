@@ -1553,12 +1553,17 @@ TEST(RmapCalculateAndSetHeaderCrc, PatternsShouldNotChange)
   std::vector<uint8_t> expected_packet;
   std::vector<uint8_t> packet;
 
+  /* CRC is corrupted first, to make sure that an implementation that does
+   * nothing cannot pass the test.
+   */
+
   packet.clear();
   packet.insert(
       packet.end(),
       std::begin(test_pattern0_unverified_incrementing_write_with_reply),
       std::end(test_pattern0_unverified_incrementing_write_with_reply));
   expected_packet = packet;
+  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
   rmap_calculate_and_set_header_crc(packet.data());
   EXPECT_EQ(packet, expected_packet);
 
@@ -1568,6 +1573,7 @@ TEST(RmapCalculateAndSetHeaderCrc, PatternsShouldNotChange)
       std::begin(test_pattern0_expected_write_reply),
       std::end(test_pattern0_expected_write_reply));
   expected_packet = packet;
+  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
   rmap_calculate_and_set_header_crc(packet.data());
   EXPECT_EQ(packet, expected_packet);
 
@@ -1577,6 +1583,7 @@ TEST(RmapCalculateAndSetHeaderCrc, PatternsShouldNotChange)
       std::begin(test_pattern1_incrementing_read),
       std::end(test_pattern1_incrementing_read));
   expected_packet = packet;
+  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
   rmap_calculate_and_set_header_crc(packet.data());
   EXPECT_EQ(packet, expected_packet);
 
@@ -1586,6 +1593,7 @@ TEST(RmapCalculateAndSetHeaderCrc, PatternsShouldNotChange)
       std::begin(test_pattern1_expected_read_reply),
       std::end(test_pattern1_expected_read_reply));
   expected_packet = packet;
+  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
   rmap_calculate_and_set_header_crc(packet.data());
   EXPECT_EQ(packet, expected_packet);
 
@@ -1596,6 +1604,7 @@ TEST(RmapCalculateAndSetHeaderCrc, PatternsShouldNotChange)
       test_pattern2_target_address_length,
       std::end(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses));
   expected_packet = packet;
+  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
   rmap_calculate_and_set_header_crc(packet.data());
   EXPECT_EQ(packet, expected_packet);
 
@@ -1606,6 +1615,7 @@ TEST(RmapCalculateAndSetHeaderCrc, PatternsShouldNotChange)
       test_pattern2_reply_address_length,
       std::end(test_pattern2_expected_write_reply_with_spacewire_addresses));
   expected_packet = packet;
+  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
   rmap_calculate_and_set_header_crc(packet.data());
   EXPECT_EQ(packet, expected_packet);
 
@@ -1616,6 +1626,7 @@ TEST(RmapCalculateAndSetHeaderCrc, PatternsShouldNotChange)
       test_pattern3_target_address_length,
       std::end(test_pattern3_incrementing_read_with_spacewire_addresses));
   expected_packet = packet;
+  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
   rmap_calculate_and_set_header_crc(packet.data());
   EXPECT_EQ(packet, expected_packet);
 
@@ -1626,6 +1637,7 @@ TEST(RmapCalculateAndSetHeaderCrc, PatternsShouldNotChange)
       test_pattern3_reply_address_length,
       std::end(test_pattern3_expected_read_reply_with_spacewire_addresses));
   expected_packet = packet;
+  packet[rmap_calculate_header_size(packet.data()) - 1] ^= 0xFF;
   rmap_calculate_and_set_header_crc(packet.data());
   EXPECT_EQ(packet, expected_packet);
 }
