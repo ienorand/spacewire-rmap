@@ -436,11 +436,6 @@ void rmap_set_data_length(uint8_t *const header, const uint32_t data_length)
   header[offset + 2] = (data_length >> 0) & 0xFF;
 }
 
-size_t rmap_get_raw_data_length(const uint8_t *const packet, const size_t size)
-{
-  return size - (calculate_header_size(rmap_get_instruction(packet)) + 1);
-}
-
 void rmap_calculate_and_set_header_crc(uint8_t *const header)
 {
   const size_t header_size =
