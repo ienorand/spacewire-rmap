@@ -728,6 +728,44 @@ rmap_status_t rmap_initialize_header(
   return RMAP_OK;
 }
 
+rmap_status_t rmap_initialize_header_before(
+    size_t *const header_offset,
+    void *const raw,
+    const size_t data_offset,
+    const rmap_packet_type_t packet_type,
+    const int command_code,
+    const size_t reply_address_unpadded_size)
+{
+  rmap_status_t status;
+  uint8_t instruction;
+
+  assert(header_offset);
+  assert(raw);
+
+  status = make_instruction(
+      &instruction,
+      packet_type,
+      command_code,
+      reply_address_unpadded_size);
+  if (status != RMAP_OK) {
+    return status;
+  }
+
+  const size_t header_size = calculate_header_size(instruction);
+
+  if (header_size > data_offset) {
+    return RMAP_NOT_ENOUGH_SPACE;
+  }
+
+  *header_offset = data_offset - header_size;
+
+  unsigned char *const raw_bytes = raw;
+  rmap_set_protocol(raw_bytes + *header_offset);
+  rmap_set_instruction(raw_bytes + *header_offset, instruction);
+
+  return RMAP_OK;
+}
+
 static rmap_status_t serialize_command_header(
     size_t *const serialized_size,
     unsigned char *const data,

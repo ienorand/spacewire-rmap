@@ -862,6 +862,56 @@ rmap_status_t rmap_initialize_header(
     int command_code,
     size_t reply_address_unpadded_size);
 
+/** Initialize an RMAP header before an existing data field.
+ *
+ * * Verify that the header would fit before the data field.
+ * * Set the protocol identifier field to indicate an RMAP packet.
+ * * Set the instruction field based on the provided parameters.
+ *
+ * The prefix spacewire address is not set.
+ *
+ * The instruction field fully defines the format of an RMAP packet, so all
+ * further writes via accessor function will be valid if this initialization
+ * succeeds
+ *
+ * @p packet_type uses a different representation of packet types compared to
+ * the RMAP representation in the instruction field.
+ *
+ * @p command_code uses a different representation of command code flags
+ * compared to the RMAP representation in the instruction field.
+ *
+ * @param[out] header_offset Offset of start of written header from @p raw.
+ * @param[out] raw Start of area containing the existing data field and into
+ *             which the header will be written.
+ * @param data_offset Offset of existing data field from @p raw.
+ * @param packet_type Packet type to set in instruction field.
+ * @param command_code Representation of command code flags to set in
+ *        instruction field.
+ * @param reply_address_unpadded_size Reply address size without leading
+ *        zero-padding used to calculate and set the reply address length
+ *        field.
+ *
+ * @retval RMAP_UNUSED_PACKET_TYPE @p packet_type contains an unrepresentable
+ *         packet type.
+ * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains an
+ *         unrepresentable command code.
+ * @retval RMAP_UNUSED_COMMAND_CODE @p command_code contains a reserved command
+ *         code.
+ * @retval RMAP_NO_REPLY @p packet_type is a reply but @p command_code does not
+ *         contain a with-reply command code.
+ * @retval RMAP_REPLY_ADDRESS_TOO_LONG @p reply_address_unpadded_size is larger
+ *         than RMAP_REPLY_ADDRESS_LENGTH_MAX.
+ * @retval RMAP_NOT_ENOUGH_SPACE Header would not fit before @p data_offset.
+ * @retval RMAP_OK RMAP header initialized successfully.
+ */
+rmap_status_t rmap_initialize_header_before(
+    size_t *header_offset,
+    void *raw,
+    size_t data_offset,
+    rmap_packet_type_t packet_type,
+    int command_code,
+    size_t reply_address_unpadded_size);
+
 /** Initialize a reply header for given command header.
  *
  * Initialize a reply header object with all members set to match a reply to a

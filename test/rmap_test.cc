@@ -1854,7 +1854,8 @@ class InitializeHeader :
 
 TEST_P(InitializeHeader, ParameterChecks)
 {
-  uint8_t header[64];
+  std::vector<uint8_t> buf(RMAP_HEADER_SIZE_MAX + RMAP_DATA_LENGTH_MAX + 1);
+  size_t header_offset;
 
   auto max_size = std::get<0>(GetParam());
   auto packet_type = std::get<1>(GetParam());
@@ -1864,8 +1865,20 @@ TEST_P(InitializeHeader, ParameterChecks)
 
   EXPECT_EQ(
       rmap_initialize_header(
-        header,
+        buf.data(),
         max_size,
+        packet_type,
+        command_code,
+        reply_address_unpadded_size),
+      expected_status);
+
+  memset(buf.data(), 0, buf.size());
+  auto data_offset = max_size;
+  EXPECT_EQ(
+      rmap_initialize_header_before(
+        &header_offset,
+        buf.data(),
+        data_offset,
         packet_type,
         command_code,
         reply_address_unpadded_size),
