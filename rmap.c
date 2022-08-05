@@ -780,6 +780,28 @@ static void rmap_set_data_length(
   header[offset + 2] = (data_length >> 0) & 0xFF;
 }
 
+/** Calculate the data field length from a packet with a verified RMAP command
+ *  or read reply header.
+ *
+ * The data field length is calculated based on the end of the header and the
+ * size of the raw packet, excluding the data CRC field (the data CRC field is
+ * assumed to exist but is not verified).
+ *
+ * Read-modify-write is not supported.
+ *
+ * @pre @p packet must contain a verified RMAP command or read reply header.
+ *
+ * @param[in] packet Packet with a verified RMAP command or read reply header.
+ *
+ * @return Data field length.
+ */
+static size_t get_raw_data_length(
+    const uint8_t *const packet,
+    const size_t size)
+{
+  return size - (calculate_header_size(get_instruction(packet)) + 1);
+}
+
 /** Calculate and set the header CRC field in an initialized RMAP header.
  *
  * @pre @p header must contain an initialized RMAP header.
