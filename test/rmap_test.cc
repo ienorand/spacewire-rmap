@@ -1152,32 +1152,32 @@ INSTANTIATE_TEST_CASE_P(
 TEST(RmapGetHeaderDataLength, Patterns)
 {
   EXPECT_EQ(
-      rmap_get_header_data_length(
+      rmap_get_data_length(
         test_pattern0_unverified_incrementing_write_with_reply),
       0x00000010);
 
   EXPECT_EQ(
-      rmap_get_header_data_length(test_pattern1_incrementing_read),
+      rmap_get_data_length(test_pattern1_incrementing_read),
       0x00000010);
 
   EXPECT_EQ(
-      rmap_get_header_data_length(test_pattern1_expected_read_reply),
+      rmap_get_data_length(test_pattern1_expected_read_reply),
       0x00000010);
 
   EXPECT_EQ(
-      rmap_get_header_data_length(
+      rmap_get_data_length(
         test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
         test_pattern2_target_address_length),
       0x00000010);
 
   EXPECT_EQ(
-      rmap_get_header_data_length(
+      rmap_get_data_length(
         test_pattern3_incrementing_read_with_spacewire_addresses +
         test_pattern3_target_address_length),
       0x00000010);
 
   EXPECT_EQ(
-      rmap_get_header_data_length(
+      rmap_get_data_length(
         test_pattern3_expected_read_reply_with_spacewire_addresses +
         test_pattern3_reply_address_length),
       0x00000010);
@@ -1207,13 +1207,13 @@ TEST_P(SetDataLength, GetGivesMatchingAfterSet)
         reply_address_size),
       RMAP_OK);
   rmap_set_data_length(header, 0);
-  EXPECT_EQ(rmap_get_header_data_length(header), 0);
+  EXPECT_EQ(rmap_get_data_length(header), 0);
   rmap_set_data_length(header, 1);
-  EXPECT_EQ(rmap_get_header_data_length(header), 1);
+  EXPECT_EQ(rmap_get_data_length(header), 1);
   rmap_set_data_length(header, 12345678);
-  EXPECT_EQ(rmap_get_header_data_length(header), 12345678);
+  EXPECT_EQ(rmap_get_data_length(header), 12345678);
   rmap_set_data_length(header, 0xFFFFFF);
-  EXPECT_EQ(rmap_get_header_data_length(header), 0xFFFFFF);
+  EXPECT_EQ(rmap_get_data_length(header), 0xFFFFFF);
 }
 
 INSTANTIATE_TEST_CASE_P(

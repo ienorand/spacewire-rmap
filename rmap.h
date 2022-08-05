@@ -720,7 +720,7 @@ void rmap_set_address(uint8_t *header, uint32_t address);
  *
  * @return Data length field.
  */
-uint32_t rmap_get_header_data_length(const uint8_t *header);
+uint32_t rmap_get_data_length(const uint8_t *header);
 
 /** Set the data length field in an initialized RMAP command or read reply
  *  header.

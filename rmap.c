@@ -399,7 +399,7 @@ static size_t calculate_header_size(const uint8_t instruction)
   return RMAP_READ_REPLY_HEADER_STATIC_SIZE;
 }
 
-uint32_t rmap_get_header_data_length(const uint8_t *const header)
+uint32_t rmap_get_data_length(const uint8_t *const header)
 {
   size_t offset;
 
@@ -573,7 +573,7 @@ static rmap_status_t verify_data(
 
   const size_t data_offset =
     calculate_header_size(rmap_get_instruction(packet));
-  const size_t data_length = rmap_get_header_data_length(packet);
+  const size_t data_length = rmap_get_data_length(packet);
 
   if (size < data_offset + data_length + 1) {
     return RMAP_EARLY_EOP;
@@ -1276,7 +1276,7 @@ rmap_status_t rmap_header_deserialize(
     header->t.command.extended_address = rmap_get_extended_address(data);
     header->t.command.address = rmap_get_address(data);
 
-    header->t.command.data_length = rmap_get_header_data_length(data);
+    header->t.command.data_length = rmap_get_data_length(data);
 
     if (!rmap_is_instruction_write(instruction) &&
         data_size > *serialized_size) {
@@ -1341,7 +1341,7 @@ rmap_status_t rmap_header_deserialize(
     rmap_get_target_logical_address(data);
   header->t.read_reply.transaction_identifier =
     rmap_get_transaction_identifier(data);
-  header->t.read_reply.data_length = rmap_get_header_data_length(data);
+  header->t.read_reply.data_length = rmap_get_data_length(data);
 
   // TODO: Should this be "packet error" or "invalid reply" only?
   if (rmap_is_instruction_unused_packet_type(instruction)) {
