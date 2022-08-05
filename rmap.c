@@ -160,6 +160,20 @@ static bool is_write(const uint8_t instruction)
   return instruction & RMAP_INSTRUCTION_COMMAND_WRITE_MASK;
 }
 
+/** Determine if the command type is "write" in a potential RMAP header.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Command type is "write".
+ * @retval false Command type is "read".
+ */
+static bool rmap_is_write(const uint8_t *const header)
+{
+  return is_write(get_instruction(header));
+}
+
 /** Determine if the command type is "verified" in an instruction field.
  *
  * Determine if the command type indicates that data shall be verified before
@@ -173,6 +187,23 @@ static bool is_write(const uint8_t instruction)
 static bool is_verify_data_before_write(const uint8_t instruction)
 {
   return instruction & RMAP_INSTRUCTION_COMMAND_VERIFY_MASK;
+}
+
+/** Determine if the command type is "verified" in a potential RMAP header.
+ *
+ * Determine if the command type indicates that data shall be verified before
+ * writing (or have been verified before writing if this is a reply).
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Command type is "verified".
+ * @retval false Command type is "non-verified".
+ */
+static bool rmap_is_verify_data_before_write(const uint8_t *const header)
+{
+  return is_verify_data_before_write(get_instruction(header));
 }
 
 /** Determine if the command type is "with-reply" in an instruction field.
@@ -191,6 +222,24 @@ static bool is_with_reply(const uint8_t instruction)
   return instruction & RMAP_INSTRUCTION_COMMAND_REPLY_MASK;
 }
 
+/** Determine if the  command type is "with-reply" in a potential RMAP header.
+ *
+ * Determine if the command type indicates that the command shall be
+ * acknowledged with a reply after completion (or have been acknowledged with a
+ * reply if this is the reply).
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Command type is "with-reply".
+ * @retval false Command type is "without-reply".
+ */
+static bool rmap_is_with_reply(const uint8_t *const header)
+{
+  return is_with_reply(get_instruction(header));
+}
+
 /** Determine if the command type is "incrementing" in an instruction field.
  *
  * Determine if the command type indicates that the operation (read or write)
@@ -206,6 +255,25 @@ static bool is_with_reply(const uint8_t instruction)
 static bool is_increment_address(const uint8_t instruction)
 {
   return instruction & RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK;
+}
+
+/** Determine if the command type is "incrementing" in a potential RMAP header.
+ *
+ * Determine if the command type indicates that the operation (read or write)
+ * shall be done with sequential memory addresses (as opposed to with a single
+ * memory address) (or have been done with sequential memory addresses if this
+ * is a reply).
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Command type is "incrementing".
+ * @retval false Command type is "single-address".
+ */
+static bool rmap_is_increment_address(const uint8_t *const header)
+{
+  return is_increment_address(get_instruction(header));
 }
 
 /** Determine if the command code is "unused" in an instruction field.
