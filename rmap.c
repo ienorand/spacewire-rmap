@@ -888,6 +888,49 @@ static rmap_status_t verify_header(
   return RMAP_OK;
 }
 
+/** Verify the data field in a packet with a verified RMAP write command or
+ *  read reply header.
+ *
+ * @pre @p packet must contain a verified RMAP command or read reply header.
+ * @pre @p size Must be equal to the size of the packet being verified.
+ *
+ * @param[in] packet Packet with a verified RMAP command or read reply header.
+ * @param size Number of bytes in @p packet.
+ *
+ * @retval RMAP_EARLY_EOP @p size is too small to fit the whole packet.
+ * @retval RMAP_ECSS_TOO_MUCH_DATA @p size is larger than the packet based on
+ *         the data length field.
+ * @retval RMAP_ECSS_INVALID_DATA_CRC The data CRC indicates that errors are
+ *         present in the data field.
+ * @retval RMAP_OK Data field is valid.
+ */
+static rmap_status_t verify_data(
+    const uint8_t *const packet,
+    const size_t size)
+{
+  assert(packet);
+
+  const size_t data_offset = calculate_header_size(get_instruction(packet));
+  const size_t data_length = get_header_data_length(packet);
+
+  if (size < data_offset + data_length + 1) {
+    return RMAP_EARLY_EOP;
+  }
+
+  if (size > data_offset + data_length + 1) {
+    return RMAP_ECSS_TOO_MUCH_DATA;
+  }
+
+  const uint8_t data_crc =
+    rmap_crc_calculate(packet + data_offset, data_length + 1);
+  /* If the crc is included in the crc calculation, the result should be 0. */
+  if (data_crc != 0) {
+    return RMAP_ECSS_INVALID_DATA_CRC;
+  }
+
+  return RMAP_OK;
+}
+
 /** Make an RMAP instruction field.
  *
  * @p packet_type uses a different representation of packet types compared to
