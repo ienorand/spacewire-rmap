@@ -704,6 +704,21 @@ static size_t calculate_header_size(const uint8_t instruction)
   return RMAP_READ_REPLY_HEADER_STATIC_SIZE;
 }
 
+/** Calculate the RMAP header size from a potential RMAP header.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ * @pre @p header must have a valid packet type field.
+ * @pre @p header must have a valid command field.
+ *
+ * @param header Potential RMAP header.
+ *
+ * @return RMAP header size.
+ */
+static size_t rmap_calculate_header_size(const uint8_t *const header)
+{
+  return calculate_header_size(get_instruction(header));
+}
+
 /** Get the data length field from a verified RMAP command or read reply
  *  header.
  *
