@@ -6,7 +6,8 @@ LDFLAGS += -Wl,--warn-common
 .PHONY: all
 all: librmap.a
 
-librmap.a: librmap.a(rmap.o)
+librmap.a: rmap.o
+	$(AR) $(ARFLAGS) $@ $^
 
 rmap.o: rmap.h
 
