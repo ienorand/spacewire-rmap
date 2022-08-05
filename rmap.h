@@ -441,7 +441,7 @@ bool rmap_is_verify_data_before_write(const uint8_t *header);
  */
 bool rmap_is_instruction_with_reply(uint8_t instruction);
 
-/** Determine if the  command type is "with-reply" in a potential RMAP header.
+/** Determine if the command type is "with-reply" in a potential RMAP header.
  *
  * Determine if the command type indicates that the command shall be
  * acknowledged with a reply after completion (or have been acknowledged with a
