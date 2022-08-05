@@ -85,6 +85,26 @@ typedef enum {
    */
   RMAP_INVALID_COMMAND_CODE,
 
+  /** The provided data is not large enough to contain the full RMAP packet.
+   *
+   * This is used to indicates that the provided source data is not large
+   * enough to fit the whole RMAP packet that is being deserialized.
+   */
+  RMAP_EARLY_EOP,
+
+  /** Read-modify-write is not supported. */
+  RMAP_READ_MODIFY_WRITE_UNSUPPORTED,
+
+  /** A reply is invalid.
+   *
+   * This can indicate that either:
+   * * An RMAP reply packet was determined to be invalid and should be
+   *   discarded (protocol error).
+   * * Provided parameters describes an invalid reply header (library function
+   *   caller error).
+   */
+  RMAP_INVALID_REPLY,
+
   /** The data CRC indicates that errors are present in the data. */
   RMAP_ECSS_INVALID_DATA_CRC,
 
