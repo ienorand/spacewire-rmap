@@ -549,25 +549,7 @@ static rmap_status_t verify_header(
   return rmap_verify_header_instruction(header);
 }
 
-/** Verify the data field in a packet with a verified RMAP write command or
- *  read reply header.
- *
- * @pre @p packet must contain a verified RMAP command or read reply header.
- * @pre @p size Must be equal to the size of the packet being verified.
- *
- * @param[in] packet Packet with a verified RMAP command or read reply header.
- * @param size Number of bytes in @p packet.
- *
- * @retval RMAP_EARLY_EOP @p size is too small to fit the whole packet.
- * @retval RMAP_ECSS_TOO_MUCH_DATA @p size is larger than the packet based on
- *         the data length field.
- * @retval RMAP_ECSS_INVALID_DATA_CRC The data CRC indicates that errors are
- *         present in the data field.
- * @retval RMAP_OK Data field is valid.
- */
-static rmap_status_t verify_data(
-    const uint8_t *const packet,
-    const size_t size)
+rmap_status_t rmap_verify_data(const uint8_t *const packet, const size_t size)
 {
   assert(packet);
 

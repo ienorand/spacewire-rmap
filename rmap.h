@@ -796,6 +796,24 @@ rmap_status_t rmap_verify_header_integrity(const uint8_t *header, size_t size);
  */
 rmap_status_t rmap_verify_header_instruction(const uint8_t *header);
 
+/** Verify the data field in a packet with a verified RMAP write command or
+ *  read reply header.
+ *
+ * @pre @p packet must contain a verified RMAP command or read reply header.
+ * @pre @p size Must be equal to the size of the packet being verified.
+ *
+ * @param[in] packet Packet with a verified RMAP command or read reply header.
+ * @param size Number of bytes in @p packet.
+ *
+ * @retval RMAP_EARLY_EOP @p size is too small to fit the whole packet.
+ * @retval RMAP_ECSS_TOO_MUCH_DATA @p size is larger than the packet based on
+ *         the data length field.
+ * @retval RMAP_ECSS_INVALID_DATA_CRC The data CRC indicates that errors are
+ *         present in the data field.
+ * @retval RMAP_OK Data field is valid.
+ */
+rmap_status_t rmap_verify_data(const uint8_t *packet, size_t size);
+
 /** Initialize an RMAP header.
  *
  * * Verify that the header would fit in @p max_size.
