@@ -1033,9 +1033,9 @@ rmap_status_t rmap_packet_serialize_inplace(
  *
  * @retval RMAP_INCOMPLETE_HEADER @p data_size is not large enough to contain
  *         the RMAP header. No deserialized header is provided.
- * @retval RMAP_INCOMPLETE_PACKET @p data_size is not large enough to contain
- *         the whole packet based on the packet data length. No deserialized
- *         header is provided.
+ * @retval RMAP_EARLY_EOP @p data_size is not large enough to contain the whole
+ *         packet based on the packet data length. No deserialized header is
+ *         provided.
  * @retval RMAP_NO_RMAP_PROTOCOL The protocol identifier is not the identifier
  *         for the RMAP protocol. No deserialized header is provided.
  * @retval RMAP_HEADER_CRC_ERROR The header CRC is invalid. No deserialized
