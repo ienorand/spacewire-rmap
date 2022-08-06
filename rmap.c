@@ -149,9 +149,9 @@ bool rmap_is_unused_command_code(const uint8_t *const header)
   return rmap_is_instruction_unused_command_code(rmap_get_instruction(header));
 }
 
-uint8_t rmap_get_key(const uint8_t *const command_header)
+uint8_t rmap_get_key(const uint8_t *const header)
 {
-  return command_header[3];
+  return header[3];
 }
 
 void rmap_set_key(uint8_t *const header, const uint8_t key)

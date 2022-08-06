@@ -520,7 +520,7 @@ bool rmap_is_unused_command_code(const uint8_t *header);
  *
  * @return Key field.
  */
-uint8_t rmap_get_key(const uint8_t *command_header);
+uint8_t rmap_get_key(const uint8_t *header);
 
 /** Set the key field in a potential RMAP command header.
  *
