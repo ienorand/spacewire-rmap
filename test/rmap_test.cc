@@ -360,10 +360,10 @@ static const uint8_t test_pattern3_expected_read_reply_with_spacewire_addresses[
   0xB4
 };
 
-typedef std::tuple<uint8_t (*)(const uint8_t *), uint8_t>
-    AccessorByteCheckParameters;
+typedef std::tuple<uint8_t (*)(const void *), uint8_t>
+AccessorByteCheckParameters;
 typedef std::tuple<const uint8_t *, AccessorByteCheckParameters>
-    PatternAccessorByteCheckParameters;
+PatternAccessorByteCheckParameters;
 
 class AccessorByteCheckInPattern :
   public testing::TestWithParam<PatternAccessorByteCheckParameters>
@@ -567,7 +567,7 @@ TEST(SetProtocol, GetGives1AfterSet)
 }
 
 typedef std::tuple<std::tuple<rmap_packet_type_t, int, size_t>,
-        std::tuple<void (*)(uint8_t *, uint8_t), uint8_t (*)(const uint8_t *)>>
+        std::tuple<void (*)(void *, uint8_t), uint8_t (*)(const void *)>>
 AccessorByteSetGetParameters;
 
 class AccessorByteSetGet :
@@ -682,10 +682,9 @@ TEST(SetInstruction, GetGivesMatchingAfterSetValidValue)
       RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK);
 }
 
-typedef std::tuple<bool (*)(const uint8_t *), bool>
-    AccessorBoolCheckParameters;
+typedef std::tuple<bool (*)(const void *), bool> AccessorBoolCheckParameters;
 typedef std::tuple<const uint8_t *, AccessorBoolCheckParameters>
-    PatternAccessorBoolCheckParameters;
+PatternAccessorBoolCheckParameters;
 
 class AccessorBoolCheckInPattern :
   public testing::TestWithParam<PatternAccessorBoolCheckParameters>

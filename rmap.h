@@ -301,7 +301,7 @@ typedef struct {
  *
  * @return Protocol identifier field.
  */
-uint8_t rmap_get_protocol(const uint8_t *header);
+uint8_t rmap_get_protocol(const void *header);
 
 /** Set the protocol identifier for RMAP in a potential RMAP header.
  *
@@ -311,7 +311,7 @@ uint8_t rmap_get_protocol(const uint8_t *header);
  *
  * @param[out] header Potential RMAP header.
  */
-void rmap_set_protocol(uint8_t *header);
+void rmap_set_protocol(void *header);
 
 /** Get the instruction field from a potential RMAP header.
  *
@@ -321,7 +321,7 @@ void rmap_set_protocol(uint8_t *header);
  *
  * @return Instruction field.
  */
-uint8_t rmap_get_instruction(const uint8_t *header);
+uint8_t rmap_get_instruction(const void *header);
 
 /** Set the instruction field in a potential RMAP header.
  *
@@ -330,7 +330,7 @@ uint8_t rmap_get_instruction(const uint8_t *header);
  * @param[out] header Potential RMAP header.
  * @param instruction Instruction field to copy into @p header.
  */
-void rmap_set_instruction(uint8_t *header, uint8_t instruction);
+void rmap_set_instruction(void *header, uint8_t instruction);
 
 /** Determine if the packet type is "command" in an instruction field.
  *
@@ -356,7 +356,7 @@ bool rmap_is_instruction_command(uint8_t instruction);
  * @retval true Packet type is "command".
  * @retval false Packet type is "reply".
  */
-bool rmap_is_command(const uint8_t *header);
+bool rmap_is_command(const void *header);
 
 /** Determine if the packet type is "unused" in an instruction field.
  *
@@ -380,7 +380,7 @@ bool rmap_is_instruction_unused_packet_type(uint8_t instruction);
  * @retval true Packet type is "unused".
  * @retval false Packet type is "command" or "reply".
  */
-bool rmap_is_unused_packet_type(const uint8_t *header);
+bool rmap_is_unused_packet_type(const void *header);
 
 /** Determine if the command type is "write" in an instruction field.
  *
@@ -400,7 +400,7 @@ bool rmap_is_instruction_write(uint8_t instruction);
  * @retval true Command type is "write".
  * @retval false Command type is "read".
  */
-bool rmap_is_write(const uint8_t *header);
+bool rmap_is_write(const void *header);
 
 /** Determine if the command type is "verified" in an instruction field.
  *
@@ -426,7 +426,7 @@ bool rmap_is_instruction_verify_data_before_write(uint8_t instruction);
  * @retval true Command type is "verified".
  * @retval false Command type is "non-verified".
  */
-bool rmap_is_verify_data_before_write(const uint8_t *header);
+bool rmap_is_verify_data_before_write(const void *header);
 
 /** Determine if the command type is "with-reply" in an instruction field.
  *
@@ -454,7 +454,7 @@ bool rmap_is_instruction_with_reply(uint8_t instruction);
  * @retval true Command type is "with-reply".
  * @retval false Command type is "without-reply".
  */
-bool rmap_is_with_reply(const uint8_t *header);
+bool rmap_is_with_reply(const void *header);
 
 /** Determine if the command type is "incrementing" in an instruction field.
  *
@@ -484,7 +484,7 @@ bool rmap_is_instruction_increment_address(uint8_t instruction);
  * @retval true Command type is "incrementing".
  * @retval false Command type is "single-address".
  */
-bool rmap_is_increment_address(const uint8_t *header);
+bool rmap_is_increment_address(const void *header);
 
 /** Determine if the command code is "unused" in an instruction field.
  *
@@ -510,7 +510,7 @@ bool rmap_is_instruction_unused_command_code(uint8_t instruction);
  * @retval true Command code represents an "unused" command type.
  * @retval false Command code represents a valid command type.
  */
-bool rmap_is_unused_command_code(const uint8_t *header);
+bool rmap_is_unused_command_code(const void *header);
 
 /** Get the key field from a verified RMAP command header.
  *
@@ -520,7 +520,7 @@ bool rmap_is_unused_command_code(const uint8_t *header);
  *
  * @return Key field.
  */
-uint8_t rmap_get_key(const uint8_t *header);
+uint8_t rmap_get_key(const void *header);
 
 /** Set the key field in a potential RMAP command header.
  *
@@ -529,7 +529,7 @@ uint8_t rmap_get_key(const uint8_t *header);
  * @param[out] header Potential RMAP header.
  * @param key Key field to copy into @p header.
  */
-void rmap_set_key(uint8_t *header, uint8_t key);
+void rmap_set_key(void *header, uint8_t key);
 
 /** Get the status field from verified RMAP reply header.
  *
@@ -539,7 +539,7 @@ void rmap_set_key(uint8_t *header, uint8_t key);
  *
  * @return Status field.
  */
-uint8_t rmap_get_status(const uint8_t *header);
+uint8_t rmap_get_status(const void *header);
 
 /** Set the status field in a potential RMAP reply header.
  *
@@ -548,7 +548,7 @@ uint8_t rmap_get_status(const uint8_t *header);
  * @param[out] header Potential RMAP header.
  * @param status Status field to copy into @p header.
  */
-void rmap_set_status(uint8_t *header, uint8_t status);
+void rmap_set_status(void *header, uint8_t status);
 
 /** Get the reply address data and length from a verified RMAP command header.
  *
@@ -575,7 +575,7 @@ rmap_status_t rmap_get_reply_address(
     uint8_t *reply_address,
     size_t *reply_address_size,
     size_t reply_address_max_size,
-    const uint8_t *header);
+    const void *header);
 
 /** Set the reply address field in an initialized RMAP command header.
  *
@@ -588,7 +588,7 @@ rmap_status_t rmap_get_reply_address(
  * @param reply_address_size Number of bytes to copy from @p reply_address.
  */
 void rmap_set_reply_address(
-    uint8_t *header,
+    void *header,
     const uint8_t *reply_address,
     size_t reply_address_size);
 
@@ -601,7 +601,7 @@ void rmap_set_reply_address(
  *
  * @return Target logical address field.
  */
-uint8_t rmap_get_target_logical_address(const uint8_t *header);
+uint8_t rmap_get_target_logical_address(const void *header);
 
 /** Set the target logical address field in a potential RMAP header.
  *
@@ -613,7 +613,7 @@ uint8_t rmap_get_target_logical_address(const uint8_t *header);
  *        @p header.
  */
 void rmap_set_target_logical_address(
-    uint8_t *header,
+    void *header,
     uint8_t target_logical_address);
 
 /** Get the initiator logical address field from a verified RMAP header.
@@ -624,7 +624,7 @@ void rmap_set_target_logical_address(
  *
  * @return Initiator logical address field.
  */
-uint8_t rmap_get_initiator_logical_address(const uint8_t *header);
+uint8_t rmap_get_initiator_logical_address(const void *header);
 
 /** Set the initiator logical address field in an initialized RMAP header.
  *
@@ -635,7 +635,7 @@ uint8_t rmap_get_initiator_logical_address(const uint8_t *header);
  *        into @p header.
  */
 void rmap_set_initiator_logical_address(
-    uint8_t *header,
+    void *header,
     uint8_t initiator_logical_address);
 
 /** Get the transaction identifier field from a verified RMAP header.
@@ -646,7 +646,7 @@ void rmap_set_initiator_logical_address(
  *
  * @return Transaction identifier field.
  */
-uint16_t rmap_get_transaction_identifier(const uint8_t *header);
+uint16_t rmap_get_transaction_identifier(const void *header);
 
 /** Set the transaction identifier field in an initialized RMAP header.
  *
@@ -657,7 +657,7 @@ uint16_t rmap_get_transaction_identifier(const uint8_t *header);
  *        @p header.
  */
 void rmap_set_transaction_identifier(
-    uint8_t *header,
+    void *header,
     uint16_t transaction_identifier);
 
 /** Set the reserved field in a potential RMAP read reply header.
@@ -669,7 +669,7 @@ void rmap_set_transaction_identifier(
  *
  * @param[out] header Potential RMAP read reply header.
  */
-void rmap_set_reserved(uint8_t *header);
+void rmap_set_reserved(void *header);
 
 /** Get the extended address field from a verified RMAP command header.
  *
@@ -679,7 +679,7 @@ void rmap_set_reserved(uint8_t *header);
  *
  * @return Extended address field.
  */
-uint8_t rmap_get_extended_address(const uint8_t *header);
+uint8_t rmap_get_extended_address(const void *header);
 
 /** Set the extended address field in an initialized RMAP command header.
  *
@@ -688,7 +688,7 @@ uint8_t rmap_get_extended_address(const uint8_t *header);
  * @param[out] header Initialized RMAP command header.
  * @param extended_address Extended address field to copy into @p header.
  */
-void rmap_set_extended_address(uint8_t *header, uint8_t extended_address);
+void rmap_set_extended_address(void *header, uint8_t extended_address);
 
 /** Get the address field from a verified RMAP command header.
  *
@@ -698,7 +698,7 @@ void rmap_set_extended_address(uint8_t *header, uint8_t extended_address);
  *
  * @return Address field.
  */
-uint32_t rmap_get_address(const uint8_t *header);
+uint32_t rmap_get_address(const void *header);
 
 /** Set the address field in an initialized RMAP command header.
  *
@@ -707,7 +707,7 @@ uint32_t rmap_get_address(const uint8_t *header);
  * @param[out] header Initialized RMAP command header.
  * @param address Address field to copy into @p header.
  */
-void rmap_set_address(uint8_t *header, uint32_t address);
+void rmap_set_address(void *header, uint32_t address);
 
 /** Get the data length field from a verified RMAP command or read reply
  *  header.
@@ -720,7 +720,7 @@ void rmap_set_address(uint8_t *header, uint32_t address);
  *
  * @return Data length field.
  */
-uint32_t rmap_get_data_length(const uint8_t *header);
+uint32_t rmap_get_data_length(const void *header);
 
 /** Set the data length field in an initialized RMAP command or read reply
  *  header.
@@ -733,7 +733,7 @@ uint32_t rmap_get_data_length(const uint8_t *header);
  * @param[out] header Initialized RMAP command or read reply header.
  * @param data_length Data length field to copy into @p header.
  */
-void rmap_set_data_length(uint8_t *header, uint32_t data_length);
+void rmap_set_data_length(void *header, uint32_t data_length);
 
 /** Calculate and set the header CRC field in an initialized RMAP header.
  *
@@ -741,7 +741,7 @@ void rmap_set_data_length(uint8_t *header, uint32_t data_length);
  *
  * @param[in] header Initialized RMAP header.
  */
-void rmap_calculate_and_set_header_crc(uint8_t *header);
+void rmap_calculate_and_set_header_crc(void *header);
 
 /** Calculate the RMAP header size from a potential RMAP header.
  *
@@ -753,7 +753,7 @@ void rmap_calculate_and_set_header_crc(uint8_t *header);
  *
  * @return RMAP header size.
  */
-size_t rmap_calculate_header_size(const uint8_t *header);
+size_t rmap_calculate_header_size(const void *header);
 
 /** Verify the integrity of a potential RMAP header.
  *
@@ -776,7 +776,7 @@ size_t rmap_calculate_header_size(const uint8_t *header);
  *         present in the header.
  * @retval RMAP_OK Header is a complete RMAP header.
  */
-rmap_status_t rmap_verify_header_integrity(const uint8_t *header, size_t size);
+rmap_status_t rmap_verify_header_integrity(const void *header, size_t size);
 
 /** Verify the instruction field in a potential RMAP header.
  *
@@ -794,7 +794,7 @@ rmap_status_t rmap_verify_header_integrity(const uint8_t *header, size_t size);
  *         reply but the command code field do not have the reply bit set.
  * @retval RMAP_OK Instruction is valid.
  */
-rmap_status_t rmap_verify_header_instruction(const uint8_t *header);
+rmap_status_t rmap_verify_header_instruction(const void *header);
 
 /** Verify the data field in a packet with a verified RMAP write command or
  *  read reply header.
@@ -812,7 +812,7 @@ rmap_status_t rmap_verify_header_instruction(const uint8_t *header);
  *         present in the data field.
  * @retval RMAP_OK Data field is valid.
  */
-rmap_status_t rmap_verify_data(const uint8_t *packet, size_t size);
+rmap_status_t rmap_verify_data(const void *packet, size_t size);
 
 /** Initialize an RMAP header.
  *
@@ -856,7 +856,7 @@ rmap_status_t rmap_verify_data(const uint8_t *packet, size_t size);
  * @retval RMAP_OK RMAP header initialized successfully.
  */
 rmap_status_t rmap_initialize_header(
-    uint8_t *header,
+    void *header,
     size_t max_size,
     rmap_packet_type_t packet_type,
     int command_code,
@@ -1076,6 +1076,6 @@ const char *rmap_status_text(rmap_status_t status);
  *
  * @return CRC of data.
  */
-uint8_t rmap_crc_calculate(const unsigned char *data, size_t data_size);
+uint8_t rmap_crc_calculate(const void *data, size_t data_size);
 
 #endif /* RMAP_H */

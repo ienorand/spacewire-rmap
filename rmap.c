@@ -40,24 +40,28 @@
     RMAP_COMMAND_CODE_REPLY | \
     RMAP_COMMAND_CODE_INCREMENT)
 
-uint8_t rmap_get_protocol(const uint8_t *const header)
+uint8_t rmap_get_protocol(const void *const header)
 {
-  return header[1];
+  const unsigned char *const header_bytes = header;
+  return header_bytes[1];
 }
 
-void rmap_set_protocol(uint8_t *const header)
+void rmap_set_protocol(void *const header)
 {
-  header[1] = 1;
+  unsigned char *const header_bytes = header;
+  header_bytes[1] = 1;
 }
 
-uint8_t rmap_get_instruction(const uint8_t *const header)
+uint8_t rmap_get_instruction(const void *const header)
 {
-  return header[2];
+  const unsigned char *const header_bytes = header;
+  return header_bytes[2];
 }
 
-void rmap_set_instruction(uint8_t *const header, const uint8_t instruction)
+void rmap_set_instruction(void *const header, const uint8_t instruction)
 {
-  header[2] = instruction;
+  unsigned char *const header_bytes = header;
+  header_bytes[2] = instruction;
 }
 
 bool rmap_is_instruction_command(const uint8_t instruction)
@@ -66,7 +70,7 @@ bool rmap_is_instruction_command(const uint8_t instruction)
     RMAP_INSTRUCTION_PACKET_TYPE_SHIFT) & 0x1;
 }
 
-bool rmap_is_command(const uint8_t *const header)
+bool rmap_is_command(const void *const header)
 {
   return rmap_is_instruction_command(rmap_get_instruction(header));
 }
@@ -77,7 +81,7 @@ bool rmap_is_instruction_unused_packet_type(const uint8_t instruction)
     RMAP_INSTRUCTION_PACKET_TYPE_SHIFT) & 0x2;
 }
 
-bool rmap_is_unused_packet_type(const uint8_t *const header)
+bool rmap_is_unused_packet_type(const void *const header)
 {
   return rmap_is_instruction_unused_packet_type(rmap_get_instruction(header));
 }
@@ -87,7 +91,7 @@ bool rmap_is_instruction_write(const uint8_t instruction)
   return instruction & RMAP_INSTRUCTION_COMMAND_WRITE_MASK;
 }
 
-bool rmap_is_write(const uint8_t *const header)
+bool rmap_is_write(const void *const header)
 {
   return rmap_is_instruction_write(rmap_get_instruction(header));
 }
@@ -97,7 +101,7 @@ bool rmap_is_instruction_verify_data_before_write(const uint8_t instruction)
   return instruction & RMAP_INSTRUCTION_COMMAND_VERIFY_MASK;
 }
 
-bool rmap_is_verify_data_before_write(const uint8_t *const header)
+bool rmap_is_verify_data_before_write(const void *const header)
 {
   return
     rmap_is_instruction_verify_data_before_write(rmap_get_instruction(header));
@@ -108,7 +112,7 @@ bool rmap_is_instruction_with_reply(const uint8_t instruction)
   return instruction & RMAP_INSTRUCTION_COMMAND_REPLY_MASK;
 }
 
-bool rmap_is_with_reply(const uint8_t *const header)
+bool rmap_is_with_reply(const void *const header)
 {
   return rmap_is_instruction_with_reply(rmap_get_instruction(header));
 }
@@ -118,7 +122,7 @@ bool rmap_is_instruction_increment_address(const uint8_t instruction)
   return instruction & RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK;
 }
 
-bool rmap_is_increment_address(const uint8_t *const header)
+bool rmap_is_increment_address(const void *const header)
 {
   return rmap_is_instruction_increment_address(rmap_get_instruction(header));
 }
@@ -144,29 +148,33 @@ bool rmap_is_instruction_unused_command_code(const uint8_t instruction)
   return false;
 }
 
-bool rmap_is_unused_command_code(const uint8_t *const header)
+bool rmap_is_unused_command_code(const void *const header)
 {
   return rmap_is_instruction_unused_command_code(rmap_get_instruction(header));
 }
 
-uint8_t rmap_get_key(const uint8_t *const header)
+uint8_t rmap_get_key(const void *const header)
 {
-  return header[3];
+  const unsigned char *const header_bytes = header;
+  return header_bytes[3];
 }
 
-void rmap_set_key(uint8_t *const header, const uint8_t key)
+void rmap_set_key(void *const header, const uint8_t key)
 {
-  header[3] = key;
+  unsigned char *const header_bytes = header;
+  header_bytes[3] = key;
 }
 
-uint8_t rmap_get_status(const uint8_t *const header)
+uint8_t rmap_get_status(const void *const header)
 {
-  return header[3];
+  const unsigned char *const header_bytes = header;
+  return header_bytes[3];
 }
 
-void rmap_set_status(uint8_t *const header, const uint8_t status)
+void rmap_set_status(void *const header, const uint8_t status)
 {
-  header[3] = status;
+  unsigned char *const header_bytes = header;
+  header_bytes[3] = status;
 }
 
 /** Calculate the padded reply address size from an instruction field.
@@ -188,9 +196,9 @@ rmap_status_t rmap_get_reply_address(
     uint8_t *reply_address,
     size_t *const reply_address_size,
     const size_t reply_address_max_size,
-    const uint8_t *const header)
+    const void *const header)
 {
-  const uint8_t *reply_address_padded;
+  const unsigned char *reply_address_padded;
 
   assert(reply_address);
   assert(reply_address_size);
@@ -198,7 +206,8 @@ rmap_status_t rmap_get_reply_address(
 
   const size_t reply_address_padded_size =
     calculate_reply_address_padded_size(rmap_get_instruction(header));
-  reply_address_padded = header + 4;
+  const unsigned char *const header_bytes = header;
+  reply_address_padded = header_bytes + 4;
 
   uint8_t *const reply_address0 = reply_address;
 
@@ -231,13 +240,14 @@ rmap_status_t rmap_get_reply_address(
 }
 
 void rmap_set_reply_address(
-    uint8_t *const header,
+    void *const header,
     const uint8_t *const reply_address,
     const size_t reply_address_size)
 {
-  uint8_t *reply_address_padded;
+  unsigned char *reply_address_padded;
 
-  reply_address_padded = header + 4;
+  unsigned char *const header_bytes = header;
+  reply_address_padded = header_bytes + 4;
 
   const size_t padding_size =
     calculate_reply_address_padded_size(rmap_get_instruction(header)) -
@@ -250,57 +260,65 @@ void rmap_set_reply_address(
       reply_address_size);
 }
 
-uint8_t rmap_get_target_logical_address(const uint8_t *const header)
+uint8_t rmap_get_target_logical_address(const void *const header)
 {
+  const unsigned char *const header_bytes = header;
+
   if (rmap_is_command(header)) {
-    return header[0];
+    return header_bytes[0];
   }
 
   /* Reply. */
-  return header[4];
+  return header_bytes[4];
 }
 
 void rmap_set_target_logical_address(
-    uint8_t *const header,
+    void *const header,
     const uint8_t target_logical_address)
 {
+  unsigned char *const header_bytes = header;
+
   if (rmap_is_command(header)) {
-    header[0] = target_logical_address;
+    header_bytes[0] = target_logical_address;
     return;
   }
 
   /* Reply. */
-  header[4] = target_logical_address;
+  header_bytes[4] = target_logical_address;
 }
 
-uint8_t rmap_get_initiator_logical_address(const uint8_t *const header)
+uint8_t rmap_get_initiator_logical_address(const void *const header)
 {
+  const unsigned char *const header_bytes = header;
+
   if (rmap_is_command(header)) {
     size_t reply_address_padded_size =
       calculate_reply_address_padded_size(rmap_get_instruction(header));
-    return header[4 + reply_address_padded_size];
+    return header_bytes[4 + reply_address_padded_size];
   }
 
   /* Reply. */
-  return header[0];
+  return header_bytes[0];
 }
 
 void rmap_set_initiator_logical_address(
-    uint8_t *const header,
+    void *const header,
     const uint8_t initiator_logical_address)
 {
+  unsigned char *const header_bytes = header;
+
   if (rmap_is_command(header)) {
     size_t reply_address_padded_size =
       calculate_reply_address_padded_size(rmap_get_instruction(header));
-    header[4 + reply_address_padded_size] = initiator_logical_address;
+    header_bytes[4 + reply_address_padded_size] = initiator_logical_address;
     return;
   }
 
   /* Reply. */
-  header[0] = initiator_logical_address;
+  header_bytes[0] = initiator_logical_address;
 }
 
-uint16_t rmap_get_transaction_identifier(const uint8_t *const header)
+uint16_t rmap_get_transaction_identifier(const void *const header)
 {
   size_t offset;
 
@@ -311,11 +329,12 @@ uint16_t rmap_get_transaction_identifier(const uint8_t *const header)
     offset += reply_address_padded_size;
   }
 
-  return (header[offset] << 8) | (header[offset + 1] << 0);
+  const unsigned char *const header_bytes = header;
+  return (header_bytes[offset] << 8) | (header_bytes[offset + 1] << 0);
 }
 
 void rmap_set_transaction_identifier(
-    uint8_t *const header,
+    void *const header,
     const uint16_t transaction_identifier)
 {
   size_t offset;
@@ -327,52 +346,58 @@ void rmap_set_transaction_identifier(
     offset += reply_address_padded_size;
   }
 
-  header[offset] = transaction_identifier >> 8;
-  header[offset + 1] = transaction_identifier & 0xFF;
+  unsigned char *const header_bytes = header;
+  header_bytes[offset] = transaction_identifier >> 8;
+  header_bytes[offset + 1] = transaction_identifier & 0xFF;
 }
 
-void rmap_set_reserved(uint8_t *const header)
+void rmap_set_reserved(void *const header)
 {
-  header[7] = 0;
+  unsigned char *const header_bytes = header;
+  header_bytes[7] = 0;
 }
 
-uint8_t rmap_get_extended_address(const uint8_t *const header)
+uint8_t rmap_get_extended_address(const void *const header)
 {
   size_t reply_address_padded_size =
     calculate_reply_address_padded_size(rmap_get_instruction(header));
-  return header[4 + reply_address_padded_size + 3];
+  const unsigned char *const header_bytes = header;
+  return header_bytes[4 + reply_address_padded_size + 3];
 }
 
 void rmap_set_extended_address(
-    uint8_t *const header,
+    void *const header,
     const uint8_t extended_address)
 {
   size_t reply_address_padded_size =
     calculate_reply_address_padded_size(rmap_get_instruction(header));
-  header[4 + reply_address_padded_size + 3] = extended_address;
+  unsigned char *const header_bytes = header;
+  header_bytes[4 + reply_address_padded_size + 3] = extended_address;
 }
 
-uint32_t rmap_get_address(const uint8_t *const header)
+uint32_t rmap_get_address(const void *const header)
 {
   size_t reply_address_padded_size =
     calculate_reply_address_padded_size(rmap_get_instruction(header));
   const size_t offset = 4 + reply_address_padded_size + 4;
-  return ((uint32_t)header[offset + 0] << 24) |
-    (header[offset + 1] << 16) |
-    (header[offset + 2] << 8) |
-    (header[offset + 3] << 0);
+  const unsigned char *const header_bytes = header;
+  return ((uint32_t)header_bytes[offset + 0] << 24) |
+    (header_bytes[offset + 1] << 16) |
+    (header_bytes[offset + 2] << 8) |
+    (header_bytes[offset + 3] << 0);
 }
 
-void rmap_set_address(uint8_t *const header, const uint32_t address)
+void rmap_set_address(void *const header, const uint32_t address)
 {
   size_t reply_address_padded_size =
     calculate_reply_address_padded_size(rmap_get_instruction(header));
   const size_t offset = 4 + reply_address_padded_size + 4;
 
-  header[offset + 0] = (address >> 24) & 0xFF;
-  header[offset + 1] = (address >> 16) & 0xFF;
-  header[offset + 2] = (address >> 8) & 0xFF;
-  header[offset + 3] = (address >> 0) & 0xFF;
+  unsigned char *const header_bytes = header;
+  header_bytes[offset + 0] = (address >> 24) & 0xFF;
+  header_bytes[offset + 1] = (address >> 16) & 0xFF;
+  header_bytes[offset + 2] = (address >> 8) & 0xFF;
+  header_bytes[offset + 3] = (address >> 0) & 0xFF;
 }
 
 /** Calculate the RMAP header size from an instruction field.
@@ -399,7 +424,7 @@ static size_t calculate_header_size(const uint8_t instruction)
   return RMAP_READ_REPLY_HEADER_STATIC_SIZE;
 }
 
-uint32_t rmap_get_data_length(const uint8_t *const header)
+uint32_t rmap_get_data_length(const void *const header)
 {
   size_t offset;
 
@@ -414,12 +439,13 @@ uint32_t rmap_get_data_length(const uint8_t *const header)
     return 0;
   }
 
-  return (header[offset + 0] << 16) |
-    (header[offset + 1] << 8) |
-    (header[offset + 2] << 0);
+  const unsigned char *const header_bytes = header;
+  return (header_bytes[offset + 0] << 16) |
+    (header_bytes[offset + 1] << 8) |
+    (header_bytes[offset + 2] << 0);
 }
 
-void rmap_set_data_length(uint8_t *const header, const uint32_t data_length)
+void rmap_set_data_length(void *const header, const uint32_t data_length)
 {
   size_t offset;
 
@@ -431,25 +457,27 @@ void rmap_set_data_length(uint8_t *const header, const uint32_t data_length)
       calculate_reply_address_padded_size(instruction) - 4;
   }
 
-  header[offset + 0] = (data_length >> 16) & 0xFF;
-  header[offset + 1] = (data_length >> 8) & 0xFF;
-  header[offset + 2] = (data_length >> 0) & 0xFF;
+  unsigned char *const header_bytes = header;
+  header_bytes[offset + 0] = (data_length >> 16) & 0xFF;
+  header_bytes[offset + 1] = (data_length >> 8) & 0xFF;
+  header_bytes[offset + 2] = (data_length >> 0) & 0xFF;
 }
 
-void rmap_calculate_and_set_header_crc(uint8_t *const header)
+void rmap_calculate_and_set_header_crc(void *const header)
 {
   const size_t header_size =
     calculate_header_size(rmap_get_instruction(header));
-  header[header_size - 1] = rmap_crc_calculate(header, header_size - 1);
+  unsigned char *const header_bytes = header;
+  header_bytes[header_size - 1] = rmap_crc_calculate(header, header_size - 1);
 }
 
-size_t rmap_calculate_header_size(const uint8_t *const header)
+size_t rmap_calculate_header_size(const void *const header)
 {
   return calculate_header_size(rmap_get_instruction(header));
 }
 
 rmap_status_t rmap_verify_header_integrity(
-    const uint8_t *const header,
+    const void *const header,
     const size_t size)
 {
   size_t header_size;
@@ -481,7 +509,7 @@ rmap_status_t rmap_verify_header_integrity(
   return RMAP_OK;
 }
 
-rmap_status_t rmap_verify_header_instruction(const uint8_t *const header)
+rmap_status_t rmap_verify_header_instruction(const void *const header)
 {
   const uint8_t instruction = rmap_get_instruction(header);
 
@@ -532,9 +560,7 @@ rmap_status_t rmap_verify_header_instruction(const uint8_t *const header)
  *         reply but the command code field do not have the reply bit set.
  * @retval RMAP_OK Header is valid.
  */
-static rmap_status_t verify_header(
-    const uint8_t *const header,
-    const size_t size)
+static rmap_status_t verify_header(const void *const header, const size_t size)
 {
   rmap_status_t status;
 
@@ -549,7 +575,7 @@ static rmap_status_t verify_header(
   return rmap_verify_header_instruction(header);
 }
 
-rmap_status_t rmap_verify_data(const uint8_t *const packet, const size_t size)
+rmap_status_t rmap_verify_data(const void *const packet, const size_t size)
 {
   assert(packet);
 
@@ -565,8 +591,9 @@ rmap_status_t rmap_verify_data(const uint8_t *const packet, const size_t size)
     return RMAP_ECSS_TOO_MUCH_DATA;
   }
 
+  const unsigned char *const packet_bytes = packet;
   const uint8_t data_crc =
-    rmap_crc_calculate(packet + data_offset, data_length + 1);
+    rmap_crc_calculate(packet_bytes + data_offset, data_length + 1);
   /* If the crc is included in the crc calculation, the result should be 0. */
   if (data_crc != 0) {
     return RMAP_ECSS_INVALID_DATA_CRC;
@@ -665,7 +692,7 @@ static rmap_status_t make_instruction(
 }
 
 rmap_status_t rmap_initialize_header(
-    uint8_t *const header,
+    void *const header,
     const size_t max_size,
     const rmap_packet_type_t packet_type,
     const int command_code,
@@ -1387,9 +1414,7 @@ const char *rmap_status_text(const rmap_status_t status)
   }
 }
 
-uint8_t rmap_crc_calculate(
-    const unsigned char *const data,
-    const size_t data_size)
+uint8_t rmap_crc_calculate(const void *const data, const size_t data_size)
 {
   uint8_t crc;
 
@@ -1430,9 +1455,10 @@ uint8_t rmap_crc_calculate(
 
   assert(data);
 
+  const unsigned char *const data_bytes = data;
   crc = 0;
   for (size_t i = 0; i < data_size; ++i) {
-    crc = crc_lookup_table[crc ^ data[i]];
+    crc = crc_lookup_table[crc ^ data_bytes[i]];
   }
 
   return crc;
