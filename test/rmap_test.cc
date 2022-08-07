@@ -561,7 +561,7 @@ TEST(SetProtocol, GetGives1AfterSet)
   rmap_set_protocol(buf);
   EXPECT_EQ(rmap_get_protocol(buf), 1);
 
-  std::fill(buf, buf + sizeof(buf), 123);
+  memset(buf, 123, sizeof(buf));
   rmap_set_protocol(buf);
   EXPECT_EQ(rmap_get_protocol(buf), 1);
 }
