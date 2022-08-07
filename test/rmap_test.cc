@@ -2569,7 +2569,111 @@ TEST(RmapRecreateHeader, TestPattern2Reply)
   EXPECT_EQ(packet, expected_packet);
 }
 
-// TODO: Add recreate tests for remaining 3 pattern.
+TEST(RmapRecreateHeader, TestPattern3Command)
+{
+  uint8_t buf[123];
+
+  std::vector<uint8_t> expected_packet(
+      test_pattern3_incrementing_read_with_spacewire_addresses,
+      test_pattern3_incrementing_read_with_spacewire_addresses +
+      sizeof(test_pattern3_incrementing_read_with_spacewire_addresses));
+
+  memset(buf, 0, sizeof(buf));
+
+  const uint8_t target_address[] = { 0x11, 0x22, 0x33, 0x44 };
+
+  const uint8_t reply_address[] = { 0x99, 0xAA, 0xBB, 0xCC };
+
+  uint8_t *const header = buf + sizeof(target_address);
+
+  EXPECT_EQ(
+      rmap_initialize_header(
+        header,
+        sizeof(buf) - sizeof(target_address),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address)),
+      RMAP_OK);
+
+  rmap_set_target_logical_address(header, 0xFE);
+  rmap_set_key(header, 0);
+  rmap_set_reply_address(header, reply_address, sizeof(reply_address));
+  rmap_set_initiator_logical_address(header, 0x67);
+  rmap_set_transaction_identifier(header, 3);
+  rmap_set_extended_address(header, 0x00);
+  rmap_set_address(header, 0xA0000010);
+  rmap_set_data_length(header, 16);
+
+  rmap_calculate_and_set_header_crc(header);
+
+  memcpy(buf, target_address, sizeof(target_address));
+
+  std::vector<uint8_t> packet(
+    buf,
+    buf + sizeof(target_address) + rmap_calculate_header_size(header));
+  EXPECT_EQ(packet, expected_packet);
+}
+
+TEST(RmapRecreateHeader, TestPattern3Reply)
+{
+  size_t header_offset;
+  uint8_t buf[123];
+
+  std::vector<uint8_t> expected_packet(
+      test_pattern3_expected_read_reply_with_spacewire_addresses,
+      test_pattern3_expected_read_reply_with_spacewire_addresses +
+      sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses));
+
+  memset(buf, 0, sizeof(buf));
+
+  const uint8_t reply_address[] = { 0x99, 0xAA, 0xBB, 0xCC };
+
+  const uint8_t data[] = {
+    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
+    0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF
+  };
+
+  memcpy(
+      buf + sizeof(reply_address) + RMAP_HEADER_SIZE_MAX,
+      data,
+      sizeof(data));
+
+  EXPECT_EQ(
+      rmap_initialize_header_before(
+        &header_offset,
+        buf,
+        sizeof(reply_address) + RMAP_HEADER_SIZE_MAX,
+        RMAP_PACKET_TYPE_REPLY,
+        RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address)),
+      RMAP_OK);
+
+  uint8_t *const header = buf + header_offset;
+
+  rmap_set_initiator_logical_address(header, 0x67);
+  rmap_set_status(header, 0);
+  rmap_set_target_logical_address(header, 0xFE);
+  rmap_set_transaction_identifier(header, 3);
+  rmap_set_reserved(header);
+  rmap_set_data_length(header, sizeof(data));
+
+  rmap_calculate_and_set_header_crc(header);
+
+  memcpy(
+      header - sizeof(reply_address),
+      reply_address,
+      sizeof(reply_address));
+
+  buf[sizeof(reply_address) + RMAP_HEADER_SIZE_MAX + sizeof(data)] =
+    rmap_crc_calculate(
+        buf + sizeof(reply_address) + RMAP_HEADER_SIZE_MAX,
+        sizeof(data));
+
+  std::vector<uint8_t> packet(
+      header - sizeof(reply_address),
+      header + rmap_calculate_header_size(header) + sizeof(data) + 1);
+  EXPECT_EQ(packet, expected_packet);
+}
 
 TEST(RmapCrcCalculate, ZeroesInDataGivesZeroCrc)
 {
