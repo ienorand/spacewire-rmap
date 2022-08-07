@@ -1521,6 +1521,81 @@ TEST_P(AllTestPatterns, VerifyHeaderInstructionOk)
   EXPECT_EQ(rmap_verify_header_instruction(pattern), RMAP_OK);
 }
 
+TEST_P(AllTestPatterns, RmapInitializeHeaderPatternsShouldNotChange)
+{
+  rmap_packet_type_t packet_type;
+  int command_code;
+  uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
+  size_t reply_address_unpadded_size;
+  size_t header_offset;
+
+  auto pattern = std::get<0>(GetParam());
+  auto pattern_size = std::get<1>(GetParam());
+
+  std::vector<uint8_t> packet(pattern, pattern + pattern_size);
+
+  packet_type = RMAP_PACKET_TYPE_COMMAND;
+  if (!rmap_is_command(pattern)) {
+    packet_type = RMAP_PACKET_TYPE_REPLY;
+  }
+
+  command_code = 0;
+  if (rmap_is_write(pattern)) {
+    command_code |= RMAP_COMMAND_CODE_WRITE;
+  }
+  if (rmap_is_verify_data_before_write(pattern)) {
+    command_code |= RMAP_COMMAND_CODE_VERIFY;
+  }
+  if (rmap_is_with_reply(pattern)) {
+    command_code |= RMAP_COMMAND_CODE_REPLY;
+  }
+  if (rmap_is_increment_address(pattern)) {
+    command_code |= RMAP_COMMAND_CODE_INCREMENT;
+  }
+
+  const rmap_status_t status = rmap_get_reply_address(
+      reply_address,
+      &reply_address_unpadded_size,
+      sizeof(reply_address),
+      pattern);
+  ASSERT_EQ(status, RMAP_OK);
+
+  const auto expected_packet = packet;
+  /* Protocol identifier and instruction is corrupted first, to make sure that
+   * an implementation that does nothing cannot pass the test.
+   */
+  packet[1] ^= 0xFF;
+  packet[2] ^= 0xFF;
+  const auto corrupted_packet = packet;
+
+  EXPECT_EQ(
+      rmap_initialize_header(
+        packet.data(),
+        packet.size(),
+        packet_type,
+        command_code,
+        reply_address_unpadded_size),
+      RMAP_OK);
+  EXPECT_EQ(packet, expected_packet);
+
+  packet = corrupted_packet;
+
+  /* Also verified for patterns which do not contain any data field. Should
+   * work correctly regardless.
+   */
+  EXPECT_EQ(
+      rmap_initialize_header_before(
+        &header_offset,
+        packet.data(),
+        rmap_calculate_header_size(pattern),
+        packet_type,
+        command_code,
+        reply_address_unpadded_size),
+      RMAP_OK);
+  EXPECT_EQ(packet, expected_packet);
+  EXPECT_EQ(header_offset, 0);
+}
+
 INSTANTIATE_TEST_CASE_P(
     AllPatterns,
     AllTestPatterns,
