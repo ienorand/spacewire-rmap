@@ -2295,6 +2295,92 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_REPLY_ADDRESS_LENGTH_MAX,
         RMAP_OK)));
 
+TEST(RmapRecreateHeader, TestPattern0Command)
+{
+  size_t header_offset;
+  uint8_t buf[123];
+
+  std::vector<uint8_t> expected_packet(
+      test_pattern0_unverified_incrementing_write_with_reply,
+      test_pattern0_unverified_incrementing_write_with_reply +
+      sizeof(test_pattern0_unverified_incrementing_write_with_reply));
+
+  memset(buf, 0, sizeof(buf));
+
+  const uint8_t data[] = {
+    0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17
+  };
+
+  memcpy(buf + RMAP_HEADER_SIZE_MAX, data, sizeof(data));
+
+  EXPECT_EQ(
+      rmap_initialize_header_before(
+        &header_offset,
+        buf,
+        RMAP_HEADER_SIZE_MAX,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        0),
+      RMAP_OK);
+
+  uint8_t *const header = buf + header_offset;
+
+  rmap_set_target_logical_address(header, 0xFE);
+  rmap_set_key(header, 0);
+  rmap_set_initiator_logical_address(header, 0x67);
+  rmap_set_transaction_identifier(header, 0);
+  rmap_set_extended_address(header, 0x00);
+  rmap_set_address(header, 0xA0000000);
+  rmap_set_data_length(header, sizeof(data));
+
+  rmap_calculate_and_set_header_crc(header);
+
+  buf[RMAP_HEADER_SIZE_MAX + sizeof(data)] =
+    rmap_crc_calculate(buf + RMAP_HEADER_SIZE_MAX, sizeof(data));
+
+  std::vector<uint8_t> packet(
+      header,
+      header + rmap_calculate_header_size(header) + sizeof(data) + 1);
+  EXPECT_EQ(packet, expected_packet);
+}
+
+TEST(RmapRecreateHeader, TestPattern0Reply)
+{
+  uint8_t buf[123];
+
+  std::vector<uint8_t> expected_packet(
+      test_pattern0_expected_write_reply,
+      test_pattern0_expected_write_reply +
+      sizeof(test_pattern0_expected_write_reply));
+
+  memset(buf, 0, sizeof(buf));
+
+  EXPECT_EQ(
+      rmap_initialize_header(
+        buf,
+        sizeof(buf),
+        RMAP_PACKET_TYPE_REPLY,
+        RMAP_COMMAND_CODE_WRITE |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        0),
+      RMAP_OK);
+
+  rmap_set_initiator_logical_address(buf, 0x67);
+  rmap_set_status(buf, 0);
+  rmap_set_target_logical_address(buf, 0xFE);
+  rmap_set_transaction_identifier(buf, 0);
+  rmap_calculate_and_set_header_crc(buf);
+
+  std::vector<uint8_t> packet(buf, buf + rmap_calculate_header_size(buf));
+  EXPECT_EQ(packet, expected_packet);
+}
+
+// TODO: Add recreate tests for remaining 1-3 patterns.
+
 TEST(RmapCrcCalculate, ZeroesInDataGivesZeroCrc)
 {
   unsigned char data[17] = {};
