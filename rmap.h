@@ -792,7 +792,7 @@ rmap_status_t rmap_verify_data(const void *packet, size_t size);
  * succeeds
  *
  * Creating invalid headers with unused packet types or unused command codes is
- * supported in order to allow ceating invalid RMAP packets for testing
+ * supported in order to allow creating invalid RMAP packets for testing
  * purposes.
  *
  * @p packet_type uses a different representation of packet types compared to
