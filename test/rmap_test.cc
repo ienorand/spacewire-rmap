@@ -410,7 +410,7 @@ INSTANTIATE_TEST_CASE_P(
           1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
-        std::make_tuple(rmap_get_key, 0),
+        std::make_tuple(rmap_get_status, RMAP_STATUS_FIELD_CODE_SUCCESS),
         std::make_tuple(rmap_get_target_logical_address, 0xFE),
         std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
@@ -443,7 +443,7 @@ INSTANTIATE_TEST_CASE_P(
           0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
           1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
-        std::make_tuple(rmap_get_key, 0),
+        std::make_tuple(rmap_get_status, RMAP_STATUS_FIELD_CODE_SUCCESS),
         std::make_tuple(rmap_get_target_logical_address, 0xFE),
         std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
@@ -486,7 +486,7 @@ INSTANTIATE_TEST_CASE_P(
           1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
           (test_pattern2_reply_address_length_padded / 4) <<
           RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
-        std::make_tuple(rmap_get_key, 0),
+        std::make_tuple(rmap_get_status, RMAP_STATUS_FIELD_CODE_SUCCESS),
         std::make_tuple(rmap_get_target_logical_address, 0xFE),
         std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
@@ -527,7 +527,7 @@ INSTANTIATE_TEST_CASE_P(
           1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
           (test_pattern3_reply_address_length / 4) <<
           RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
-        std::make_tuple(rmap_get_key, 0),
+        std::make_tuple(rmap_get_status, RMAP_STATUS_FIELD_CODE_SUCCESS),
         std::make_tuple(rmap_get_target_logical_address, 0xFE),
         std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
@@ -2372,7 +2372,7 @@ TEST(RmapRecreateHeader, TestPattern0Reply)
       RMAP_OK);
 
   rmap_set_initiator_logical_address(buf, 0x67);
-  rmap_set_status(buf, 0);
+  rmap_set_status(buf, RMAP_STATUS_FIELD_CODE_SUCCESS);
   rmap_set_target_logical_address(buf, 0xFE);
   rmap_set_transaction_identifier(buf, 0);
   rmap_calculate_and_set_header_crc(buf);
@@ -2449,7 +2449,7 @@ TEST(RmapRecreateHeader, TestPattern1Reply)
   uint8_t *const header = buf + header_offset;
 
   rmap_set_initiator_logical_address(header, 0x67);
-  rmap_set_status(header, 0);
+  rmap_set_status(header, RMAP_STATUS_FIELD_CODE_SUCCESS);
   rmap_set_target_logical_address(header, 0xFE);
   rmap_set_transaction_identifier(header, 1);
   rmap_set_reserved(header);
@@ -2557,7 +2557,7 @@ TEST(RmapRecreateHeader, TestPattern2Reply)
       RMAP_OK);
 
   rmap_set_initiator_logical_address(header, 0x67);
-  rmap_set_status(header, 0);
+  rmap_set_status(header, RMAP_STATUS_FIELD_CODE_SUCCESS);
   rmap_set_target_logical_address(header, 0xFE);
   rmap_set_transaction_identifier(header, 2);
   rmap_calculate_and_set_header_crc(header);
@@ -2651,7 +2651,7 @@ TEST(RmapRecreateHeader, TestPattern3Reply)
   uint8_t *const header = buf + header_offset;
 
   rmap_set_initiator_logical_address(header, 0x67);
-  rmap_set_status(header, 0);
+  rmap_set_status(header, RMAP_STATUS_FIELD_CODE_SUCCESS);
   rmap_set_target_logical_address(header, 0xFE);
   rmap_set_transaction_identifier(header, 3);
   rmap_set_reserved(header);
