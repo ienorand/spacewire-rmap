@@ -50,112 +50,197 @@ enum {
   RMAP_COMMAND_CODE_INCREMENT = 1 << 3
 };
 
-/** RMAP status and error constants.
+/** Standardised RMAP status and error codes.
  *
- * RMAP status and error constants which can be returned by the RMAP functions.
+ * Standardized error and status codes which can be used in the status field of
+ * RMAP write or read replies.
+ */
+typedef enum {
+  /** Standardized RMAP status field code for "command executed successfully".
+   */
+  RMAP_STATUS_FIELD_CODE_SUCCESS = 0,
+
+  /** Standardized RMAP status field code for "general error code".
+   *
+   * Error description according to the RMAP standard:
+   *
+   * > The detected error does not fit into the other error cases or the node
+   * > does not support further distinction between the errors.
+   */
+  RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE = 1,
+
+  /** Standardized RMAP status field code for "unused RMAP packet type or
+   *  command code".
+   *
+   * Error description according to the RMAP standard:
+   *
+   * > The Header CRC was decoded correctly but the packet type is reserved or
+   * > the command is not used by the RMAP protocol.
+   */
+  RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE = 2,
+
+  /** Standardized RMAP status field code for "invalid key".
+   *
+   * Error description according to the RMAP standard:
+   *
+   * > The Header CRC was decoded correctly but the device key did not match
+   * > that expected by the target user application.
+   */
+  RMAP_STATUS_FIELD_CODE_INVALID_KEY = 3,
+
+  /** Standardized RMAP status field code for "invalid data CRC".
+   *
+   * Error description according to the RMAP standard:
+   *
+   * > Error in the CRC of the data field.
+   */
+  RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC = 4,
+
+  /** Standardized RMAP status field code for "early EOP".
+   *
+   * Error description according to the RMAP standard:
+   *
+   * > EOP marker detected before the end of the data.
+   *
+   * This error can also be reported as error information to the target node
+   * according to the RMAP standard.
+   */
+  RMAP_STATUS_FIELD_CODE_EARLY_EOP = 5,
+
+  /** Standardized RMAP status field code for "too much data".
+   *
+   * Error description according to the RMAP standard:
+   *
+   * > More than the expected amount of data in a command has been received.
+   */
+  RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA = 6,
+
+  /** Standardized RMAP status field code for "EEP".
+   *
+   * Error description according to the RMAP standard:
+   *
+   * > EEP marker detected immediately after the header CRC or during the
+   * > transfer of data and Data CRC or immediately thereafter. Indicates that
+   * > there was a communication failure of some sort on the network.
+   *
+   * This error can also be reported as error information to the target node
+   * according to the RMAP standard.
+   */
+  RMAP_STATUS_FIELD_CODE_EEP = 7,
+
+  /** Standardized RMAP status field code for "verify buffer overrun".
+   *
+   * Error description according to the RMAP standard:
+   *
+   * > The verify before write bit of the command was set so that the data
+   * > field was buffered in order to verify the Data CRC before transferring
+   * > the data to target memory. The data field was longer than able to fit
+   * > inside the verify buffer resulting in a buffer overrun.
+   * >
+   * > Note that the command is not executed in this case.
+   */
+  RMAP_STATUS_FIELD_CODE_VERIFY_BUFFER_OVERRUN = 9,
+
+  /** Standardized RMAP status field code for "RMAP command not implemented or
+   *  not authorised".
+   *
+   * Error description according to the RMAP standard:
+   *
+   * > The target user application did not authorise the requested operation.
+   * > This may be because the command requested has not been implemented.
+   */
+  RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED = 10,
+
+  /** Standardized RMAP status field code for "RMW data length error".
+   *
+   * Error description according to the RMAP standard:
+   *
+   * > The amount of data in a RMW command is invalid (0x01, 0x03, 0x05, 0x07
+   * > or greater than 0x08).
+   */
+  RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR = 11,
+
+  /** Standardized RMAP status field code for "invalid target logical address".
+   *
+   * Error description according to the RMAP standard:
+   *
+   * > The Header CRC was decoded correctly but the Target Logical Address was
+   * > not the value expected by the target.
+   */
+  RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS = 12
+} rmap_status_field_code_t;
+
+/** Non-standard library-specific status constants.
  *
- * Constants which corresponds to standardized errors in the ECSS RMAP
- * specification use a "RMAP_ECSS_" prefix.
+ * Some of these constants overlap in their meaning with one or both of:
+ * * Standardized RMAP status field error and status codes.
+ * * Standardized RMAP error information.
+ *
+ * All of these status constants, except for RMAP_OK, use numeric values
+ * starting from 255 + 1 in order to avoid numeric numeric overlap with
+ * standardized RMAP status field error and status codes.
  */
 typedef enum {
   /** Success. */
-  RMAP_OK,
+  RMAP_OK = 0,
 
-  /** Not enough space in provided parameters to complete operation.
-   *
-   * This is only used to indicate errors by the library function caller, not
-   * errors that can occur as part of the protocol operation.
-   *
-   * For example, this can indicate that the provided destination data is not
-   * large enough to fit the RMAP header which is being serialized, or that the
-   * provided destination data for the reply address is not large enough to fit
-   * the reply address being copied.
-   */
-  RMAP_NOT_ENOUGH_SPACE,
-
-  /** The provided reply address is larger than 12 bytes. */
-  RMAP_REPLY_ADDRESS_TOO_LONG,
-
-  /** The provided data length is unrepresentable in an RMAP data length field.
-   *
-   * The provided data length is above 16777215 and is not representable in an
-   * RMAP data length field.
-   */
-  RMAP_DATA_LENGTH_TOO_BIG,
+  /** The provided data is not large enough to contain the full RMAP header. */
+  RMAP_INCOMPLETE_HEADER = 256,
 
   /** The protocol field indicates that this is not an RMAP packet. */
-  RMAP_NO_RMAP_PROTOCOL,
+  RMAP_NO_RMAP_PROTOCOL = 257,
 
   /** The header CRC indicates that errors are present in the header. */
-  RMAP_HEADER_CRC_ERROR,
-
-  /** The provided data is not large enough to contain the full RMAP header.
-   *
-   * This is used to indicates that the provided source data is not large
-   * enough to fit the whole RMAP header that is being deserialized.
-   */
-  RMAP_INCOMPLETE_HEADER,
-
-  /** A reply packet type was combined with a without-reply command code.
-   *
-   * This is only used to indicate errors by the library function caller, not
-   * errors that can occur as part of the protocol operation.
-   */
-  RMAP_NO_REPLY,
+  RMAP_HEADER_CRC_ERROR = 258,
 
   /** The packet type field has the reserved bit set. */
-  RMAP_UNUSED_PACKET_TYPE,
-
-  /** The provided packet_type is an unrepresentable packet type.
-   *
-   * This is only used to indicate errors by the library function caller, not
-   * errors that can occur as part of the protocol operation.
-   */
-  RMAP_INVALID_PACKET_TYPE,
+  RMAP_UNUSED_PACKET_TYPE = 259,
 
   /** The command field contains a reserved command code. */
-  RMAP_UNUSED_COMMAND_CODE,
+  RMAP_UNUSED_COMMAND_CODE = 260,
 
-  /** The provided command code is an unrepresentable command code.
-   *
-   * This is only used to indicate errors by the library function caller, not
-   * errors that can occur as part of the protocol operation.
+  /** A reply packet type was combined with a without-reply command code. */
+  RMAP_NO_REPLY = 261,
+
+  /** There is less data in the data field than indicated in the header data
+   *  length field.
    */
-  RMAP_INVALID_COMMAND_CODE,
+  RMAP_INSUFFICIENT_DATA = 262,
 
-  /** The provided data is not large enough to contain the full RMAP packet.
-   *
-   * This is used to indicates that the provided source data is not large
-   * enough to fit the whole RMAP packet that is being deserialized.
+  /** There is more data than expected from the packet type and/or data field
+   *  length.
    */
-  RMAP_EARLY_EOP,
-
-  /** Read-modify-write is not supported. */
-  RMAP_READ_MODIFY_WRITE_UNSUPPORTED,
-
-  /** A reply is invalid.
-   *
-   * This can indicate that either:
-   * * An RMAP reply packet was determined to be invalid and should be
-   *   discarded (protocol error).
-   * * Provided parameters describes an invalid reply header (library function
-   *   caller error).
-   */
-  RMAP_INVALID_REPLY,
+  RMAP_TOO_MUCH_DATA = 263,
 
   /** The data CRC indicates that errors are present in the data. */
-  RMAP_ECSS_INVALID_DATA_CRC,
+  RMAP_INVALID_DATA_CRC = 264,
 
-  /** There is more data than expected.
+  /** The provided packet type value cannot be represented in an RMAP header
+   *  packet type field.
    *
-   * This can indicate that either:
-   * * An RMAP packet was determined to contain more data than expected
-   *   (protocol error).
-   * * An attempt was made to serialize an RMAP read command or write reply
-   *   in-place around an existing data field, but these packet types do not
-   *   contain a data field (caller error).
+   * This error indicates that an attempt was made to initialize/serialize a
+   * header with a packet type value that is not one of:
+   * * RMAP_PACKET_TYPE_COMMAND.
+   * * RMAP_PACKET_TYPE_REPLY.
+   * * RMAP_PACKET_TYPE_COMMAND_RESERVED.
+   * * RMAP_PACKET_TYPE_REPLY_RESERVED.
    */
-  RMAP_ECSS_TOO_MUCH_DATA
+  RMAP_INVALID_PACKET_TYPE = 265,
+
+  /** The provided command code value cannot be represented in an RMAP header
+   *  command code field.
+   *
+   * This error indicates that an attempt was made to initialize/serialize a
+   * header with a command code value that is less than 0 or greater than the
+   * combination of all available command code flags (0xF).
+   */
+  RMAP_INVALID_COMMAND_CODE = 266,
+
+  /** The provided reply address is longer than 12 bytes. */
+  RMAP_REPLY_ADDRESS_TOO_LONG = 267,
+
+  /** Not enough space to initialize header. */
+  RMAP_NOT_ENOUGH_SPACE = 268
 } rmap_status_t;
 
 /** Size constants for RMAP packets. */
@@ -670,8 +755,8 @@ rmap_status_t rmap_verify_header_integrity(const void *header, size_t size);
  * @retval RMAP_UNUSED_COMMAND_CODE The command field contains a reserved
  *         command code or the packet type is a reply without the with-reply
  *         bit set.
- * @retval RMAP_INVALID_REPLY The packet type field indicates that this is a
- *         reply but the command code field do not have the reply bit set.
+ * @retval RMAP_NO_REPLY The packet type field indicates that this is a reply
+ *         but the command code field do not have the reply bit set.
  * @retval RMAP_OK Instruction is valid.
  */
 rmap_status_t rmap_verify_header_instruction(const void *header);
@@ -685,11 +770,11 @@ rmap_status_t rmap_verify_header_instruction(const void *header);
  * @param[in] packet Packet with a verified RMAP command or read reply header.
  * @param size Number of bytes in @p packet.
  *
- * @retval RMAP_EARLY_EOP @p size is too small to fit the whole packet.
- * @retval RMAP_ECSS_TOO_MUCH_DATA @p size is larger than the packet based on
- *         the data length field.
- * @retval RMAP_ECSS_INVALID_DATA_CRC The data CRC indicates that errors are
- *         present in the data field.
+ * @retval RMAP_INSUFFICIENT_DATA @p size is too small to fit the whole packet.
+ * @retval RMAP_TOO_MUCH_DATA @p size is larger than the packet based on the
+ *         data length field.
+ * @retval RMAP_INVALID_DATA_CRC The data CRC indicates that errors are present
+ *         in the data field.
  * @retval RMAP_OK Data field is valid.
  */
 rmap_status_t rmap_verify_data(const void *packet, size_t size);
@@ -792,13 +877,13 @@ rmap_status_t rmap_initialize_header_before(
     int command_code,
     size_t reply_address_unpadded_size);
 
-/** Get string representation of an RMAP status or error constant.
+/** Get string representation of a status or error constant.
  *
- * @param status RMAP status or error constant.
+ * @param status status or error constant.
  *
- * @return RMAP status or error string.
+ * @return status or error string.
  */
-const char *rmap_status_text(rmap_status_t status);
+const char *rmap_status_text(int status);
 
 /** Calculate RMAP CRC.
  *

@@ -514,9 +514,6 @@ rmap_status_t rmap_verify_header_instruction(const void *const header)
   const uint8_t instruction = rmap_get_instruction(header);
 
   if (!rmap_is_instruction_command(instruction)) {
-    /* TODO: Based on RMAP standard, unused packet type is also "invalid
-     * reply".
-     */
     if (rmap_is_instruction_unused_packet_type(instruction)) {
       /* Reply packet type with packet type reserved bit set */
       return RMAP_UNUSED_PACKET_TYPE;
@@ -524,7 +521,7 @@ rmap_status_t rmap_verify_header_instruction(const void *const header)
 
     if (!rmap_is_instruction_with_reply(instruction)) {
       /* Reply packet type without command code reply bit set. */
-      return RMAP_INVALID_REPLY;
+      return RMAP_NO_REPLY;
     }
   }
 
@@ -556,8 +553,8 @@ rmap_status_t rmap_verify_header_instruction(const void *const header)
  * @retval RMAP_UNUSED_COMMAND_CODE The command field contains a reserved
  *         command code or the packet type is a reply without the with-reply
  *         bit set.
- * @retval RMAP_INVALID_REPLY The packet type field indicates that this is a
- *         reply but the command code field do not have the reply bit set.
+ * @retval RMAP_NO_REPLY The packet type field indicates that this is a reply
+ *         but the command code field do not have the reply bit set.
  * @retval RMAP_OK Header is valid.
  */
 static rmap_status_t verify_header(const void *const header, const size_t size)
@@ -584,11 +581,11 @@ rmap_status_t rmap_verify_data(const void *const packet, const size_t size)
   const size_t data_length = rmap_get_data_length(packet);
 
   if (size < data_offset + data_length + 1) {
-    return RMAP_EARLY_EOP;
+    return RMAP_INSUFFICIENT_DATA;
   }
 
   if (size > data_offset + data_length + 1) {
-    return RMAP_ECSS_TOO_MUCH_DATA;
+    return RMAP_TOO_MUCH_DATA;
   }
 
   const unsigned char *const packet_bytes = packet;
@@ -596,7 +593,7 @@ rmap_status_t rmap_verify_data(const void *const packet, const size_t size)
     rmap_crc_calculate(packet_bytes + data_offset, data_length + 1);
   /* If the crc is included in the crc calculation, the result should be 0. */
   if (data_crc != 0) {
-    return RMAP_ECSS_INVALID_DATA_CRC;
+    return RMAP_INVALID_DATA_CRC;
   }
 
   return RMAP_OK;
@@ -766,20 +763,45 @@ rmap_status_t rmap_initialize_header_before(
   return RMAP_OK;
 }
 
-const char *rmap_status_text(const rmap_status_t status)
+const char *rmap_status_text(const int status)
 {
   switch (status) {
-    case RMAP_OK:
-      return "RMAP_OK";
+    case RMAP_STATUS_FIELD_CODE_SUCCESS:
+      assert((int)RMAP_OK == (int)RMAP_STATUS_FIELD_CODE_SUCCESS);
+      return "RMAP_STATUS_FIELD_CODE_SUCCESS/RMAP_OK";
 
-    case RMAP_NOT_ENOUGH_SPACE:
-      return "RMAP_NOT_ENOUGH_SPACE";
+    case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
+      return "RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE";
 
-    case RMAP_REPLY_ADDRESS_TOO_LONG:
-      return "RMAP_REPLY_ADDRESS_TOO_LONG";
+    case RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE:
+      return "RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE";
 
-    case RMAP_DATA_LENGTH_TOO_BIG:
-      return "RMAP_DATA_LENGTH_TOO_BIG";
+    case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
+      return "RMAP_STATUS_FIELD_CODE_INVALID_KEY";
+
+    case RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC:
+      return "RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC";
+
+    case RMAP_STATUS_FIELD_CODE_EARLY_EOP:
+      return "RMAP_STATUS_FIELD_CODE_EARLY_EOP";
+
+    case RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA:
+      return "RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA";
+
+    case RMAP_STATUS_FIELD_CODE_EEP:
+      return "RMAP_STATUS_FIELD_CODE_EEP";
+
+    case RMAP_STATUS_FIELD_CODE_VERIFY_BUFFER_OVERRUN:
+      return "RMAP_STATUS_FIELD_CODE_VERIFY_BUFFER_OVERRUN";
+
+    case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
+      return "RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED";
+
+    case RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR:
+      return "RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR";
+
+    case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
+      return "RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS";
 
     case RMAP_INCOMPLETE_HEADER:
       return "RMAP_INCOMPLETE_HEADER";
@@ -790,26 +812,35 @@ const char *rmap_status_text(const rmap_status_t status)
     case RMAP_HEADER_CRC_ERROR:
       return "RMAP_HEADER_CRC_ERROR";
 
-    case RMAP_NO_REPLY:
-      return "RMAP_NO_REPLY";
-
     case RMAP_UNUSED_PACKET_TYPE:
       return "RMAP_UNUSED_PACKET_TYPE";
-
-    case RMAP_INVALID_PACKET_TYPE:
-      return "RMAP_INVALID_PACKET_TYPE";
 
     case RMAP_UNUSED_COMMAND_CODE:
       return "RMAP_UNUSED_COMMAND_CODE";
 
+    case RMAP_NO_REPLY:
+      return "RMAP_NO_REPLY";
+
+    case RMAP_INSUFFICIENT_DATA:
+      return "RMAP_INSUFFICIENT_DATA";
+
+    case RMAP_TOO_MUCH_DATA:
+      return "RMAP_TOO_MUCH_DATA";
+
+    case RMAP_INVALID_DATA_CRC:
+      return "RMAP_INVALID_DATA_CRC";
+
+    case RMAP_INVALID_PACKET_TYPE:
+      return "RMAP_INVALID_PACKET_TYPE";
+
     case RMAP_INVALID_COMMAND_CODE:
       return "RMAP_INVALID_COMMAND_CODE";
 
-    case RMAP_ECSS_INVALID_DATA_CRC:
-      return "RMAP_ECSS_INVALID_DATA_CRC";
+    case RMAP_REPLY_ADDRESS_TOO_LONG:
+      return "RMAP_REPLY_ADDRESS_TOO_LONG";
 
-    case RMAP_ECSS_TOO_MUCH_DATA:
-      return "RMAP_ECSS_TOO_MUCH_DATA";
+    case RMAP_NOT_ENOUGH_SPACE:
+      return "RMAP_NOT_ENOUGH_SPACE";
 
     default:
       return "INVALID_STATUS";

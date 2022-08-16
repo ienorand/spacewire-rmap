@@ -1653,7 +1653,7 @@ TEST_P(TestPatternsWithData, VerifyDataCrcErrorFromCorruptData)
     packet[corrupt_offset] = pattern[corrupt_offset] ^ i;
     EXPECT_EQ(
         rmap_verify_data(packet.data(), packet.size()),
-        RMAP_ECSS_INVALID_DATA_CRC);
+        RMAP_INVALID_DATA_CRC);
   }
 }
 
@@ -1674,7 +1674,7 @@ TEST_P(TestPatternsWithData, VerifyDataCrcErrorFromCorruptCrcField)
     packet[corrupt_offset] = pattern[corrupt_offset] ^ i;
     EXPECT_EQ(
         rmap_verify_data(packet.data(), packet.size()),
-        RMAP_ECSS_INVALID_DATA_CRC);
+        RMAP_INVALID_DATA_CRC);
   }
 }
 
@@ -1685,7 +1685,7 @@ TEST_P(TestPatternsWithData, VerifyDataIncompleteData)
   auto pattern = std::get<0>(GetParam());
   auto pattern_size = std::get<1>(GetParam());
 
-  const rmap_status_t expected_status = RMAP_EARLY_EOP;
+  const rmap_status_t expected_status = RMAP_INSUFFICIENT_DATA;
 
   incomplete_packet_size = rmap_calculate_header_size(pattern);
   EXPECT_EQ(
@@ -1719,7 +1719,7 @@ TEST_P(TestPatternsWithData, VerifyDataTooMuchData)
 
   packet.resize(RMAP_HEADER_SIZE_MAX + RMAP_DATA_LENGTH_MAX + 1);
 
-  const rmap_status_t expected_status = RMAP_ECSS_TOO_MUCH_DATA;
+  const rmap_status_t expected_status = RMAP_TOO_MUCH_DATA;
 
   too_long_packet_size = pattern_size + 1;
   EXPECT_EQ(
@@ -1852,7 +1852,7 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_COMMAND_CODE_VERIFY |
         RMAP_COMMAND_CODE_INCREMENT),
       testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
-      testing::Values(RMAP_INVALID_REPLY)));
+      testing::Values(RMAP_NO_REPLY)));
 
 INSTANTIATE_TEST_CASE_P(
     ReplyWithUnusedCommandCodes,
