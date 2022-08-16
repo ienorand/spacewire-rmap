@@ -692,6 +692,8 @@ uint32_t rmap_get_data_length(const void *header);
  *
  * Read-modify-write is not supported.
  *
+ * @pre @p data_length must be less than or equal to RMAP_DATA_LENGTH_MAX.
+ *
  * @pre @p header must contain an initialized RMAP command or read reply
  *      header.
  *
