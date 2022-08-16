@@ -469,7 +469,7 @@ rmap_status_t rmap_verify_header_integrity(
   }
 
   const uint8_t crc = rmap_crc_calculate(header, header_size);
-  /* If the received crc is included in the crc calculation, the result should
+  /* If the received CRC is included in the CRC calculation, the result should
    * be 0.
    */
   if (crc != 0) {
@@ -572,7 +572,7 @@ rmap_status_t rmap_verify_data(const void *const packet, const size_t size)
 /** Make an RMAP instruction field.
  *
  * Creating invalid instruction fields with unused packet types or unused
- * command codes is supported in order to allow ceating invalid RMAP headers
+ * command codes is supported in order to allow creating invalid RMAP headers
  * for testing purposes.
  *
  * @p packet_type uses a different representation of packet types compared to
