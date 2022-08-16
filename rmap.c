@@ -733,6 +733,74 @@ rmap_status_t rmap_initialize_header_before(
   return RMAP_OK;
 }
 
+rmap_status_t rmap_create_success_reply_from_command(
+    void *const raw,
+    size_t *const reply_header_offset,
+    const size_t max_size,
+    const void *const command_header)
+{
+  uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
+  size_t reply_address_size;
+
+  assert(raw);
+  assert(reply_header_offset);
+  assert(command_header);
+
+  if (!rmap_is_with_reply(command_header)) {
+    return RMAP_NO_REPLY;
+  }
+
+  /* Clear command bit and reserved bit, a correct reply should have reserved
+   * bit clear, even if the command had it set.
+   */
+  const uint8_t instruction =
+    rmap_get_instruction(command_header) & ~RMAP_INSTRUCTION_PACKET_TYPE_MASK;
+
+  const rmap_status_t status = rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        command_header);
+  assert(status == RMAP_OK);
+
+  if (reply_address_size + calculate_header_size(instruction) > max_size) {
+    return RMAP_NOT_ENOUGH_SPACE;
+  }
+
+  *reply_header_offset = reply_address_size;
+
+  memcpy(raw, reply_address, reply_address_size);
+
+  unsigned char *const raw_bytes = raw;
+  void *const reply_header = raw_bytes + reply_address_size;
+
+  rmap_set_protocol(reply_header);
+  rmap_set_instruction(reply_header, instruction);
+
+  rmap_set_initiator_logical_address(
+      reply_header,
+      rmap_get_initiator_logical_address(command_header));
+  rmap_set_status(reply_header, RMAP_STATUS_FIELD_CODE_SUCCESS);
+  rmap_set_target_logical_address(
+      reply_header,
+      rmap_get_target_logical_address(command_header));
+  rmap_set_transaction_identifier(
+      reply_header,
+      rmap_get_transaction_identifier(command_header));
+
+  if (!rmap_is_write(command_header)) {
+    /* Read reply. */
+    rmap_set_reserved(reply_header);
+    rmap_set_data_length(
+        reply_header,
+        rmap_get_data_length(command_header));
+  }
+
+  rmap_calculate_and_set_header_crc(reply_header);
+
+  return RMAP_OK;
+}
+
 const char *rmap_status_text(const int status)
 {
   switch (status) {

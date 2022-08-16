@@ -879,6 +879,43 @@ rmap_status_t rmap_initialize_header_before(
     int command_code,
     size_t reply_address_unpadded_size);
 
+/** Create a complete success reply header with reply address from an existing
+ *  RMAP command header.
+ *
+ * Initialize a complete header reply header with all fields set to correspond
+ * to a success reply based on an existing command header.
+ *
+ * The reply address will be added before the reply header.
+ *
+ * It is expected that the caller will update the status field to reflect the
+ * actual result of the command verification and execution.
+ *
+ * If the reply is a read reply, is is expected that the caller will:
+ * * Add the data field.
+ * * Add the data CRC.
+ * * Update the data length to reflect the actual amount of data in the reply.
+ *
+ * @pre @p command_header must have been verified to be a valid RMAP command
+ *      header.
+ *
+ * @param[out] raw Destination for the reply packet.
+ * @param[out] reply_header_offset Length of the reply address and consequently
+ *             the offset of the created reply header in @p raw.
+ * @param max_size Maximum number of bytes to write into @p raw.
+ * @param[in] command_header Existing RMAP command header.
+ *
+ * @retval RMAP_NOT_ENOUGH_SPACE @p max_size is less than the size of the
+ *         header.
+ * @retval RMAP_NO_REPLY The command header did not have the reply bit set and
+ *         should not result in a reply.
+ * @retval RMAP_OK Reply packet created successfully.
+ */
+rmap_status_t rmap_create_success_reply_from_command(
+    void *raw,
+    size_t *reply_header_offset,
+    size_t max_size,
+    const void *command_header);
+
 /** Get string representation of a status or error constant.
  *
  * @param status status or error constant.
