@@ -162,7 +162,7 @@ static size_t calculate_reply_address_padded_size(const uint8_t instruction)
   return raw * 4;
 }
 
-rmap_status_t rmap_get_reply_address(
+enum rmap_status rmap_get_reply_address(
     uint8_t *reply_address,
     size_t *const reply_address_size,
     const size_t reply_address_max_size,
@@ -446,7 +446,7 @@ size_t rmap_calculate_header_size(const void *const header)
   return calculate_header_size(rmap_get_instruction(header));
 }
 
-rmap_status_t rmap_verify_header_integrity(
+enum rmap_status rmap_verify_header_integrity(
     const void *const header,
     const size_t size)
 {
@@ -479,7 +479,7 @@ rmap_status_t rmap_verify_header_integrity(
   return RMAP_OK;
 }
 
-rmap_status_t rmap_verify_header_instruction(const void *const header)
+enum rmap_status rmap_verify_header_instruction(const void *const header)
 {
   const uint8_t instruction = rmap_get_instruction(header);
 
@@ -527,9 +527,11 @@ rmap_status_t rmap_verify_header_instruction(const void *const header)
  *         but the command code field do not have the reply bit set.
  * @retval RMAP_OK Header is valid.
  */
-static rmap_status_t verify_header(const void *const header, const size_t size)
+static enum rmap_status verify_header(
+    const void *const header,
+    const size_t size)
 {
-  rmap_status_t status;
+  enum rmap_status status;
 
   assert(header);
 
@@ -542,7 +544,7 @@ static rmap_status_t verify_header(const void *const header, const size_t size)
   return rmap_verify_header_instruction(header);
 }
 
-rmap_status_t rmap_verify_data(const void *const packet, const size_t size)
+enum rmap_status rmap_verify_data(const void *const packet, const size_t size)
 {
   assert(packet);
 
@@ -598,9 +600,9 @@ rmap_status_t rmap_verify_data(const void *const packet, const size_t size)
  *         than RMAP_REPLY_ADDRESS_LENGTH_MAX.
  * @retval RMAP_OK Instruction created successfully.
  */
-static rmap_status_t make_instruction(
+static enum rmap_status make_instruction(
     uint8_t *const instruction,
-    const rmap_packet_type_t packet_type,
+    const enum rmap_packet_type packet_type,
     const int command_code,
     const size_t reply_address_unpadded_size)
 {
@@ -658,10 +660,10 @@ static rmap_status_t make_instruction(
   return RMAP_OK;
 }
 
-rmap_status_t rmap_initialize_header(
+enum rmap_status rmap_initialize_header(
     void *const header,
     const size_t max_size,
-    const rmap_packet_type_t packet_type,
+    const enum rmap_packet_type packet_type,
     const int command_code,
     const size_t reply_address_unpadded_size)
 {
@@ -669,7 +671,7 @@ rmap_status_t rmap_initialize_header(
 
   assert(header);
 
-  const rmap_status_t status = make_instruction(
+  const enum rmap_status status = make_instruction(
       &instruction,
       packet_type,
       command_code,
@@ -695,15 +697,15 @@ rmap_status_t rmap_initialize_header(
   return RMAP_OK;
 }
 
-rmap_status_t rmap_initialize_header_before(
+enum rmap_status rmap_initialize_header_before(
     size_t *const header_offset,
     void *const raw,
     const size_t data_offset,
-    const rmap_packet_type_t packet_type,
+    const enum rmap_packet_type packet_type,
     const int command_code,
     const size_t reply_address_unpadded_size)
 {
-  rmap_status_t status;
+  enum rmap_status status;
   uint8_t instruction;
 
   assert(header_offset);
@@ -733,7 +735,7 @@ rmap_status_t rmap_initialize_header_before(
   return RMAP_OK;
 }
 
-rmap_status_t rmap_create_success_reply_from_command(
+enum rmap_status rmap_create_success_reply_from_command(
     void *const raw,
     size_t *const reply_header_offset,
     const size_t max_size,
@@ -756,7 +758,7 @@ rmap_status_t rmap_create_success_reply_from_command(
   const uint8_t instruction =
     rmap_get_instruction(command_header) & ~RMAP_INSTRUCTION_PACKET_TYPE_MASK;
 
-  const rmap_status_t status = rmap_get_reply_address(
+  const enum rmap_status status = rmap_get_reply_address(
         reply_address,
         &reply_address_size,
         sizeof(reply_address),

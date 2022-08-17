@@ -566,7 +566,7 @@ TEST(SetProtocol, GetGives1AfterSet)
   EXPECT_EQ(rmap_get_protocol(buf), 1);
 }
 
-typedef std::tuple<std::tuple<rmap_packet_type_t, int, size_t>,
+typedef std::tuple<std::tuple<enum rmap_packet_type, int, size_t>,
         std::tuple<void (*)(void *, uint8_t), uint8_t (*)(const void *)>>
 AccessorByteSetGetParameters;
 
@@ -1020,7 +1020,7 @@ TEST(RmapGetTransationIdentifier, Patterns)
       0x0003);
 }
 
-typedef std::tuple<rmap_packet_type_t, int, size_t> SetTransactionIdentifierParameters;
+typedef std::tuple<enum rmap_packet_type, int, size_t> SetTransactionIdentifierParameters;
 
 class SetTransactionIdentifier :
   public testing::TestWithParam<SetTransactionIdentifierParameters>
@@ -1096,7 +1096,7 @@ TEST(RmapGetAddress, Patterns)
       0xA0000010);
 }
 
-typedef std::tuple<rmap_packet_type_t, int, size_t> SetAddressParameters;
+typedef std::tuple<enum rmap_packet_type, int, size_t> SetAddressParameters;
 
 class SetAddress :
   public testing::TestWithParam<SetAddressParameters>
@@ -1182,7 +1182,7 @@ TEST(RmapGetHeaderDataLength, Patterns)
       0x00000010);
 }
 
-typedef std::tuple<rmap_packet_type_t, int, size_t> SetDataLengthParameters;
+typedef std::tuple<enum rmap_packet_type, int, size_t> SetDataLengthParameters;
 
 class SetDataLength :
   public testing::TestWithParam<SetDataLengthParameters>
@@ -1285,7 +1285,7 @@ TEST(RmapCalculateHeaderSize, Patterns)
       RMAP_READ_REPLY_HEADER_STATIC_SIZE);
 }
 
-typedef std::tuple<rmap_packet_type_t, int, std::tuple<size_t, size_t>>
+typedef std::tuple<enum rmap_packet_type, int, std::tuple<size_t, size_t>>
 CalculateHeaderSizeParameters;
 
 class CalculateHeaderSize :
@@ -1480,7 +1480,7 @@ TEST_P(AllTestPatterns, VerifyHeaderIntegrityIncompleteHeader)
 
   auto pattern = std::get<0>(GetParam());
 
-  const rmap_status_t expected_status = RMAP_INCOMPLETE_HEADER;
+  const enum rmap_status expected_status = RMAP_INCOMPLETE_HEADER;
 
   incomplete_header_size = 0;
   EXPECT_EQ(
@@ -1523,7 +1523,7 @@ TEST_P(AllTestPatterns, VerifyHeaderInstructionOk)
 
 TEST_P(AllTestPatterns, RmapInitializeHeaderPatternsShouldNotChange)
 {
-  rmap_packet_type_t packet_type;
+  enum rmap_packet_type packet_type;
   int command_code;
   uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
   size_t reply_address_unpadded_size;
@@ -1553,7 +1553,7 @@ TEST_P(AllTestPatterns, RmapInitializeHeaderPatternsShouldNotChange)
     command_code |= RMAP_COMMAND_CODE_INCREMENT;
   }
 
-  const rmap_status_t status = rmap_get_reply_address(
+  const enum rmap_status status = rmap_get_reply_address(
       reply_address,
       &reply_address_unpadded_size,
       sizeof(reply_address),
@@ -1685,7 +1685,7 @@ TEST_P(TestPatternsWithData, VerifyDataIncompleteData)
   auto pattern = std::get<0>(GetParam());
   auto pattern_size = std::get<1>(GetParam());
 
-  const rmap_status_t expected_status = RMAP_INSUFFICIENT_DATA;
+  const enum rmap_status expected_status = RMAP_INSUFFICIENT_DATA;
 
   incomplete_packet_size = rmap_calculate_header_size(pattern);
   EXPECT_EQ(
@@ -1719,7 +1719,7 @@ TEST_P(TestPatternsWithData, VerifyDataTooMuchData)
 
   packet.resize(RMAP_HEADER_SIZE_MAX + RMAP_DATA_LENGTH_MAX + 1);
 
-  const rmap_status_t expected_status = RMAP_TOO_MUCH_DATA;
+  const enum rmap_status expected_status = RMAP_TOO_MUCH_DATA;
 
   too_long_packet_size = pattern_size + 1;
   EXPECT_EQ(
@@ -1776,7 +1776,7 @@ INSTANTIATE_TEST_CASE_P(
           sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
           test_pattern3_reply_address_length)));
 
-typedef std::tuple<rmap_packet_type_t, int, size_t, rmap_status_t>
+typedef std::tuple<enum rmap_packet_type, int, size_t, enum rmap_status>
 VerifyHeaderInstructionParameters;
 
 class VerifyHeaderInstruction :
@@ -1919,7 +1919,7 @@ INSTANTIATE_TEST_CASE_P(
       testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
       testing::Values(RMAP_OK)));
 
-typedef std::tuple<size_t, rmap_packet_type_t, int, size_t, rmap_status_t>
+typedef std::tuple<size_t, enum rmap_packet_type, int, size_t, enum rmap_status>
 InitializeHeaderParameters;
 
 class InitializeHeader :
@@ -1983,13 +1983,13 @@ INSTANTIATE_TEST_CASE_P(
     testing::Values(
       std::make_tuple(
         64,
-        (rmap_packet_type_t)(RMAP_PACKET_TYPE_REPLY_RESERVED + 1),
+        (enum rmap_packet_type)(RMAP_PACKET_TYPE_REPLY_RESERVED + 1),
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
         0,
         RMAP_INVALID_PACKET_TYPE),
       std::make_tuple(
         64,
-        (rmap_packet_type_t)0xFF,
+        (enum rmap_packet_type)0xFF,
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
         0,
         RMAP_INVALID_PACKET_TYPE)));
@@ -2295,7 +2295,7 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_REPLY_ADDRESS_LENGTH_MAX,
         RMAP_OK)));
 
-typedef std::tuple<rmap_packet_type_t, int, size_t, uint8_t, uint8_t, uint16_t, uint32_t>
+typedef std::tuple<enum rmap_packet_type, int, size_t, uint8_t, uint8_t, uint16_t, uint32_t>
 CreateSuccessReplyFromCommandParameters;
 
 class CreateSuccessReplyFromCommand :

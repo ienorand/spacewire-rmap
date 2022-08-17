@@ -34,13 +34,12 @@
   (3 << RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT)
 
 /** Representation of RMAP packet type */
-typedef enum {
+enum rmap_packet_type {
   RMAP_PACKET_TYPE_COMMAND,
   RMAP_PACKET_TYPE_REPLY,
   RMAP_PACKET_TYPE_COMMAND_RESERVED,
   RMAP_PACKET_TYPE_REPLY_RESERVED
-
-} rmap_packet_type_t;
+};
 
 /** Representation of RMAP command codes. */
 enum {
@@ -55,7 +54,7 @@ enum {
  * Standardized error and status codes which can be used in the status field of
  * RMAP write or read replies.
  */
-typedef enum {
+enum rmap_status_field_code {
   /** Standardized RMAP status field code for "command executed successfully".
    */
   RMAP_STATUS_FIELD_CODE_SUCCESS = 0,
@@ -168,7 +167,7 @@ typedef enum {
    * > not the value expected by the target.
    */
   RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS = 12
-} rmap_status_field_code_t;
+};
 
 /** Non-standard library-specific status constants.
  *
@@ -180,7 +179,7 @@ typedef enum {
  * starting from 255 + 1 in order to avoid numeric numeric overlap with
  * standardized RMAP status field error and status codes.
  */
-typedef enum {
+enum rmap_status {
   /** Success. */
   RMAP_OK = 0,
 
@@ -241,7 +240,7 @@ typedef enum {
 
   /** Not enough space to initialize header. */
   RMAP_NOT_ENOUGH_SPACE = 268
-} rmap_status_t;
+};
 
 /** Size constants for RMAP packets. */
 enum {
@@ -536,7 +535,7 @@ void rmap_set_status(void *header, uint8_t status);
  * @retval RMAP_OK Reply address was successfully copied to @p reply_address
  *         and its size is given in @p reply_address_size.
  */
-rmap_status_t rmap_get_reply_address(
+enum rmap_status rmap_get_reply_address(
     uint8_t *reply_address,
     size_t *reply_address_size,
     size_t reply_address_max_size,
@@ -743,7 +742,7 @@ size_t rmap_calculate_header_size(const void *header);
  *         present in the header.
  * @retval RMAP_OK Header is a complete RMAP header.
  */
-rmap_status_t rmap_verify_header_integrity(const void *header, size_t size);
+enum rmap_status rmap_verify_header_integrity(const void *header, size_t size);
 
 /** Verify the instruction field in a potential RMAP header.
  *
@@ -761,7 +760,7 @@ rmap_status_t rmap_verify_header_integrity(const void *header, size_t size);
  *         but the command code field do not have the reply bit set.
  * @retval RMAP_OK Instruction is valid.
  */
-rmap_status_t rmap_verify_header_instruction(const void *header);
+enum rmap_status rmap_verify_header_instruction(const void *header);
 
 /** Verify the data field in a packet with a verified RMAP write command or
  *  read reply header.
@@ -779,7 +778,7 @@ rmap_status_t rmap_verify_header_instruction(const void *header);
  *         in the data field.
  * @retval RMAP_OK Data field is valid.
  */
-rmap_status_t rmap_verify_data(const void *packet, size_t size);
+enum rmap_status rmap_verify_data(const void *packet, size_t size);
 
 /** Initialize an RMAP header.
  *
@@ -822,10 +821,10 @@ rmap_status_t rmap_verify_data(const void *packet, size_t size);
  *         header.
  * @retval RMAP_OK RMAP header initialized successfully.
  */
-rmap_status_t rmap_initialize_header(
+enum rmap_status rmap_initialize_header(
     void *header,
     size_t max_size,
-    rmap_packet_type_t packet_type,
+    enum rmap_packet_type packet_type,
     int command_code,
     size_t reply_address_unpadded_size);
 
@@ -871,11 +870,11 @@ rmap_status_t rmap_initialize_header(
  * @retval RMAP_NOT_ENOUGH_SPACE Header would not fit before @p data_offset.
  * @retval RMAP_OK RMAP header initialized successfully.
  */
-rmap_status_t rmap_initialize_header_before(
+enum rmap_status rmap_initialize_header_before(
     size_t *header_offset,
     void *raw,
     size_t data_offset,
-    rmap_packet_type_t packet_type,
+    enum rmap_packet_type packet_type,
     int command_code,
     size_t reply_address_unpadded_size);
 
@@ -910,7 +909,7 @@ rmap_status_t rmap_initialize_header_before(
  *         should not result in a reply.
  * @retval RMAP_OK Reply packet created successfully.
  */
-rmap_status_t rmap_create_success_reply_from_command(
+enum rmap_status rmap_create_success_reply_from_command(
     void *raw,
     size_t *reply_header_offset,
     size_t max_size,
