@@ -3241,6 +3241,8 @@ TEST(RmapCrcCalculate, TestPattern1Reply)
   EXPECT_EQ(data_calculated_excluding_received_crc, data_received_crc);
 
   const uint8_t data_calculated_including_received_crc =
-    rmap_crc_calculate(pattern + header_length, pattern_length - header_length);
+    rmap_crc_calculate(
+        pattern + header_length,
+        pattern_length - header_length);
   EXPECT_EQ(data_calculated_including_received_crc, 0);
 }
