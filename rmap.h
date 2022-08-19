@@ -253,9 +253,17 @@ enum {
   RMAP_HEADER_SIZE_MAX =
     RMAP_COMMAND_HEADER_STATIC_SIZE +
     RMAP_REPLY_ADDRESS_LENGTH_MAX,
-  RMAP_DATA_LENGTH_MAX = (1 << 24) - 1,
-  RMAP_PACKET_SIZE_MAX = RMAP_HEADER_SIZE_MAX + RMAP_DATA_LENGTH_MAX + 1,
 };
+
+/** Maximum value in RMAP data length field and maximum size of RMAP data
+ *  field.
+ */
+#define RMAP_DATA_LENGTH_MAX ((INT32_C(1) << 24) - 1)
+
+/** Maximum size of an RMAP packet excluding target address or reply address
+ *  prefix.
+ */
+#define RMAP_PACKET_SIZE_MAX (RMAP_HEADER_SIZE_MAX + RMAP_DATA_LENGTH_MAX + 1)
 
 /** Get the protocol identifier field from a potential RMAP header.
  *

@@ -352,7 +352,7 @@ uint32_t rmap_get_address(const void *const header)
   const size_t offset = 4 + reply_address_padded_size + 4;
   const unsigned char *const header_bytes = header;
   return ((uint32_t)header_bytes[offset + 0] << 24) |
-    (header_bytes[offset + 1] << 16) |
+    ((uint32_t)header_bytes[offset + 1] << 16) |
     (header_bytes[offset + 2] << 8) |
     (header_bytes[offset + 3] << 0);
 }
@@ -410,7 +410,7 @@ uint32_t rmap_get_data_length(const void *const header)
   }
 
   const unsigned char *const header_bytes = header;
-  return (header_bytes[offset + 0] << 16) |
+  return ((uint32_t)header_bytes[offset + 0] << 16) |
     (header_bytes[offset + 1] << 8) |
     (header_bytes[offset + 2] << 0);
 }
