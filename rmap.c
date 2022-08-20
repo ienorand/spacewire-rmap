@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <string.h>
-#include <stdbool.h>
 
 #define RMAP_COMMAND_CODES_ALL (\
     RMAP_COMMAND_CODE_WRITE | \
