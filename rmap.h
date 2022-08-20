@@ -172,8 +172,8 @@ enum rmap_status_field_code {
 /** Non-standard library-specific status constants.
  *
  * Some of these constants overlap in their meaning with one or both of:
- * * Standardized RMAP status field error and status codes.
- * * Standardized RMAP error information.
+ * - Standardized RMAP status field error and status codes.
+ * - Standardized RMAP error information.
  *
  * All of these status constants, except for RMAP_OK, use numeric values
  * starting from 255 + 1 in order to avoid numeric numeric overlap with
@@ -219,10 +219,10 @@ enum rmap_status {
    *
    * This error indicates that an attempt was made to initialize/serialize a
    * header with a packet type value that is not one of:
-   * * RMAP_PACKET_TYPE_COMMAND.
-   * * RMAP_PACKET_TYPE_REPLY.
-   * * RMAP_PACKET_TYPE_COMMAND_RESERVED.
-   * * RMAP_PACKET_TYPE_REPLY_RESERVED.
+   * - RMAP_PACKET_TYPE_COMMAND.
+   * - RMAP_PACKET_TYPE_REPLY.
+   * - RMAP_PACKET_TYPE_COMMAND_RESERVED.
+   * - RMAP_PACKET_TYPE_REPLY_RESERVED.
    */
   RMAP_INVALID_PACKET_TYPE = 265,
 
@@ -732,9 +732,9 @@ size_t rmap_calculate_header_size(const void *header);
 /** Verify the integrity of a potential RMAP header.
  *
  * Verify that the data in @p header:
- * * Contains an RMAP header based on the protocol field.
- * * Is large enough to fit the whole RMAP header based on its type.
- * * Has a valid RMAP header CRC.
+ * - Contains an RMAP header based on the protocol field.
+ * - Is large enough to fit the whole RMAP header based on its type.
+ * - Has a valid RMAP header CRC.
  *
  * No verification of the instruction field is performed.
  *
@@ -790,9 +790,9 @@ enum rmap_status rmap_verify_data(const void *packet, size_t size);
 
 /** Initialize an RMAP header.
  *
- * * Verify that the header would fit in @p max_size.
- * * Set the protocol identifier field to indicate an RMAP packet.
- * * Set the instruction field based on the provided parameters.
+ * - Verify that the header would fit in @p max_size.
+ * - Set the protocol identifier field to indicate an RMAP packet.
+ * - Set the instruction field based on the provided parameters.
  *
  * The prefix spacewire address is not set.
  *
@@ -838,9 +838,9 @@ enum rmap_status rmap_initialize_header(
 
 /** Initialize an RMAP header before an existing data field.
  *
- * * Verify that the header would fit before the data field.
- * * Set the protocol identifier field to indicate an RMAP packet.
- * * Set the instruction field based on the provided parameters.
+ * - Verify that the header would fit before the data field.
+ * - Set the protocol identifier field to indicate an RMAP packet.
+ * - Set the instruction field based on the provided parameters.
  *
  * The prefix spacewire address is not set.
  *
@@ -898,9 +898,9 @@ enum rmap_status rmap_initialize_header_before(
  * actual result of the command verification and execution.
  *
  * If the reply is a read reply, is is expected that the caller will:
- * * Add the data field.
- * * Add the data CRC.
- * * Update the data length to reflect the actual amount of data in the reply.
+ * - Add the data field.
+ * - Add the data CRC.
+ * - Update the data length to reflect the actual amount of data in the reply.
  *
  * @pre @p command_header must have been verified to be a valid RMAP command
  *      header.
