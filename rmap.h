@@ -1,6 +1,10 @@
 #ifndef RMAP_H
 #define RMAP_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -939,5 +943,9 @@ const char *rmap_status_text(int status);
  * @return CRC of data.
  */
 uint8_t rmap_crc_calculate(const void *data, size_t data_size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* RMAP_H */
