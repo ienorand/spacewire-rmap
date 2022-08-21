@@ -3,12 +3,6 @@
 #include <assert.h>
 #include <string.h>
 
-#define RMAP_COMMAND_CODES_ALL (\
-    RMAP_COMMAND_CODE_WRITE | \
-    RMAP_COMMAND_CODE_VERIFY | \
-    RMAP_COMMAND_CODE_REPLY | \
-    RMAP_COMMAND_CODE_INCREMENT)
-
 uint8_t rmap_get_protocol(const void *const header)
 {
   const unsigned char *const header_bytes = header;
@@ -630,7 +624,12 @@ static enum rmap_status make_instruction(
       return RMAP_INVALID_PACKET_TYPE;
   }
 
-  if (command_code < 0 || command_code > RMAP_COMMAND_CODES_ALL) {
+  const int all_command_codes =
+    RMAP_COMMAND_CODE_WRITE |
+    RMAP_COMMAND_CODE_VERIFY |
+    RMAP_COMMAND_CODE_REPLY |
+    RMAP_COMMAND_CODE_INCREMENT;
+  if (command_code < 0 || command_code > all_command_codes) {
     return RMAP_INVALID_COMMAND_CODE;
   }
 
