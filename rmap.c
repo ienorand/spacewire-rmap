@@ -499,44 +499,6 @@ enum rmap_status rmap_verify_header_instruction(const void *const header)
   return RMAP_OK;
 }
 
-/** Verify a potential RMAP header.
- *
- * @p size May be larger than the size of the header being verified.
- *
- * @param[in] header Potential RMAP header.
- * @param size Number of bytes in @p header.
- *
- * @retval RMAP_INCOMPLETE_HEADER @p size is too small to fit the whole header.
- * @retval RMAP_NO_RMAP_PROTOCOL The protocol field indicates that this is not
- *         an RMAP packet.
- * @retval RMAP_HEADER_CRC_ERROR The header CRC indicates that errors are
- *         present in the header.
- * @retval RMAP_UNUSED_PACKET_TYPE The packet type field has the reserved bit
- *         set.
- * @retval RMAP_UNUSED_COMMAND_CODE The command field contains a reserved
- *         command code or the packet type is a reply without the with-reply
- *         bit set.
- * @retval RMAP_NO_REPLY The packet type field indicates that this is a reply
- *         but the command code field do not have the reply bit set.
- * @retval RMAP_OK Header is valid.
- */
-static enum rmap_status verify_header(
-    const void *const header,
-    const size_t size)
-{
-  enum rmap_status status;
-
-  assert(header);
-
-  status = rmap_verify_header_integrity(header, size);
-  if (status != RMAP_OK)
-  {
-    return status;
-  }
-
-  return rmap_verify_header_instruction(header);
-}
-
 enum rmap_status rmap_verify_data(const void *const packet, const size_t size)
 {
   assert(packet);
