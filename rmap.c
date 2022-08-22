@@ -565,26 +565,11 @@ static enum rmap_status make_instruction(
 
   *instruction = 0;
 
-  switch (packet_type) {
-    case RMAP_PACKET_TYPE_COMMAND:
-      *instruction |= 0x1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
-      break;
-
-    case RMAP_PACKET_TYPE_REPLY:
-      *instruction |= 0x0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
-      break;
-
-    case RMAP_PACKET_TYPE_COMMAND_RESERVED:
-      *instruction |= 0x3 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
-      break;
-
-    case RMAP_PACKET_TYPE_REPLY_RESERVED:
-      *instruction |= 0x2 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
-      break;
-
-    default:
-      return RMAP_INVALID_PACKET_TYPE;
+  if (packet_type < 0 || packet_type > RMAP_PACKET_TYPE_COMMAND_RESERVED) {
+    return RMAP_INVALID_PACKET_TYPE;
   }
+
+  *instruction |= packet_type << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
 
   const int all_command_codes =
     RMAP_COMMAND_CODE_WRITE |
@@ -595,18 +580,8 @@ static enum rmap_status make_instruction(
     return RMAP_INVALID_COMMAND_CODE;
   }
 
-  if (command_code & RMAP_COMMAND_CODE_WRITE) {
-    *instruction |= 1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT;
-  }
-  if (command_code & RMAP_COMMAND_CODE_VERIFY) {
-    *instruction |= 1 << RMAP_INSTRUCTION_COMMAND_VERIFY_SHIFT;
-  }
-  if (command_code & RMAP_COMMAND_CODE_REPLY) {
-    *instruction |= 1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT;
-  }
-  if (command_code & RMAP_COMMAND_CODE_INCREMENT) {
-    *instruction |= 1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT;
-  }
+  *instruction |= command_code << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT;
+
 
   if (reply_address_unpadded_size > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
     return RMAP_REPLY_ADDRESS_TOO_LONG;

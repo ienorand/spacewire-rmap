@@ -1983,7 +1983,7 @@ INSTANTIATE_TEST_CASE_P(
     testing::Values(
       std::make_tuple(
         64,
-        (enum rmap_packet_type)(RMAP_PACKET_TYPE_REPLY_RESERVED + 1),
+        (enum rmap_packet_type)(RMAP_PACKET_TYPE_COMMAND_RESERVED + 1),
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
         0,
         RMAP_INVALID_PACKET_TYPE),
