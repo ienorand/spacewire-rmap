@@ -4,7 +4,7 @@ spacewire-rmap is a C library for serializing and deserializing SpaceWire RMAP
 commands and replies, it is intended to be useful when handling SpaceWire RMAP
 in software.
 
-[![Build Status](https://travis-ci.org/ienorand/spacewire-rmap.svg?branch=master)](https://travis-ci.org/ienorand/spacewire-rmap)
+[![Build & Test Status](https://github.com/ienorand/spacewire-rmap/actions/workflows/build-and-googletest.yml/badge.svg)](https://github.com/ienorand/spacewire-rmap/actions/workflows/build-and-googletest.yml)
 
 ## License
 
