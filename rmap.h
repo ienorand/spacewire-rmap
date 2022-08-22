@@ -1,13 +1,13 @@
 #ifndef RMAP_H
 #define RMAP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define RMAP_INSTRUCTION_PACKET_TYPE_SHIFT 6
 #define RMAP_INSTRUCTION_PACKET_TYPE_MASK \
