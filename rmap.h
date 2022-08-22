@@ -929,6 +929,12 @@ enum rmap_status rmap_create_success_reply_from_command(
 
 /** Get string representation of a status or error constant.
  *
+ * Both standardised RMAP status field codes (enum rmap_status_field_code) and library status
+ * constants are valid for the @p status parameter.
+ *
+ * If @p status is neither a standardised RMAP status field code nor a library status
+ * constant the string "INVALID_STATUS" will be returned.
+ *
  * @param status status or error constant.
  *
  * @return status or error string.
