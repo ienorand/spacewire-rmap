@@ -2,1015 +2,809 @@
 
 #include <assert.h>
 #include <string.h>
-#include <stdbool.h>
 
-#define RMAP_REPLY_ADDRESS_LENGTH_MAX 12
-#define RMAP_DATA_LENGTH_MAX ((1 << 24) - 1)
-
-#define RMAP_COMMAND_HEADER_STATIC_SIZE 16
-#define RMAP_WRITE_REPLY_HEADER_STATIC_SIZE 8
-#define RMAP_READ_REPLY_HEADER_STATIC_SIZE 12
-
-#define RMAP_INSTRUCTION_PACKET_TYPE_SHIFT 6
-#define RMAP_INSTRUCTION_PACKET_TYPE_MASK \
-  (3 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT)
-
-#define RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT 5
-#define RMAP_INSTRUCTION_COMMAND_WRITE_MASK \
-  (1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT)
-
-#define RMAP_INSTRUCTION_COMMAND_VERIFY_SHIFT 4
-#define RMAP_INSTRUCTION_COMMAND_VERIFY_MASK \
-  (1 << RMAP_INSTRUCTION_COMMAND_VERIFY_SHIFT)
-
-#define RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT 3
-#define RMAP_INSTRUCTION_COMMAND_REPLY_MASK \
-  (1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT)
-
-#define RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT 2
-#define RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK \
-  (1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT)
-
-#define RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT 0
-#define RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK \
-  (3 << RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT)
-
-#define RMAP_COMMAND_CODES_ALL (\
-    RMAP_COMMAND_CODE_WRITE | \
-    RMAP_COMMAND_CODE_VERIFY | \
-    RMAP_COMMAND_CODE_REPLY | \
-    RMAP_COMMAND_CODE_INCREMENT)
-
-typedef enum {
-  RMAP_PACKET_TYPE_COMMAND,
-  RMAP_PACKET_TYPE_REPLY
-} packet_type_t;
-
-typedef struct {
-  struct {
-    uint8_t data[12];
-    size_t length;
-  } reply_address;
-  uint8_t initiator_logical_address;
-  unsigned char command_codes;
-  uint8_t status;
-  uint8_t target_logical_address;
-  uint16_t transaction_identifier;
-} common_send_reply_header_t;
-
-typedef struct {
-  struct {
-    uint8_t data[12];
-    size_t length;
-  } reply_address;
-  uint8_t initiator_logical_address;
-  unsigned char command_codes;
-  uint8_t status;
-  uint8_t target_logical_address;
-  uint16_t transaction_identifier;
-} common_receive_reply_header_t;
-
-static bool is_command_codes_valid(const unsigned char command_codes)
+uint8_t rmap_get_protocol(const void *const header)
 {
-  if (command_codes & ~(RMAP_COMMAND_CODES_ALL)) {
-    return false;
-  }
-
-  switch (command_codes) {
-    case 0:
-    case RMAP_COMMAND_CODE_INCREMENT:
-    case RMAP_COMMAND_CODE_VERIFY:
-    case RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT:
-    case RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY:
-      return false;
-  }
-
-  return true;
+  const unsigned char *const header_bytes = header;
+  return header_bytes[1];
 }
 
-static uint8_t serialize_instruction(
-    const packet_type_t packet_type,
-    const unsigned char command_codes,
-    const size_t reply_address_length)
+void rmap_set_protocol(void *const header)
 {
-  uint8_t instruction;
-
-  instruction = 0;
-
-  if (packet_type == RMAP_PACKET_TYPE_COMMAND) {
-    instruction |= 1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
-  } else {
-    assert(
-        packet_type == RMAP_PACKET_TYPE_REPLY &&
-        "Must be a valid packet type.");
-  }
-
-  assert(is_command_codes_valid(command_codes));
-  if (command_codes & RMAP_COMMAND_CODE_WRITE) {
-    instruction |= 1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT;
-  }
-  if (command_codes & RMAP_COMMAND_CODE_VERIFY) {
-    instruction |= 1 << RMAP_INSTRUCTION_COMMAND_VERIFY_SHIFT;
-  }
-  if (command_codes & RMAP_COMMAND_CODE_REPLY) {
-    instruction |= 1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT;
-  }
-  if (command_codes & RMAP_COMMAND_CODE_INCREMENT) {
-    instruction |= 1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT;
-  }
-
-  assert(reply_address_length <= RMAP_REPLY_ADDRESS_LENGTH_MAX);
-  const unsigned char reply_address_length_serialized =
-    (reply_address_length + 4 - 1) / 4;
-  assert(reply_address_length_serialized <= 3);
-  instruction |= reply_address_length_serialized;
-
-  return instruction;
+  unsigned char *const header_bytes = header;
+  header_bytes[1] = 1;
 }
 
-static rmap_status_t deserialize_instruction(
-    packet_type_t *const packet_type,
-    unsigned char *const command_codes,
-    size_t *const reply_address_length,
-    const uint8_t instruction)
+uint8_t rmap_get_instruction(const void *const header)
 {
-  packet_type_t packet_type_tmp;
-  unsigned char command_codes_tmp;
+  const unsigned char *const header_bytes = header;
+  return header_bytes[2];
+}
 
-  assert(packet_type);
-  assert(command_codes);
-  assert(reply_address_length);
+void rmap_set_instruction(void *const header, const uint8_t instruction)
+{
+  unsigned char *const header_bytes = header;
+  header_bytes[2] = instruction;
+}
 
-  const unsigned char packet_type_representation =
-    (instruction & RMAP_INSTRUCTION_PACKET_TYPE_MASK) >>
-    RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
-  switch (packet_type_representation) {
-    case 0:
-      packet_type_tmp = RMAP_PACKET_TYPE_REPLY;
-      break;
+bool rmap_is_instruction_command(const uint8_t instruction)
+{
+  return ((instruction & RMAP_INSTRUCTION_PACKET_TYPE_MASK) >>
+    RMAP_INSTRUCTION_PACKET_TYPE_SHIFT) & 0x1;
+}
 
-    case 1:
-      packet_type_tmp = RMAP_PACKET_TYPE_COMMAND;
-      break;
+bool rmap_is_command(const void *const header)
+{
+  return rmap_is_instruction_command(rmap_get_instruction(header));
+}
+
+bool rmap_is_instruction_unused_packet_type(const uint8_t instruction)
+{
+  return ((instruction & RMAP_INSTRUCTION_PACKET_TYPE_MASK) >>
+    RMAP_INSTRUCTION_PACKET_TYPE_SHIFT) & 0x2;
+}
+
+bool rmap_is_unused_packet_type(const void *const header)
+{
+  return rmap_is_instruction_unused_packet_type(rmap_get_instruction(header));
+}
+
+bool rmap_is_instruction_write(const uint8_t instruction)
+{
+  return instruction & RMAP_INSTRUCTION_COMMAND_WRITE_MASK;
+}
+
+bool rmap_is_write(const void *const header)
+{
+  return rmap_is_instruction_write(rmap_get_instruction(header));
+}
+
+bool rmap_is_instruction_verify_data_before_write(const uint8_t instruction)
+{
+  return instruction & RMAP_INSTRUCTION_COMMAND_VERIFY_MASK;
+}
+
+bool rmap_is_verify_data_before_write(const void *const header)
+{
+  return
+    rmap_is_instruction_verify_data_before_write(rmap_get_instruction(header));
+}
+
+bool rmap_is_instruction_with_reply(const uint8_t instruction)
+{
+  return instruction & RMAP_INSTRUCTION_COMMAND_REPLY_MASK;
+}
+
+bool rmap_is_with_reply(const void *const header)
+{
+  return rmap_is_instruction_with_reply(rmap_get_instruction(header));
+}
+
+bool rmap_is_instruction_increment_address(const uint8_t instruction)
+{
+  return instruction & RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK;
+}
+
+bool rmap_is_increment_address(const void *const header)
+{
+  return rmap_is_instruction_increment_address(rmap_get_instruction(header));
+}
+
+bool rmap_is_instruction_unused_command_code(const uint8_t instruction)
+{
+  const int raw_unshifted = instruction & RMAP_INSTRUCTION_COMMAND_CODE_MASK;
+
+  switch (raw_unshifted) {
+    case 0x0:
+    case RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK:
+    case RMAP_INSTRUCTION_COMMAND_VERIFY_MASK:
+    case (RMAP_INSTRUCTION_COMMAND_VERIFY_MASK |
+        RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK):
+    case (RMAP_INSTRUCTION_COMMAND_VERIFY_MASK |
+        RMAP_INSTRUCTION_COMMAND_REPLY_MASK):
+      return true;
 
     default:
-      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
+      break;
   }
 
-  command_codes_tmp = 0;
-  if ((instruction & RMAP_INSTRUCTION_COMMAND_WRITE_MASK) >>
-      RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT) {
-    command_codes_tmp |= RMAP_COMMAND_CODE_WRITE;
-  }
-  if ((instruction & RMAP_INSTRUCTION_COMMAND_VERIFY_MASK) >>
-      RMAP_INSTRUCTION_COMMAND_VERIFY_SHIFT) {
-    command_codes_tmp |= RMAP_COMMAND_CODE_VERIFY;
-  }
-  if ((instruction & RMAP_INSTRUCTION_COMMAND_REPLY_MASK) >>
-      RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT) {
-    command_codes_tmp |= RMAP_COMMAND_CODE_REPLY;
-  }
-  if ((instruction & RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK) >>
-      RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT) {
-    command_codes_tmp |= RMAP_COMMAND_CODE_INCREMENT;
-  }
+  return false;
+}
 
-  if (!is_command_codes_valid(command_codes_tmp)) {
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
-  }
+bool rmap_is_unused_command_code(const void *const header)
+{
+  return rmap_is_instruction_unused_command_code(rmap_get_instruction(header));
+}
 
-  const unsigned char reply_address_length_serialized =
+uint8_t rmap_get_key(const void *const header)
+{
+  const unsigned char *const header_bytes = header;
+  return header_bytes[3];
+}
+
+void rmap_set_key(void *const header, const uint8_t key)
+{
+  unsigned char *const header_bytes = header;
+  header_bytes[3] = key;
+}
+
+uint8_t rmap_get_status(const void *const header)
+{
+  const unsigned char *const header_bytes = header;
+  return header_bytes[3];
+}
+
+void rmap_set_status(void *const header, const uint8_t status)
+{
+  unsigned char *const header_bytes = header;
+  header_bytes[3] = status;
+}
+
+/** Calculate the padded reply address size from an instruction field.
+ *
+ * @param instruction Instruction field.
+ *
+ * @return Padded reply address size.
+ */
+static size_t calculate_reply_address_padded_size(const uint8_t instruction)
+{
+  const unsigned int raw =
     (instruction & RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK) >>
     RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT;
 
-  *packet_type = packet_type_tmp;
-  *command_codes = command_codes_tmp;
-  *reply_address_length = reply_address_length_serialized * 4;
-
-  return RMAP_OK;
+  return raw * 4;
 }
 
-static void make_common_from_send_write_reply_header(
-    common_send_reply_header_t *const common,
-    const rmap_send_write_reply_header_t *const write_reply)
+enum rmap_status rmap_get_reply_address(
+    uint8_t *reply_address,
+    size_t *const reply_address_size,
+    const size_t reply_address_max_size,
+    const void *const header)
 {
-  assert(common);
-  assert(write_reply);
+  const unsigned char *reply_address_padded;
 
-  /* The common reply header struct is a subset of the write reply header
-   * struct ("common initial sequence" C99 (6.5.2.3/5)) hence conversion like
-   * this is allowed.
-   */
-  const union {
-    rmap_send_write_reply_header_t write_reply;
-    common_send_reply_header_t common;
-  } converter = { *write_reply };
+  assert(reply_address);
+  assert(reply_address_size);
+  assert(header);
 
-  *common = converter.common;
-}
+  const size_t reply_address_padded_size =
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
+  const unsigned char *const header_bytes = header;
+  reply_address_padded = header_bytes + 4;
 
-static void make_common_from_send_read_reply_header(
-    common_send_reply_header_t *const common,
-    const rmap_send_read_reply_header_t *const read_reply)
-{
-  assert(common);
-  assert(read_reply);
+  uint8_t *const reply_address0 = reply_address;
 
-  /* The common reply header struct is a subset of the read reply header struct
-   * ("common initial sequence" C99 (6.5.2.3/5)) hence conversion like this is
-   * allowed.
-   */
-  const union {
-    rmap_send_read_reply_header_t read_reply;
-    common_send_reply_header_t common;
-  } converter = { *read_reply };
-
-  *common = converter.common;
-}
-
-static rmap_status_t calculate_reply_address_unpadded_size(
-    size_t *const unpadded_size,
-    const uint8_t *const address,
-    const size_t size)
-{
-  size_t padding_size;
-
-  assert(address);
-  assert(unpadded_size);
-
-  if (size == 0) {
-    *unpadded_size = 0;
-    return RMAP_OK;
-  }
-
-  if (size > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
-    return RMAP_REPLY_ADDRESS_TOO_LONG;
-  }
-
-  /* ignore leading zeroes in reply address field */
-  padding_size = 0;
-  for (size_t i = 0; i < size; ++i) {
-    if (address[i] != 0) {
-      break;
+  *reply_address_size = 0;
+  for (size_t i = 0; i < reply_address_padded_size; ++i) {
+    /* Ignore leading zeroes. */
+    if (*reply_address_size == 0 && reply_address_padded[i] == 0x00) {
+      continue;
     }
-    ++padding_size;
+
+    if (*reply_address_size + 1 > reply_address_max_size) {
+      return RMAP_NOT_ENOUGH_SPACE;
+    }
+    *reply_address++ = reply_address_padded[i];
+    ++(*reply_address_size);
   }
-  if (size > 0 && padding_size == size) {
+
+  if (reply_address_padded_size > 0 && *reply_address_size == 0) {
     /* If reply address length is non-zero and the reply address is all zeroes,
      * the reply address used should be a single zero.
      */
-    padding_size = size - 1;
-  }
-
-  *unpadded_size = size - padding_size;
-  return RMAP_OK;
-}
-
-static rmap_status_t serialize_command_header(
-    size_t *const serialized_size,
-    unsigned char *const data,
-    const size_t data_size,
-    const rmap_send_command_header_t *const header)
-{
-  size_t calculated_serialized_size;
-  unsigned char *data_ptr;
-
-  if (!serialized_size || !data || !header) {
-    return RMAP_NULLPTR;
-  }
-  if (header->target_address.length > 0 && !header->target_address.data) {
-    return RMAP_NULLPTR;
-  }
-
-  const rmap_send_header_t header_wrapper = {
-    RMAP_TYPE_COMMAND,
-    { *header }
-  };
-  const rmap_status_t rmap_status =
-    rmap_header_calculate_serialized_size(
-        &calculated_serialized_size,
-        &header_wrapper);
-  if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return rmap_status;
-  }
-
-  if (calculated_serialized_size > data_size) {
-    return RMAP_NOT_ENOUGH_SPACE;
-  }
-
-  if (header->data_length > RMAP_DATA_LENGTH_MAX) {
-    return RMAP_DATA_LENGTH_TOO_BIG;
-  }
-
-  if (!is_command_codes_valid(header->command_codes)) {
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
-  }
-
-  data_ptr = data;
-
-  memcpy(
-      data_ptr,
-      header->target_address.data,
-      header->target_address.length);
-  data_ptr += header->target_address.length;
-
-  *data_ptr++ = header->target_logical_address;
-
-  const uint8_t protocol_identifier = 1;
-  *data_ptr++ = protocol_identifier;
-
-  *data_ptr++ = serialize_instruction(
-      RMAP_PACKET_TYPE_COMMAND,
-      header->command_codes,
-      header->reply_address.length);
-
-  *data_ptr++ = header->key;
-
-  const size_t reply_address_padding_size =
-    calculated_serialized_size - RMAP_COMMAND_HEADER_STATIC_SIZE -
-    header->target_address.length - header->reply_address.length;
-  assert(reply_address_padding_size <= 3);
-  memset(data_ptr, 0, reply_address_padding_size);
-  data_ptr += reply_address_padding_size;
-  memcpy(data_ptr, header->reply_address.data, header->reply_address.length);
-  data_ptr += header->reply_address.length;
-
-  *data_ptr++ = header->initiator_logical_address;
-
-  *data_ptr++ = (uint8_t)(header->transaction_identifier >> 8);
-  *data_ptr++ = (uint8_t)(header->transaction_identifier);
-
-  *data_ptr++ = header->extended_address;
-
-  *data_ptr++ = (uint8_t)(header->address >> 24);
-  *data_ptr++ = (uint8_t)(header->address >> 16);
-  *data_ptr++ = (uint8_t)(header->address >> 8);
-  *data_ptr++ = (uint8_t)(header->address);
-
-  *data_ptr++ = (uint8_t)(header->data_length >> 16);
-  *data_ptr++ = (uint8_t)(header->data_length >> 8);
-  *data_ptr++ = (uint8_t)(header->data_length);
-
-  const unsigned char *const crc_range_start =
-    data + header->target_address.length;
-  const ptrdiff_t crc_range_size = data_ptr - crc_range_start;
-  *data_ptr++ = rmap_crc_calculate(crc_range_start, crc_range_size);
-
-  const ptrdiff_t size = data_ptr - data;
-  assert(size >= 0);
-  assert((size_t)size == calculated_serialized_size);
-
-  *serialized_size = (size_t)size;
-  return RMAP_OK;
-}
-
-static rmap_status_t serialize_common_reply_header(
-    size_t *const serialized_size,
-    unsigned char *const data,
-    const size_t data_size,
-    const common_send_reply_header_t *const header)
-{
-  size_t reply_address_unpadded_size;
-  unsigned char *data_ptr;
-
-  if (!serialized_size || !data || !header) {
-    return RMAP_NULLPTR;
-  }
-
-  const rmap_status_t rmap_status =
-    calculate_reply_address_unpadded_size(
-        &reply_address_unpadded_size,
-        header->reply_address.data,
-        header->reply_address.length);
-  if (rmap_status != RMAP_OK) {
-    assert(rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG);
-    return rmap_status;
-  }
-
-  const size_t common_header_size = reply_address_unpadded_size + 7;
-
-  if (common_header_size > data_size) {
-    return RMAP_NOT_ENOUGH_SPACE;
-  }
-
-  if (!is_command_codes_valid(header->command_codes)) {
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
-  }
-  if (!(header->command_codes & RMAP_COMMAND_CODE_REPLY)) {
-    /* must have reply command code */
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
-  }
-
-  data_ptr = data;
-
-  /* Padding stripped from reply address when sending. */
-  const size_t reply_address_offset =
-    header->reply_address.length - reply_address_unpadded_size;
-  memcpy(
-      data_ptr,
-      header->reply_address.data + reply_address_offset,
-      reply_address_unpadded_size);
-  data_ptr += reply_address_unpadded_size;
-
-  *data_ptr++ = header->initiator_logical_address;
-
-  const uint8_t protocol_identifier = 1;
-  *data_ptr++ = protocol_identifier;
-
-  *data_ptr++ = serialize_instruction(
-      RMAP_PACKET_TYPE_REPLY,
-      header->command_codes,
-      header->reply_address.length);
-
-  *data_ptr++ = header->status;
-
-  *data_ptr++ = header->target_logical_address;
-
-  *data_ptr++ = (uint8_t)(header->transaction_identifier >> 8);
-  *data_ptr++ = (uint8_t)(header->transaction_identifier);
-
-  const ptrdiff_t size = data_ptr - data;
-  assert(size >= 0);
-  assert((size_t)size == common_header_size);
-
-  *serialized_size = (size_t)size;
-  return RMAP_OK;
-}
-
-static rmap_status_t serialize_write_reply_header(
-    size_t *const serialized_size,
-    unsigned char *const data,
-    const size_t data_size,
-    const rmap_send_write_reply_header_t *const header)
-{
-  common_send_reply_header_t common_header;
-  rmap_status_t rmap_status;
-  size_t common_serialized_size;
-  size_t reply_address_unpadded_size;
-
-  if (!serialized_size || !header) {
-    return RMAP_NULLPTR;
-  }
-
-  if (!(header->command_codes & RMAP_COMMAND_CODE_WRITE)) {
-    /* must have write command code */
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
-  }
-
-  make_common_from_send_write_reply_header(&common_header, header);
-
-  rmap_status = serialize_common_reply_header(
-      &common_serialized_size,
-      data,
-      data_size,
-      &common_header);
-  if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_NULLPTR ||
-        rmap_status == RMAP_NOT_ENOUGH_SPACE ||
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return rmap_status;
-  }
-
-  if (data_size < common_serialized_size + 1) {
-    return RMAP_NOT_ENOUGH_SPACE;
-  }
-
-  rmap_status = calculate_reply_address_unpadded_size(
-      &reply_address_unpadded_size,
-      header->reply_address.data,
-      header->reply_address.length);
-  assert(
-      rmap_status == RMAP_OK &&
-      "Errors should have been caught by serialize_common_reply_header().");
-
-  const unsigned char *const crc_range_start =
-    data + reply_address_unpadded_size;
-  const ptrdiff_t crc_range_size =
-    data + common_serialized_size - crc_range_start;
-  assert(crc_range_size >= 0);
-  data[common_serialized_size] =
-    rmap_crc_calculate(crc_range_start, crc_range_size);
-
-  *serialized_size = common_serialized_size + 1;
-  return RMAP_OK;
-}
-
-static rmap_status_t serialize_read_reply_header(
-    size_t *const serialized_size,
-    unsigned char *const data,
-    const size_t data_size,
-    const rmap_send_read_reply_header_t *const header)
-{
-  common_send_reply_header_t common_header;
-  rmap_status_t rmap_status;
-  size_t common_serialized_size;
-  size_t reply_address_unpadded_size;
-
-  if (!serialized_size || !header) {
-    return RMAP_NULLPTR;
-  }
-
-  if (header->command_codes & RMAP_COMMAND_CODE_WRITE) {
-    /* must not have write command code */
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
-  }
-
-  make_common_from_send_read_reply_header(&common_header, header);
-
-  rmap_status = serialize_common_reply_header(
-      &common_serialized_size,
-      data,
-      data_size,
-      &common_header);
-  if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_NULLPTR ||
-        rmap_status == RMAP_NOT_ENOUGH_SPACE ||
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return rmap_status;
-  }
-
-  if (data_size < common_serialized_size + 5) {
-    return RMAP_NOT_ENOUGH_SPACE;
-  }
-
-  if (header->data_length > RMAP_DATA_LENGTH_MAX) {
-    return RMAP_DATA_LENGTH_TOO_BIG;
-  }
-
-  const uint8_t reserved = 0;
-  data[common_serialized_size] = reserved;
-
-  data[common_serialized_size + 1] = (uint8_t)(header->data_length >> 16);
-  data[common_serialized_size + 2] = (uint8_t)(header->data_length >> 8);
-  data[common_serialized_size + 3] = (uint8_t)(header->data_length);
-
-  rmap_status = calculate_reply_address_unpadded_size(
-      &reply_address_unpadded_size,
-      header->reply_address.data,
-      header->reply_address.length);
-  assert(
-      rmap_status == RMAP_OK &&
-      "Errors should have been caught by serialize_common_reply_header().");
-
-  const unsigned char *const crc_range_start =
-    data + reply_address_unpadded_size;
-  const ptrdiff_t crc_range_size =
-    data + common_serialized_size + 4 - crc_range_start;
-  assert(crc_range_size >= 0);
-  data[common_serialized_size + 4] =
-    rmap_crc_calculate(crc_range_start, crc_range_size);
-
-  *serialized_size = common_serialized_size + 5;
-  return RMAP_OK;
-}
-
-rmap_status_t rmap_header_initialize_reply(
-    rmap_send_header_t *const reply,
-    const rmap_receive_command_header_t *const command)
-{
-  if (!reply || !command) {
-    return RMAP_NULLPTR;
-  }
-
-  if (!(command->command_codes & RMAP_COMMAND_CODE_REPLY)) {
-    return RMAP_NO_REPLY;
-  }
-
-  if (command->command_codes & RMAP_COMMAND_CODE_WRITE) {
-    reply->type = RMAP_TYPE_WRITE_REPLY;
-    reply->t.write_reply.reply_address.length = command->reply_address.length;
-    memcpy(
-        reply->t.write_reply.reply_address.data,
-        command->reply_address.data,
-        command->reply_address.length);
-    reply->t.write_reply.initiator_logical_address =
-      command->initiator_logical_address;
-    reply->t.write_reply.command_codes = command->command_codes;
-    reply->t.write_reply.status = 0;
-    reply->t.write_reply.target_logical_address =
-      command->target_logical_address;
-    reply->t.write_reply.transaction_identifier =
-      command->transaction_identifier;
-  } else {
-    reply->type = RMAP_TYPE_READ_REPLY;
-    reply->t.read_reply.reply_address.length = command->reply_address.length;
-    memcpy(
-        reply->t.read_reply.reply_address.data,
-        command->reply_address.data,
-        command->reply_address.length);
-    reply->t.read_reply.initiator_logical_address =
-      command->initiator_logical_address;
-    reply->t.read_reply.command_codes = command->command_codes;
-    reply->t.read_reply.status = 0;
-    reply->t.read_reply.target_logical_address =
-      command->target_logical_address;
-    reply->t.read_reply.transaction_identifier =
-      command->transaction_identifier;
-    reply->t.read_reply.data_length = command->data_length;
-  }
-
-  return RMAP_OK;
-}
-
-rmap_status_t rmap_header_calculate_serialized_size(
-    size_t *const serialized_size,
-    const rmap_send_header_t *const header)
-{
-  common_send_reply_header_t reply_header;
-  size_t reply_header_static_size;
-  size_t reply_address_unpadded_size;
-
-  if (!header || !serialized_size) {
-    return RMAP_NULLPTR;
-  }
-
-  if (header->type == RMAP_TYPE_COMMAND) {
-    if (header->t.command.reply_address.length >
-        RMAP_REPLY_ADDRESS_LENGTH_MAX) {
-      return RMAP_REPLY_ADDRESS_TOO_LONG;
-    }
-    const size_t reply_address_padded_length =
-      (header->t.command.reply_address.length + 4 - 1) / 4 * 4;
-
-    const size_t header_size_without_target_address =
-      RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_padded_length;
-    if (header->t.command.target_address.length >
-        SIZE_MAX - header_size_without_target_address + 1) {
+    if (reply_address_max_size == 0) {
       return RMAP_NOT_ENOUGH_SPACE;
     }
-
-    *serialized_size = header->t.command.target_address.length +
-      header_size_without_target_address;
-
-    return RMAP_OK;
+    reply_address0[0] = 0x00;
+    *reply_address_size = 1;
   }
-
-  if (header->type == RMAP_TYPE_WRITE_REPLY) {
-    reply_header_static_size = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
-    make_common_from_send_write_reply_header(
-        &reply_header,
-        &header->t.write_reply);
-  } else if (header->type == RMAP_TYPE_READ_REPLY) {
-    reply_header_static_size = RMAP_READ_REPLY_HEADER_STATIC_SIZE;
-    make_common_from_send_write_reply_header(
-        &reply_header,
-        &header->t.write_reply);
-  } else {
-    return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
-  }
-
-  const rmap_status_t rmap_status =
-    calculate_reply_address_unpadded_size(
-        &reply_address_unpadded_size,
-        reply_header.reply_address.data,
-        reply_header.reply_address.length);
-  if (rmap_status != RMAP_OK) {
-    assert(rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG);
-    return rmap_status;
-  }
-
-  *serialized_size = reply_address_unpadded_size + reply_header_static_size;
-  return RMAP_OK;
-}
-
-rmap_status_t rmap_header_serialize(
-    size_t *const serialized_size,
-    unsigned char *const data,
-    const size_t data_size,
-    const rmap_send_header_t *const header)
-{
-  rmap_status_t rmap_status;
-  size_t serialized_size_tmp;
-
-  if (!header || !serialized_size) {
-    return RMAP_NULLPTR;
-  }
-
-  /* Unless serialized_size_tmp is explicitly initialized before the calls to
-   * serialize_write_reply_header() or serialize_read_reply_header() this will
-   * generate a maybe-uninitialized compiler warning.
-   *
-   * This seems to be a false positive since it goes away when making all
-   * non-RMAP_OK return values explicit after the call to
-   * serialize_command_header(), or when testing with gcc version 7.1 or later.
-   */
-  serialized_size_tmp = 0;
-  switch (header->type) {
-    case RMAP_TYPE_COMMAND:
-      rmap_status = serialize_command_header(
-          &serialized_size_tmp,
-          data,
-          data_size,
-          &header->t.command);
-      break;
-
-    case RMAP_TYPE_WRITE_REPLY:
-      rmap_status = serialize_write_reply_header(
-          &serialized_size_tmp,
-          data,
-          data_size,
-          &header->t.write_reply);
-      break;
-
-    case RMAP_TYPE_READ_REPLY:
-      rmap_status = serialize_read_reply_header(
-          &serialized_size_tmp,
-          data,
-          data_size,
-          &header->t.read_reply);
-      break;
-
-    default:
-      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
-  }
-
-  if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_NULLPTR ||
-        rmap_status == RMAP_NOT_ENOUGH_SPACE ||
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_DATA_LENGTH_TOO_BIG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return rmap_status;
-  }
-
-  *serialized_size = serialized_size_tmp;
-  return RMAP_OK;
-}
-
-rmap_status_t rmap_packet_serialize_inplace(
-    size_t *const serialized_offset,
-    size_t *const serialized_size,
-    unsigned char *const data,
-    const size_t data_size,
-    const size_t payload_offset,
-    const size_t payload_size,
-    const rmap_send_header_t *const header)
-{
-  rmap_status_t rmap_status;
-  size_t calculated_header_serialized_size;
-  size_t header_serialized_size;
-
-  if (!serialized_offset || !serialized_size || !data || !header) {
-    return RMAP_NULLPTR;
-  }
-
-  if ((header->type == RMAP_TYPE_COMMAND &&
-      !(header->t.command.command_codes & RMAP_COMMAND_CODE_WRITE)) ||
-      header->type == RMAP_TYPE_WRITE_REPLY) {
-    /* Read command and write reply does not have payload, hence are not
-     * supported types. rmap_header_serialize() creates the full packet for
-     * these types and should be used instead. */
-    return RMAP_ECSS_TOO_MUCH_DATA;
-  }
-
-  if (payload_offset + payload_size + 1 > data_size) {
-    /* no space for crc */
-    return RMAP_NOT_ENOUGH_SPACE;
-  }
-
-  rmap_status = rmap_header_calculate_serialized_size(
-        &calculated_header_serialized_size,
-        header);
-  if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_NULLPTR ||
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return rmap_status;
-  }
-
-  if (calculated_header_serialized_size > payload_offset) {
-    return RMAP_NOT_ENOUGH_SPACE;
-  }
-
-  rmap_status = rmap_header_serialize(
-      &header_serialized_size,
-      data + payload_offset - calculated_header_serialized_size,
-      payload_offset,
-      header);
-  if (rmap_status != RMAP_OK) {
-    assert(
-        rmap_status == RMAP_NULLPTR ||
-        rmap_status == RMAP_REPLY_ADDRESS_TOO_LONG ||
-        rmap_status == RMAP_DATA_LENGTH_TOO_BIG ||
-        rmap_status == RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return rmap_status;
-  }
-  assert(header_serialized_size == calculated_header_serialized_size);
-
-  data[payload_offset + payload_size] =
-    rmap_crc_calculate(data + payload_offset, payload_size);
-
-  *serialized_offset = payload_offset - header_serialized_size;
-  *serialized_size = header_serialized_size + payload_size + 1;
 
   return RMAP_OK;
 }
 
-rmap_status_t rmap_header_deserialize(
-    size_t *const serialized_size,
-    rmap_receive_header_t *const header,
-    const unsigned char *const data,
-    const size_t data_size)
+void rmap_set_reply_address(
+    void *const header,
+    const uint8_t *const reply_address,
+    const size_t reply_address_size)
 {
-  packet_type_t packet_type;
-  unsigned char command_codes;
-  size_t reply_address_length;
-  size_t reply_address_unpadded_length;
-  size_t header_size;
-  rmap_type_t rmap_type;
+  unsigned char *reply_address_padded;
+
+  unsigned char *const header_bytes = header;
+  reply_address_padded = header_bytes + 4;
+
+  const size_t padding_size =
+    calculate_reply_address_padded_size(rmap_get_instruction(header)) -
+    reply_address_size;
+  memset(reply_address_padded, 0x00, padding_size);
+
+  memcpy(
+      reply_address_padded + padding_size,
+      reply_address,
+      reply_address_size);
+}
+
+uint8_t rmap_get_target_logical_address(const void *const header)
+{
+  const unsigned char *const header_bytes = header;
+
+  if (rmap_is_command(header)) {
+    return header_bytes[0];
+  }
+
+  /* Reply. */
+  return header_bytes[4];
+}
+
+void rmap_set_target_logical_address(
+    void *const header,
+    const uint8_t target_logical_address)
+{
+  unsigned char *const header_bytes = header;
+
+  if (rmap_is_command(header)) {
+    header_bytes[0] = target_logical_address;
+    return;
+  }
+
+  /* Reply. */
+  header_bytes[4] = target_logical_address;
+}
+
+uint8_t rmap_get_initiator_logical_address(const void *const header)
+{
+  const unsigned char *const header_bytes = header;
+
+  if (rmap_is_command(header)) {
+    size_t reply_address_padded_size =
+      calculate_reply_address_padded_size(rmap_get_instruction(header));
+    return header_bytes[4 + reply_address_padded_size];
+  }
+
+  /* Reply. */
+  return header_bytes[0];
+}
+
+void rmap_set_initiator_logical_address(
+    void *const header,
+    const uint8_t initiator_logical_address)
+{
+  unsigned char *const header_bytes = header;
+
+  if (rmap_is_command(header)) {
+    size_t reply_address_padded_size =
+      calculate_reply_address_padded_size(rmap_get_instruction(header));
+    header_bytes[4 + reply_address_padded_size] = initiator_logical_address;
+    return;
+  }
+
+  /* Reply. */
+  header_bytes[0] = initiator_logical_address;
+}
+
+uint16_t rmap_get_transaction_identifier(const void *const header)
+{
   size_t offset;
 
-  if (!serialized_size || !header || !data) {
-    return RMAP_NULLPTR;
+  offset = 4 + 1;
+  if (rmap_is_command(header)) {
+    size_t reply_address_padded_size =
+      calculate_reply_address_padded_size(rmap_get_instruction(header));
+    offset += reply_address_padded_size;
   }
 
-  if (data_size < 8) {
+  const unsigned char *const header_bytes = header;
+  return (header_bytes[offset] << 8) | (header_bytes[offset + 1] << 0);
+}
+
+void rmap_set_transaction_identifier(
+    void *const header,
+    const uint16_t transaction_identifier)
+{
+  size_t offset;
+
+  offset = 4 + 1;
+  if (rmap_is_command(header)) {
+    size_t reply_address_padded_size =
+      calculate_reply_address_padded_size(rmap_get_instruction(header));
+    offset += reply_address_padded_size;
+  }
+
+  unsigned char *const header_bytes = header;
+  header_bytes[offset] = transaction_identifier >> 8;
+  header_bytes[offset + 1] = transaction_identifier & 0xFF;
+}
+
+void rmap_set_reserved(void *const header)
+{
+  unsigned char *const header_bytes = header;
+  header_bytes[7] = 0;
+}
+
+uint8_t rmap_get_extended_address(const void *const header)
+{
+  size_t reply_address_padded_size =
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
+  const unsigned char *const header_bytes = header;
+  return header_bytes[4 + reply_address_padded_size + 3];
+}
+
+void rmap_set_extended_address(
+    void *const header,
+    const uint8_t extended_address)
+{
+  size_t reply_address_padded_size =
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
+  unsigned char *const header_bytes = header;
+  header_bytes[4 + reply_address_padded_size + 3] = extended_address;
+}
+
+uint32_t rmap_get_address(const void *const header)
+{
+  size_t reply_address_padded_size =
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
+  const size_t offset = 4 + reply_address_padded_size + 4;
+  const unsigned char *const header_bytes = header;
+  return ((uint32_t)header_bytes[offset + 0] << 24) |
+    ((uint32_t)header_bytes[offset + 1] << 16) |
+    (header_bytes[offset + 2] << 8) |
+    (header_bytes[offset + 3] << 0);
+}
+
+void rmap_set_address(void *const header, const uint32_t address)
+{
+  size_t reply_address_padded_size =
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
+  const size_t offset = 4 + reply_address_padded_size + 4;
+
+  unsigned char *const header_bytes = header;
+  header_bytes[offset + 0] = (address >> 24) & 0xFF;
+  header_bytes[offset + 1] = (address >> 16) & 0xFF;
+  header_bytes[offset + 2] = (address >> 8) & 0xFF;
+  header_bytes[offset + 3] = (address >> 0) & 0xFF;
+}
+
+/** Calculate the RMAP header size from an instruction field.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ * @pre @p header must have a correct packet type field.
+ * @pre @p header must have a correct command field.
+ *
+ * @param instruction Instruction field.
+ *
+ * @return RMAP header size.
+ */
+static size_t calculate_header_size(const uint8_t instruction)
+{
+  if (rmap_is_instruction_command(instruction)) {
+      return RMAP_COMMAND_HEADER_STATIC_SIZE +
+        calculate_reply_address_padded_size(instruction);
+  }
+
+  if (rmap_is_instruction_write(instruction)) {
+    return RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
+  }
+
+  return RMAP_READ_REPLY_HEADER_STATIC_SIZE;
+}
+
+uint32_t rmap_get_data_length(const void *const header)
+{
+  size_t offset;
+
+  const uint8_t instruction = rmap_get_instruction(header);
+
+  offset = RMAP_READ_REPLY_HEADER_STATIC_SIZE - 4;
+  if (rmap_is_instruction_command(instruction)) {
+    offset = RMAP_COMMAND_HEADER_STATIC_SIZE +
+      calculate_reply_address_padded_size(instruction) - 4;
+  } else if (rmap_is_instruction_write(instruction)) {
+    /* Write reply has no data. */
+    return 0;
+  }
+
+  const unsigned char *const header_bytes = header;
+  return ((uint32_t)header_bytes[offset + 0] << 16) |
+    (header_bytes[offset + 1] << 8) |
+    (header_bytes[offset + 2] << 0);
+}
+
+void rmap_set_data_length(void *const header, const uint32_t data_length)
+{
+  size_t offset;
+
+  const uint8_t instruction = rmap_get_instruction(header);
+
+  offset = RMAP_READ_REPLY_HEADER_STATIC_SIZE - 4;
+  if (rmap_is_instruction_command(instruction)) {
+    offset = RMAP_COMMAND_HEADER_STATIC_SIZE +
+      calculate_reply_address_padded_size(instruction) - 4;
+  }
+
+  unsigned char *const header_bytes = header;
+  header_bytes[offset + 0] = (data_length >> 16) & 0xFF;
+  header_bytes[offset + 1] = (data_length >> 8) & 0xFF;
+  header_bytes[offset + 2] = (data_length >> 0) & 0xFF;
+}
+
+void rmap_calculate_and_set_header_crc(void *const header)
+{
+  const size_t header_size =
+    calculate_header_size(rmap_get_instruction(header));
+  unsigned char *const header_bytes = header;
+  header_bytes[header_size - 1] = rmap_crc_calculate(header, header_size - 1);
+}
+
+size_t rmap_calculate_header_size(const void *const header)
+{
+  return calculate_header_size(rmap_get_instruction(header));
+}
+
+enum rmap_status rmap_verify_header_integrity(
+    const void *const header,
+    const size_t size)
+{
+  size_t header_size;
+
+  assert(header);
+
+  if (size < RMAP_HEADER_MINIMUM_SIZE) {
     return RMAP_INCOMPLETE_HEADER;
   }
 
-  if (data[1] != 1) {
+  if (rmap_get_protocol(header) != 1) {
     return RMAP_NO_RMAP_PROTOCOL;
   }
 
-  const rmap_status_t deserialize_instruction_status =
-    deserialize_instruction(
-        &packet_type,
-        &command_codes,
-        &reply_address_length,
-        data[2]);
-  if (deserialize_instruction_status != RMAP_OK) {
-    assert(deserialize_instruction_status ==
-        RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-    return deserialize_instruction_status;
-  }
+  header_size = calculate_header_size(rmap_get_instruction(header));
 
-  if (packet_type == RMAP_PACKET_TYPE_COMMAND) {
-    rmap_type = RMAP_TYPE_COMMAND;
-    header_size = RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address_length;
-
-    if (!(command_codes & RMAP_COMMAND_CODE_WRITE) &&
-        data_size > header_size) {
-      /* Data characters in read command are invalid. */
-      return RMAP_ECSS_TOO_MUCH_DATA;
-    }
-  } else {
-    if (!(command_codes & RMAP_COMMAND_CODE_REPLY)) {
-      /* Reply without reply in command codes is invalid. */
-      return RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
-    }
-
-    if (command_codes & RMAP_COMMAND_CODE_WRITE) {
-      rmap_type = RMAP_TYPE_WRITE_REPLY;
-
-      header_size = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
-      if (data_size > header_size) {
-        /* Data characters in write reply are invalid. */
-        return RMAP_ECSS_TOO_MUCH_DATA;
-      }
-    } else {
-      rmap_type = RMAP_TYPE_READ_REPLY;
-      header_size = RMAP_READ_REPLY_HEADER_STATIC_SIZE;
-    }
-  }
-
-  if (header_size > data_size) {
+  if (size < header_size) {
     return RMAP_INCOMPLETE_HEADER;
   }
 
-  const uint8_t crc = rmap_crc_calculate(data, header_size);
-  /* If the recieved crc is included in the crc calculation, the result should
+  const uint8_t crc = rmap_crc_calculate(header, header_size);
+  /* If the received CRC is included in the CRC calculation, the result should
    * be 0.
    */
   if (crc != 0) {
     return RMAP_HEADER_CRC_ERROR;
   }
 
-  const bool is_write_command_with_verify_before_write_set =
-    rmap_type == RMAP_TYPE_COMMAND &&
-    (command_codes & RMAP_COMMAND_CODE_WRITE) &&
-    (command_codes & RMAP_COMMAND_CODE_VERIFY);
-
-
-  if (rmap_type == RMAP_TYPE_READ_REPLY ||
-      is_write_command_with_verify_before_write_set) {
-    /* Data length and data crc is checked unconditionally for read reply and
-     * if verify-before-write bit is set for write commands.
-     */
-
-    const size_t data_length_offset = header_size - 4;
-    const uint32_t data_length =
-      (uint32_t)data[data_length_offset] << 16 |
-      (uint32_t)data[data_length_offset + 1] << 8 |
-      data[data_length_offset + 2];
-    const size_t expected_packet_size = header_size + data_length + 1;
-    if(data_size < expected_packet_size) {
-      return RMAP_INCOMPLETE_PACKET;
-    }
-    if (data_size > expected_packet_size) {
-      return RMAP_ECSS_TOO_MUCH_DATA;
-    }
-
-    const uint8_t data_crc =
-      rmap_crc_calculate(data + header_size, data_size - header_size);
-    /* If the crc is included in the crc calculation, the result should
-     * be 0.
-     */
-    if (data_crc != 0) {
-      return RMAP_ECSS_INVALID_DATA_CRC;
-    }
-  }
-
-  *serialized_size = header_size;
-  header->type = rmap_type;
-
-  if (packet_type == RMAP_PACKET_TYPE_COMMAND) {
-    header->t.command.target_logical_address = data[0];
-    header->t.command.command_codes = command_codes;
-    header->t.command.key = data[3];
-
-    const rmap_status_t calculate_reply_address_unpadded_size_status =
-      calculate_reply_address_unpadded_size(
-          &reply_address_unpadded_length,
-          data + 4,
-          reply_address_length);
-    assert(calculate_reply_address_unpadded_size_status == RMAP_OK);
-    const size_t reply_address_padding_length =
-      reply_address_length - reply_address_unpadded_length;
-    memcpy(
-        header->t.command.reply_address.data,
-        data + 4 + reply_address_padding_length,
-        reply_address_unpadded_length);
-    header->t.command.reply_address.length = reply_address_unpadded_length;
-
-    offset = 4 + reply_address_length;
-    header->t.command.initiator_logical_address = data[offset];
-    header->t.command.transaction_identifier = (uint16_t)data[offset + 1] << 8;
-    header->t.command.transaction_identifier |= data[offset + 2];
-    header->t.command.extended_address = data[offset + 3];
-    header->t.command.address = (uint32_t)data[offset + 4] << 24;
-    header->t.command.address |= (uint32_t)data[offset + 5] << 16;
-    header->t.command.address |= (uint32_t)data[offset + 6] << 8;
-    header->t.command.address |= (uint32_t)data[offset + 7];
-    header->t.command.data_length = (uint32_t)data[offset + 8] << 16;
-    header->t.command.data_length |= (uint32_t)data[offset + 9] << 8;
-    header->t.command.data_length |= (uint32_t)data[offset + 10];
-    return RMAP_OK;
-  }
-
-  if (command_codes & RMAP_COMMAND_CODE_WRITE) {
-    header->t.write_reply.initiator_logical_address = data[0];
-    header->t.write_reply.command_codes = command_codes;
-    header->t.write_reply.status = data[3];
-    header->t.write_reply.target_logical_address = data[4];
-    header->t.write_reply.transaction_identifier = (uint16_t)data[5] << 8;
-    header->t.write_reply.transaction_identifier |= data[6];
-    return RMAP_OK;
-  }
-
-  header->t.read_reply.initiator_logical_address = data[0];
-  header->t.read_reply.command_codes = command_codes;
-  header->t.read_reply.status = data[3];
-  header->t.read_reply.target_logical_address = data[4];
-  header->t.read_reply.transaction_identifier = (uint16_t)data[5] << 8;
-  header->t.read_reply.transaction_identifier |= data[6];
-  header->t.read_reply.data_length = (uint32_t)data[8] << 16;
-  header->t.read_reply.data_length |= (uint32_t)data[9] << 8;
-  header->t.read_reply.data_length |= (uint32_t)data[10];
   return RMAP_OK;
 }
 
-const char *rmap_status_text(const rmap_status_t status)
+enum rmap_status rmap_verify_header_instruction(const void *const header)
+{
+  const uint8_t instruction = rmap_get_instruction(header);
+
+  if (!rmap_is_instruction_command(instruction)) {
+    if (rmap_is_instruction_unused_packet_type(instruction)) {
+      /* Reply packet type with packet type reserved bit set */
+      return RMAP_UNUSED_PACKET_TYPE;
+    }
+
+    if (!rmap_is_instruction_with_reply(instruction)) {
+      /* Reply packet type without command code reply bit set. */
+      return RMAP_NO_REPLY;
+    }
+  }
+
+  if (rmap_is_instruction_unused_packet_type(instruction)) {
+    return RMAP_UNUSED_PACKET_TYPE;
+  }
+
+  if (rmap_is_instruction_unused_command_code(instruction)) {
+    return RMAP_UNUSED_COMMAND_CODE;
+  }
+
+  return RMAP_OK;
+}
+
+enum rmap_status rmap_verify_data(const void *const packet, const size_t size)
+{
+  assert(packet);
+
+  const size_t data_offset =
+    calculate_header_size(rmap_get_instruction(packet));
+  const size_t data_length = rmap_get_data_length(packet);
+
+  if (size < data_offset + data_length + 1) {
+    return RMAP_INSUFFICIENT_DATA;
+  }
+
+  if (size > data_offset + data_length + 1) {
+    return RMAP_TOO_MUCH_DATA;
+  }
+
+  const unsigned char *const packet_bytes = packet;
+  const uint8_t data_crc =
+    rmap_crc_calculate(packet_bytes + data_offset, data_length + 1);
+  /* If the crc is included in the crc calculation, the result should be 0. */
+  if (data_crc != 0) {
+    return RMAP_INVALID_DATA_CRC;
+  }
+
+  return RMAP_OK;
+}
+
+/** Make an RMAP instruction field.
+ *
+ * Creating invalid instruction fields with unused packet types or unused
+ * command codes is supported in order to allow creating invalid RMAP headers
+ * for testing purposes.
+ *
+ * @p packet_type uses a different representation of packet types compared to
+ * the RMAP representation in the instruction field.
+ *
+ * @p command_code uses a different representation of command code flags
+ * compared to the RMAP representation in the instruction field.
+ *
+ * @param[out] instruction Destination for instruction field.
+ * @param packet_type Representation of packet type to set in instruction
+ *        field.
+ * @param command_code Representation of command code flags to set in
+ *        instruction field.
+ * @param reply_address_unpadded_size Reply address size without leading
+ *        zero-padding used to calculate and set the reply address length
+ *        field.
+ *
+ * @retval RMAP_INVALID_PACKET_TYPE @p packet_type contains an unrepresentable
+ *         packet type.
+ * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains an
+ *         unrepresentable command code.
+ * @retval RMAP_REPLY_ADDRESS_TOO_LONG @p reply_address_unpadded_size is larger
+ *         than RMAP_REPLY_ADDRESS_LENGTH_MAX.
+ * @retval RMAP_OK Instruction created successfully.
+ */
+static enum rmap_status make_instruction(
+    uint8_t *const instruction,
+    const enum rmap_packet_type packet_type,
+    const int command_code,
+    const size_t reply_address_unpadded_size)
+{
+  assert(instruction);
+
+  *instruction = 0;
+
+  switch (packet_type) {
+    case RMAP_PACKET_TYPE_COMMAND:
+      *instruction |= 0x1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
+      break;
+
+    case RMAP_PACKET_TYPE_REPLY:
+      *instruction |= 0x0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
+      break;
+
+    case RMAP_PACKET_TYPE_COMMAND_RESERVED:
+      *instruction |= 0x3 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
+      break;
+
+    case RMAP_PACKET_TYPE_REPLY_RESERVED:
+      *instruction |= 0x2 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT;
+      break;
+
+    default:
+      return RMAP_INVALID_PACKET_TYPE;
+  }
+
+  const int all_command_codes =
+    RMAP_COMMAND_CODE_WRITE |
+    RMAP_COMMAND_CODE_VERIFY |
+    RMAP_COMMAND_CODE_REPLY |
+    RMAP_COMMAND_CODE_INCREMENT;
+  if (command_code < 0 || command_code > all_command_codes) {
+    return RMAP_INVALID_COMMAND_CODE;
+  }
+
+  if (command_code & RMAP_COMMAND_CODE_WRITE) {
+    *instruction |= 1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT;
+  }
+  if (command_code & RMAP_COMMAND_CODE_VERIFY) {
+    *instruction |= 1 << RMAP_INSTRUCTION_COMMAND_VERIFY_SHIFT;
+  }
+  if (command_code & RMAP_COMMAND_CODE_REPLY) {
+    *instruction |= 1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT;
+  }
+  if (command_code & RMAP_COMMAND_CODE_INCREMENT) {
+    *instruction |= 1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT;
+  }
+
+  if (reply_address_unpadded_size > RMAP_REPLY_ADDRESS_LENGTH_MAX) {
+    return RMAP_REPLY_ADDRESS_TOO_LONG;
+  }
+  /* Unpadded size divided by 4, rounded up. */
+  const unsigned char reply_address_length_representation =
+    (reply_address_unpadded_size + (4 - 1)) / 4;
+  *instruction |= reply_address_length_representation <<
+    RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT;
+
+  return RMAP_OK;
+}
+
+enum rmap_status rmap_initialize_header(
+    void *const header,
+    const size_t max_size,
+    const enum rmap_packet_type packet_type,
+    const int command_code,
+    const size_t reply_address_unpadded_size)
+{
+  uint8_t instruction;
+
+  assert(header);
+
+  const enum rmap_status status = make_instruction(
+      &instruction,
+      packet_type,
+      command_code,
+      reply_address_unpadded_size);
+  switch (status) {
+    case RMAP_INVALID_PACKET_TYPE:
+    case RMAP_INVALID_COMMAND_CODE:
+    case RMAP_REPLY_ADDRESS_TOO_LONG:
+      return status;
+
+    default:
+      assert(status == RMAP_OK);
+      break;
+  }
+
+  if (calculate_header_size(instruction) > max_size) {
+    return RMAP_NOT_ENOUGH_SPACE;
+  }
+
+  rmap_set_protocol(header);
+  rmap_set_instruction(header, instruction);
+
+  return RMAP_OK;
+}
+
+enum rmap_status rmap_initialize_header_before(
+    size_t *const header_offset,
+    void *const raw,
+    const size_t data_offset,
+    const enum rmap_packet_type packet_type,
+    const int command_code,
+    const size_t reply_address_unpadded_size)
+{
+  enum rmap_status status;
+  uint8_t instruction;
+
+  assert(header_offset);
+  assert(raw);
+
+  status = make_instruction(
+      &instruction,
+      packet_type,
+      command_code,
+      reply_address_unpadded_size);
+  if (status != RMAP_OK) {
+    return status;
+  }
+
+  const size_t header_size = calculate_header_size(instruction);
+
+  if (header_size > data_offset) {
+    return RMAP_NOT_ENOUGH_SPACE;
+  }
+
+  *header_offset = data_offset - header_size;
+
+  unsigned char *const raw_bytes = raw;
+  rmap_set_protocol(raw_bytes + *header_offset);
+  rmap_set_instruction(raw_bytes + *header_offset, instruction);
+
+  return RMAP_OK;
+}
+
+enum rmap_status rmap_create_success_reply_from_command(
+    void *const raw,
+    size_t *const reply_header_offset,
+    const size_t max_size,
+    const void *const command_header)
+{
+  uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
+  size_t reply_address_size;
+
+  assert(raw);
+  assert(reply_header_offset);
+  assert(command_header);
+
+  if (!rmap_is_with_reply(command_header)) {
+    return RMAP_NO_REPLY;
+  }
+
+  /* Clear command bit and reserved bit, a correct reply should have reserved
+   * bit clear, even if the command had it set.
+   */
+  const uint8_t instruction =
+    rmap_get_instruction(command_header) & ~RMAP_INSTRUCTION_PACKET_TYPE_MASK;
+
+  const enum rmap_status status = rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        command_header);
+  assert(status == RMAP_OK);
+
+  if (reply_address_size + calculate_header_size(instruction) > max_size) {
+    return RMAP_NOT_ENOUGH_SPACE;
+  }
+
+  *reply_header_offset = reply_address_size;
+
+  memcpy(raw, reply_address, reply_address_size);
+
+  unsigned char *const raw_bytes = raw;
+  void *const reply_header = raw_bytes + reply_address_size;
+
+  rmap_set_protocol(reply_header);
+  rmap_set_instruction(reply_header, instruction);
+
+  rmap_set_initiator_logical_address(
+      reply_header,
+      rmap_get_initiator_logical_address(command_header));
+  rmap_set_status(reply_header, RMAP_STATUS_FIELD_CODE_SUCCESS);
+  rmap_set_target_logical_address(
+      reply_header,
+      rmap_get_target_logical_address(command_header));
+  rmap_set_transaction_identifier(
+      reply_header,
+      rmap_get_transaction_identifier(command_header));
+
+  if (!rmap_is_write(command_header)) {
+    /* Read reply. */
+    rmap_set_reserved(reply_header);
+    rmap_set_data_length(
+        reply_header,
+        rmap_get_data_length(command_header));
+  }
+
+  rmap_calculate_and_set_header_crc(reply_header);
+
+  return RMAP_OK;
+}
+
+const char *rmap_status_text(const int status)
 {
   switch (status) {
-    case RMAP_OK:
-      return "RMAP_OK";
+    case RMAP_STATUS_FIELD_CODE_SUCCESS:
+      assert((int)RMAP_OK == (int)RMAP_STATUS_FIELD_CODE_SUCCESS);
+      return "RMAP_STATUS_FIELD_CODE_SUCCESS/RMAP_OK";
 
-    case RMAP_NULLPTR:
-      return "RMAP_NULLPTR";
+    case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
+      return "RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE";
 
-    case RMAP_NOT_ENOUGH_SPACE:
-      return "RMAP_NOT_ENOUGH_SPACE";
+    case RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE:
+      return "RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE";
 
-    case RMAP_REPLY_ADDRESS_TOO_LONG:
-      return "RMAP_REPLY_ADDRESS_TOO_LONG";
+    case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
+      return "RMAP_STATUS_FIELD_CODE_INVALID_KEY";
 
-    case RMAP_DATA_LENGTH_TOO_BIG:
-      return "RMAP_DATA_LENGTH_TOO_BIG";
+    case RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC:
+      return "RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC";
+
+    case RMAP_STATUS_FIELD_CODE_EARLY_EOP:
+      return "RMAP_STATUS_FIELD_CODE_EARLY_EOP";
+
+    case RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA:
+      return "RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA";
+
+    case RMAP_STATUS_FIELD_CODE_EEP:
+      return "RMAP_STATUS_FIELD_CODE_EEP";
+
+    case RMAP_STATUS_FIELD_CODE_VERIFY_BUFFER_OVERRUN:
+      return "RMAP_STATUS_FIELD_CODE_VERIFY_BUFFER_OVERRUN";
+
+    case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
+      return "RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED";
+
+    case RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR:
+      return "RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR";
+
+    case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
+      return "RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS";
 
     case RMAP_INCOMPLETE_HEADER:
       return "RMAP_INCOMPLETE_HEADER";
-
-    case RMAP_INCOMPLETE_PACKET:
-      return "RMAP_INCOMPLETE_PACKET";
 
     case RMAP_NO_RMAP_PROTOCOL:
       return "RMAP_NO_RMAP_PROTOCOL";
@@ -1018,29 +812,42 @@ const char *rmap_status_text(const rmap_status_t status)
     case RMAP_HEADER_CRC_ERROR:
       return "RMAP_HEADER_CRC_ERROR";
 
+    case RMAP_UNUSED_PACKET_TYPE:
+      return "RMAP_UNUSED_PACKET_TYPE";
+
+    case RMAP_UNUSED_COMMAND_CODE:
+      return "RMAP_UNUSED_COMMAND_CODE";
+
     case RMAP_NO_REPLY:
       return "RMAP_NO_REPLY";
 
-    case RMAP_ECSS_INVALID_DATA_CRC:
-      return "RMAP_ECSS_INVALID_DATA_CRC";
+    case RMAP_INSUFFICIENT_DATA:
+      return "RMAP_INSUFFICIENT_DATA";
 
-    case RMAP_ECSS_ERROR_END_OF_PACKET:
-      return "RMAP_ECSS_ERROR_END_OF_PACKET";
+    case RMAP_TOO_MUCH_DATA:
+      return "RMAP_TOO_MUCH_DATA";
 
-    case RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE:
-      return "RMAP_ECSS_UNUSED_PACKET_TYPE_OR_COMMAND_CODE";
+    case RMAP_INVALID_DATA_CRC:
+      return "RMAP_INVALID_DATA_CRC";
 
-    case RMAP_ECSS_TOO_MUCH_DATA:
-      return "RMAP_ECSS_TOO_MUCH_DATA";
+    case RMAP_INVALID_PACKET_TYPE:
+      return "RMAP_INVALID_PACKET_TYPE";
+
+    case RMAP_INVALID_COMMAND_CODE:
+      return "RMAP_INVALID_COMMAND_CODE";
+
+    case RMAP_REPLY_ADDRESS_TOO_LONG:
+      return "RMAP_REPLY_ADDRESS_TOO_LONG";
+
+    case RMAP_NOT_ENOUGH_SPACE:
+      return "RMAP_NOT_ENOUGH_SPACE";
 
     default:
       return "INVALID_STATUS";
   }
 }
 
-uint8_t rmap_crc_calculate(
-    const unsigned char *const data,
-    const size_t data_size)
+uint8_t rmap_crc_calculate(const void *const data, const size_t data_size)
 {
   uint8_t crc;
 
@@ -1081,9 +888,10 @@ uint8_t rmap_crc_calculate(
 
   assert(data);
 
+  const unsigned char *const data_bytes = data;
   crc = 0;
   for (size_t i = 0; i < data_size; ++i) {
-    crc = crc_lookup_table[crc ^ data[i]];
+    crc = crc_lookup_table[crc ^ data_bytes[i]];
   }
 
   return crc;
