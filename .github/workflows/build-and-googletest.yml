@@ -1,0 +1,19 @@
+name: Build library and test via googletest
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build_and_test:
+
+    runs-on: ["ubuntu-latest", "ubuntu-18.04"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: build library
+      run: make
+    - name: build and run googletest
+      run: make test
