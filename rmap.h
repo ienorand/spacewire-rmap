@@ -792,12 +792,6 @@ enum rmap_status rmap_verify_data(const void *packet, size_t size);
  * supported in order to allow creating invalid RMAP packets for testing
  * purposes.
  *
- * @p packet_type uses a different representation of packet types compared to
- * the RMAP representation in the instruction field.
- *
- * @p command_code uses a different representation of command code flags
- * compared to the RMAP representation in the instruction field.
- *
  * @param[out] header Destination for the header.
  * @param max_size Maximum number of bytes to write into @p header.
  * @param packet_type Packet type to set in instruction field.
@@ -835,12 +829,6 @@ enum rmap_status rmap_initialize_header(
  * The instruction field fully defines the format of an RMAP packet, so all
  * further writes via accessor function will be valid if this initialization
  * succeeds
- *
- * @p packet_type uses a different representation of packet types compared to
- * the RMAP representation in the instruction field.
- *
- * @p command_code uses a different representation of command code flags
- * compared to the RMAP representation in the instruction field.
  *
  * @param[out] header_offset Offset of start of written header from @p raw.
  * @param[out] raw Start of area containing the existing data field and into
