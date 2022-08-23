@@ -648,8 +648,15 @@ enum rmap_status rmap_initialize_header_before(
       packet_type,
       command_code,
       reply_address_unpadded_size);
-  if (status != RMAP_OK) {
-    return status;
+  switch (status) {
+    case RMAP_INVALID_PACKET_TYPE:
+    case RMAP_INVALID_COMMAND_CODE:
+    case RMAP_REPLY_ADDRESS_TOO_LONG:
+      return status;
+
+    default:
+      assert(status == RMAP_OK);
+      break;
   }
 
   const size_t header_size = calculate_header_size(instruction);
