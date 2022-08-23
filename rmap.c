@@ -535,12 +535,6 @@ enum rmap_status rmap_verify_data(const void *const packet, const size_t size)
  * command codes is supported in order to allow creating invalid RMAP headers
  * for testing purposes.
  *
- * @p packet_type uses a different representation of packet types compared to
- * the RMAP representation in the instruction field.
- *
- * @p command_code uses a different representation of command code flags
- * compared to the RMAP representation in the instruction field.
- *
  * @param[out] instruction Destination for instruction field.
  * @param packet_type Representation of packet type to set in instruction
  *        field.
