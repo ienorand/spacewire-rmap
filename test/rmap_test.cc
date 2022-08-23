@@ -670,16 +670,11 @@ TEST(SetInstruction, GetGivesMatchingAfterSetValidValue)
 {
   uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
 
-  rmap_set_instruction(
-      buf,
-      RMAP_INSTRUCTION_PACKET_TYPE_MASK |
-      RMAP_INSTRUCTION_COMMAND_CODE_MASK |
-      RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK);
-  EXPECT_EQ(
-      rmap_get_instruction(buf),
-      RMAP_INSTRUCTION_PACKET_TYPE_MASK |
-      RMAP_INSTRUCTION_COMMAND_CODE_MASK |
-      RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK);
+  const uint8_t instruction =
+    rmap_get_instruction(test_pattern0_unverified_incrementing_write_with_reply);
+
+  rmap_set_instruction(buf, instruction);
+  EXPECT_EQ(rmap_get_instruction(buf), instruction);
 }
 
 typedef std::tuple<bool (*)(const void *), bool> AccessorBoolCheckParameters;
