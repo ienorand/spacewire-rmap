@@ -389,9 +389,9 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(
           rmap_get_instruction,
           1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_WRITE << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT),
         std::make_tuple(rmap_get_key, 0),
         std::make_tuple(rmap_get_target_logical_address, 0xFE),
         std::make_tuple(rmap_get_initiator_logical_address, 0x67),
@@ -406,10 +406,10 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(rmap_get_protocol, 1),
         std::make_tuple(
           rmap_get_instruction,
-          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
+          RMAP_PACKET_TYPE_REPLY << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_WRITE << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT),
         std::make_tuple(rmap_get_status, RMAP_STATUS_FIELD_CODE_SUCCESS),
         std::make_tuple(rmap_get_target_logical_address, 0xFE),
         std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
@@ -424,8 +424,8 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(
           rmap_get_instruction,
           1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT),
         std::make_tuple(rmap_get_key, 0),
         std::make_tuple(rmap_get_target_logical_address, 0xFE),
         std::make_tuple(rmap_get_initiator_logical_address, 0x67),
@@ -440,9 +440,9 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(rmap_get_protocol, 1),
         std::make_tuple(
           rmap_get_instruction,
-          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT),
+          RMAP_PACKET_TYPE_REPLY << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT),
         std::make_tuple(rmap_get_status, RMAP_STATUS_FIELD_CODE_SUCCESS),
         std::make_tuple(rmap_get_target_logical_address, 0xFE),
         std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
@@ -459,9 +459,9 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(
           rmap_get_instruction,
           1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_WRITE << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
           (test_pattern2_reply_address_length_padded / 4) <<
           RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
         std::make_tuple(rmap_get_key, 0),
@@ -480,10 +480,10 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(rmap_get_protocol, 1),
         std::make_tuple(
           rmap_get_instruction,
-          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_WRITE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          RMAP_PACKET_TYPE_REPLY << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_WRITE << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
           (test_pattern2_reply_address_length_padded / 4) <<
           RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
         std::make_tuple(rmap_get_status, RMAP_STATUS_FIELD_CODE_SUCCESS),
@@ -502,8 +502,8 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(
           rmap_get_instruction,
           1 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
           (test_pattern3_reply_address_length / 4) <<
           RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
         std::make_tuple(rmap_get_key, 0),
@@ -522,9 +522,9 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(rmap_get_protocol, 1),
         std::make_tuple(
           rmap_get_instruction,
-          0 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_INCREMENT_SHIFT |
-          1 << RMAP_INSTRUCTION_COMMAND_REPLY_SHIFT |
+          RMAP_PACKET_TYPE_REPLY << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
           (test_pattern3_reply_address_length / 4) <<
           RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
         std::make_tuple(rmap_get_status, RMAP_STATUS_FIELD_CODE_SUCCESS),

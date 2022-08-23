@@ -29,8 +29,8 @@ void rmap_set_instruction(void *const header, const uint8_t instruction)
 
 bool rmap_is_instruction_command(const uint8_t instruction)
 {
-  return ((instruction & RMAP_INSTRUCTION_PACKET_TYPE_MASK) >>
-    RMAP_INSTRUCTION_PACKET_TYPE_SHIFT) & 0x1;
+  return instruction &
+    (RMAP_PACKET_TYPE_COMMAND << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT);
 }
 
 bool rmap_is_command(const void *const header)
@@ -40,8 +40,7 @@ bool rmap_is_command(const void *const header)
 
 bool rmap_is_instruction_unused_packet_type(const uint8_t instruction)
 {
-  return ((instruction & RMAP_INSTRUCTION_PACKET_TYPE_MASK) >>
-    RMAP_INSTRUCTION_PACKET_TYPE_SHIFT) & 0x2;
+  return instruction & (0x2 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT);
 }
 
 bool rmap_is_unused_packet_type(const void *const header)
@@ -51,7 +50,8 @@ bool rmap_is_unused_packet_type(const void *const header)
 
 bool rmap_is_instruction_write(const uint8_t instruction)
 {
-  return instruction & RMAP_INSTRUCTION_COMMAND_WRITE_MASK;
+  return instruction &
+    (RMAP_COMMAND_CODE_WRITE << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT);
 }
 
 bool rmap_is_write(const void *const header)
@@ -61,7 +61,8 @@ bool rmap_is_write(const void *const header)
 
 bool rmap_is_instruction_verify_data_before_write(const uint8_t instruction)
 {
-  return instruction & RMAP_INSTRUCTION_COMMAND_VERIFY_MASK;
+  return instruction &
+    (RMAP_COMMAND_CODE_VERIFY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT);
 }
 
 bool rmap_is_verify_data_before_write(const void *const header)
@@ -72,7 +73,8 @@ bool rmap_is_verify_data_before_write(const void *const header)
 
 bool rmap_is_instruction_with_reply(const uint8_t instruction)
 {
-  return instruction & RMAP_INSTRUCTION_COMMAND_REPLY_MASK;
+  return instruction &
+    (RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT);
 }
 
 bool rmap_is_with_reply(const void *const header)
@@ -82,7 +84,8 @@ bool rmap_is_with_reply(const void *const header)
 
 bool rmap_is_instruction_increment_address(const uint8_t instruction)
 {
-  return instruction & RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK;
+  return instruction &
+    (RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT);
 }
 
 bool rmap_is_increment_address(const void *const header)
@@ -92,16 +95,16 @@ bool rmap_is_increment_address(const void *const header)
 
 bool rmap_is_instruction_unused_command_code(const uint8_t instruction)
 {
-  const int raw_unshifted = instruction & RMAP_INSTRUCTION_COMMAND_CODE_MASK;
+  const int command_code =
+    (instruction & RMAP_INSTRUCTION_COMMAND_CODE_MASK) >>
+    RMAP_INSTRUCTION_COMMAND_CODE_SHIFT;
 
-  switch (raw_unshifted) {
+  switch (command_code) {
     case 0x0:
-    case RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK:
-    case RMAP_INSTRUCTION_COMMAND_VERIFY_MASK:
-    case (RMAP_INSTRUCTION_COMMAND_VERIFY_MASK |
-        RMAP_INSTRUCTION_COMMAND_INCREMENT_MASK):
-    case (RMAP_INSTRUCTION_COMMAND_VERIFY_MASK |
-        RMAP_INSTRUCTION_COMMAND_REPLY_MASK):
+    case RMAP_COMMAND_CODE_INCREMENT:
+    case RMAP_COMMAND_CODE_VERIFY:
+    case (RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_INCREMENT):
+    case (RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY):
       return true;
 
     default:
