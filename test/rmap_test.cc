@@ -1015,7 +1015,8 @@ TEST(RmapGetTransationIdentifier, Patterns)
       0x0003);
 }
 
-typedef std::tuple<enum rmap_packet_type, int, size_t> SetTransactionIdentifierParameters;
+typedef std::tuple<enum rmap_packet_type, int, size_t>
+SetTransactionIdentifierParameters;
 
 class SetTransactionIdentifier :
   public testing::TestWithParam<SetTransactionIdentifierParameters>
