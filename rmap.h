@@ -202,6 +202,11 @@ enum rmap_status {
   /** The data CRC indicates that errors are present in the data. */
   RMAP_INVALID_DATA_CRC = 264,
 
+  /** The data length field of a RMW command or RMW reply has an invalid
+   *  value.
+   */
+  RMAP_RMW_DATA_LENGTH_ERROR = 265,
+
   /** The provided packet type value cannot be represented in an RMAP header
    *  packet type field.
    *
@@ -212,7 +217,7 @@ enum rmap_status {
    * - RMAP_PACKET_TYPE_COMMAND_RESERVED.
    * - RMAP_PACKET_TYPE_REPLY_RESERVED.
    */
-  RMAP_INVALID_PACKET_TYPE = 265,
+  RMAP_INVALID_PACKET_TYPE = 266,
 
   /** The provided command code value cannot be represented in an RMAP header
    *  command code field.
@@ -221,13 +226,13 @@ enum rmap_status {
    * header with a command code value that is less than 0 or greater than the
    * combination of all available command code flags (0xF).
    */
-  RMAP_INVALID_COMMAND_CODE = 266,
+  RMAP_INVALID_COMMAND_CODE = 267,
 
   /** The provided reply address is longer than 12 bytes. */
-  RMAP_REPLY_ADDRESS_TOO_LONG = 267,
+  RMAP_REPLY_ADDRESS_TOO_LONG = 268,
 
   /** Not enough space to initialize header. */
-  RMAP_NOT_ENOUGH_SPACE = 268
+  RMAP_NOT_ENOUGH_SPACE = 269
 };
 
 /** Size constants for RMAP packets. */
@@ -446,6 +451,32 @@ bool rmap_is_instruction_increment_address(uint8_t instruction);
  */
 bool rmap_is_increment_address(const void *header);
 
+/** Determine if the command code is "RMW" in an instruction field.
+ *
+ * Determine if the command code indicates that the command type is
+ * Read-Modify-Write.
+ *
+ * @param instruction Instruction field.
+ *
+ * @retval true Command code represent an "RMW" command type.
+ * @retval false Command code does not represent an "RMW" command type.
+ */
+bool rmap_is_instruction_rmw(uint8_t instruction);
+
+/** Determine if the command code is "RMW" in a potential RMAP header.
+ *
+ * Determine if the command code indicates that the command type is
+ * Read-Modify-Write.
+ *
+ * @pre @p header must contain at least RMAP_HEADER_MINIMUM_SIZE bytes.
+ *
+ * @param[in] header Potential RMAP header.
+ *
+ * @retval true Command code represents an "unused" command type.
+ * @retval false Command code represents a valid command type.
+ */
+bool rmap_is_rmw(const void *header);
+
 /** Determine if the command code is "unused" in an instruction field.
  *
  * Determine if the command code represents an invalid command type which is
@@ -620,14 +651,14 @@ void rmap_set_transaction_identifier(
     void *header,
     uint16_t transaction_identifier);
 
-/** Set the reserved field in a potential RMAP read reply header.
+/** Set the reserved field in a potential RMAP read reply or RMW reply header.
  *
  * Set the reserved field to 0x00.
  *
  * @pre @p header must contain at least RMAP_READ_REPLY_HEADER_STATIC_SIZE
  *      bytes.
  *
- * @param[out] header Potential RMAP read reply header.
+ * @param[out] header Potential RMAP read reply or RMW reply header.
  */
 void rmap_set_reserved(void *header);
 
@@ -669,30 +700,30 @@ uint32_t rmap_get_address(const void *header);
  */
 void rmap_set_address(void *header, uint32_t address);
 
-/** Get the data length field from a verified RMAP command or read reply
- *  header.
+/** Get the data length field from a verified RMAP command, read reply, or RMW
+ *  reply header.
  *
  * Read-modify-write is not supported.
  *
- * @pre @p header must contain a verified RMAP command or read reply header.
+ * @pre @p header must contain a verified RMAP command, read reply, or RMW
+ *      reply header.
  *
- * @param[in] header Verified RMAP command or read reply header.
+ * @param[in] header Verified RMAP command, read reply or RMW reply header.
  *
  * @return Data length field.
  */
 uint32_t rmap_get_data_length(const void *header);
 
-/** Set the data length field in an initialized RMAP command or read reply
- *  header.
- *
- * Read-modify-write is not supported.
+/** Set the data length field in an initialized RMAP command, read reply, or
+ *  RMW reply header.
  *
  * @pre @p data_length must be less than or equal to RMAP_DATA_LENGTH_MAX.
  *
- * @pre @p header must contain an initialized RMAP command or read reply
- *      header.
+ * @pre @p header must contain an initialized RMAP command, read reply, or RMW
+ * reply header.
  *
- * @param[out] header Initialized RMAP command or read reply header.
+ * @param[out] header Initialized RMAP command, read reply, or RMW reply
+ *             header.
  * @param data_length Data length field to copy into @p header.
  */
 void rmap_set_data_length(void *header, uint32_t data_length);
@@ -761,12 +792,16 @@ enum rmap_status rmap_verify_header_instruction(const void *header);
 /** Verify the data field in a packet with a verified RMAP write command or
  *  read reply header.
  *
- * @pre @p packet must contain a verified RMAP command or read reply header.
+ * @pre @p packet must contain a verified RMAP command, read reply, or RMW
+ *      reply header.
  * @pre @p size Must be equal to the size of the packet being verified.
  *
- * @param[in] packet Packet with a verified RMAP command or read reply header.
+ * @param[in] packet Packet with a verified RMAP command, read reply, or RMW
+ *            reply header.
  * @param size Number of bytes in @p packet.
  *
+ * @retval RMAP_RMW_DATA_LENGTH_ERROR The packet is an RMW command or RMW reply
+ *         and the data length field has an invalid value.
  * @retval RMAP_INSUFFICIENT_DATA @p size is too small to fit the whole packet.
  * @retval RMAP_TOO_MUCH_DATA @p size is larger than the packet based on the
  *         data length field.
@@ -865,15 +900,16 @@ enum rmap_status rmap_initialize_header_before(
 /** Create a complete success reply header with reply address from an existing
  *  RMAP command header.
  *
- * Initialize a complete header reply header with all fields set to correspond
- * to a success reply based on an existing command header.
+ * Initialize a complete reply header with all fields set to correspond to a
+ * success reply based on an existing command header.
  *
  * The reply address will be added before the reply header.
  *
  * It is expected that the caller will update the status field to reflect the
  * actual result of the command verification and execution.
  *
- * If the reply is a read reply, is is expected that the caller will:
+ * If the reply is a read reply or an RMW reply, is is expected that the caller
+ * will:
  * - Add the data field.
  * - Add the data CRC.
  * - Update the data length to reflect the actual amount of data in the reply.

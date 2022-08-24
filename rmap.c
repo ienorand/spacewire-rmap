@@ -93,6 +93,19 @@ bool rmap_is_increment_address(const void *const header)
   return rmap_is_instruction_increment_address(rmap_get_instruction(header));
 }
 
+bool rmap_is_instruction_rmw(const uint8_t instruction)
+{
+  return !rmap_is_instruction_write(instruction) &&
+    rmap_is_instruction_verify_data_before_write(instruction) &&
+    rmap_is_instruction_with_reply(instruction) &&
+    rmap_is_instruction_increment_address(instruction);
+}
+
+bool rmap_is_rmw(const void *const header)
+{
+  return rmap_is_instruction_rmw(rmap_get_instruction(header));
+}
+
 bool rmap_is_instruction_unused_command_code(const uint8_t instruction)
 {
   const int command_code =
@@ -506,6 +519,35 @@ enum rmap_status rmap_verify_data(const void *const packet, const size_t size)
   const size_t data_offset = rmap_calculate_header_size(packet);
   const size_t data_length = rmap_get_data_length(packet);
 
+  if (rmap_is_rmw(packet)) {
+    if (rmap_is_command(packet)) {
+      switch (data_length) {
+        case 0:
+        case 2:
+        case 4:
+        case 6:
+        case 8:
+          break;
+
+        default:
+          return RMAP_RMW_DATA_LENGTH_ERROR;
+      }
+    } else {
+      /* RMW reply. */
+      switch (data_length) {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+          break;
+
+        default:
+          return RMAP_RMW_DATA_LENGTH_ERROR;
+      }
+    }
+  }
+
   if (size < data_offset + data_length + 1) {
     return RMAP_INSUFFICIENT_DATA;
   }
@@ -726,11 +768,18 @@ enum rmap_status rmap_create_success_reply_from_command(
       rmap_get_transaction_identifier(command_header));
 
   if (!rmap_is_write(command_header)) {
-    /* Read reply. */
+    /* Read reply or RMW reply. */
     rmap_set_reserved(reply_header);
-    rmap_set_data_length(
-        reply_header,
-        rmap_get_data_length(command_header));
+    if (rmap_is_rmw(command_header)) {
+      rmap_set_data_length(
+          reply_header,
+          rmap_get_data_length(command_header) / 2);
+    } else {
+      /* Read reply. */
+      rmap_set_data_length(
+          reply_header,
+          rmap_get_data_length(command_header));
+    }
   }
 
   rmap_calculate_and_set_header_crc(reply_header);
@@ -804,6 +853,9 @@ const char *rmap_status_text(const int status)
 
     case RMAP_INVALID_DATA_CRC:
       return "RMAP_INVALID_DATA_CRC";
+
+    case RMAP_RMW_DATA_LENGTH_ERROR:
+      return "RMAP_RMW_DATA_LENGTH_ERROR";
 
     case RMAP_INVALID_PACKET_TYPE:
       return "RMAP_INVALID_PACKET_TYPE";

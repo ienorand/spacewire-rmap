@@ -360,6 +360,179 @@ static const uint8_t test_pattern3_expected_read_reply_with_spacewire_addresses[
   0xB4
 };
 
+/* Custom test patterns for read-modify-write. */
+
+static const uint8_t test_pattern4_rmw[] = {
+  /* Target Logical Address */
+  0xFE,
+  /* Protocol Identifier */
+  0x01,
+  /* Instruction */
+  0x5C,
+  /* Key */
+  0x00,
+  /* Initiator Logical Address */
+  0x67,
+  /* Transaction Identifier MS */
+  0x00,
+  /* Transaction Identifier LS */
+  0x04,
+  /* Extended Address */
+  0x00,
+  /* Address MS */
+  0xA0,
+  /* Address */
+  0x00,
+  /* Address */
+  0x00,
+  /* Address LS */
+  0x10,
+  /* Data Length MS */
+  0x00,
+  /* Data Length */
+  0x00,
+  /* Data Length LS */
+  0x06,
+  /* Header CRC */
+  0x9D,
+  /* Data */
+  0xC0,
+  0x18,
+  0x02,
+  /* Mask */
+  0xF0,
+  0x3C,
+  0x03,
+  /* Data CRC */
+  0xE3
+};
+
+static const uint8_t test_pattern4_expected_rmw_reply[] = {
+  /* Initiator Logical Address */
+  0x67,
+  /* Protocol Identifier */
+  0x01,
+  /* Instruction */
+  0x1C,
+  /* Status */
+  0x00,
+  /* Target Logical Address */
+  0xFE,
+  /* Transaction Identifier MS */
+  0x00,
+  /* Transaction Identifier LS */
+  0x04,
+  /* Reserved */
+  0x00,
+  /* Data Length MS */
+  0x00,
+  /* Data Length */
+  0x00,
+  /* Data Length LS */
+  0x03,
+  /* Header CRC */
+  0x4F,
+  /* Data */
+  0xA0,
+  0xA1,
+  0xA2,
+  /* Data CRC */
+  0xD7
+};
+
+static const size_t test_pattern5_target_address_length = 1;
+static const size_t test_pattern5_reply_address_length_padded = 4;
+static const uint8_t test_pattern5_rmw_with_spacewire_addresses[] = {
+  /* Target SpaceWire Address */
+  0x11,
+  /* Target Logical Address */
+  0xFE,
+  /* Protocol Identifier */
+  0x01,
+  /* Instruction */
+  0x5D,
+  /* Key */
+  0x00,
+  /* Reply SpaceWire Address */
+  0x00,
+  0x00,
+  0x00,
+  0x88,
+  /* Initiator Logical Address */
+  0x67,
+  /* Transaction Identifier MS */
+  0x00,
+  /* Transaction Identifier LS */
+  0x05,
+  /* Extended Address */
+  0x00,
+  /* Address MS */
+  0xA0,
+  /* Address */
+  0x00,
+  /* Address */
+  0x00,
+  /* Address LS */
+  0x10,
+  /* Data Length MS */
+  0x00,
+  /* Data Length */
+  0x00,
+  /* Data Length LS */
+  0x08,
+  /* Header CRC */
+  0xC6,
+  /* Data */
+  0x07,
+  0x02,
+  0xA0,
+  0x00,
+  /* Mask */
+  0x0F,
+  0x83,
+  0xE0,
+  0xFF,
+  /* Data CRC */
+  0x1D
+};
+
+static const size_t test_pattern5_reply_address_length = 1;
+static const uint8_t test_pattern5_expected_rmw_reply_with_spacewire_addresses[] = {
+  /* Reply SpaceWire Address */
+  0x88,
+  /* Initiator Logical Address */
+  0x67,
+  /* Protocol Identifier */
+  0x01,
+  /* Instruction */
+  0x1D,
+  /* Status */
+  0x00,
+  /* Target Logical Address */
+  0xFE,
+  /* Transaction Identifier MS */
+  0x00,
+  /* Transaction Identifier LS */
+  0x05,
+  /* Reserved */
+  0x00,
+  /* Data Length MS */
+  0x00,
+  /* Data Length */
+  0x00,
+  /* Data Length LS */
+  0x04,
+  /* Header CRC */
+  0xFF,
+  /* Data */
+  0xE0,
+  0x99,
+  0xA2,
+  0xA3,
+  /* Data CRC */
+  0x7D
+};
+
 typedef std::tuple<uint8_t (*)(const void *), uint8_t>
 AccessorByteCheckParameters;
 typedef std::tuple<const uint8_t *, AccessorByteCheckParameters>
@@ -531,6 +704,84 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(rmap_get_target_logical_address, 0xFE),
         std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
+INSTANTIATE_TEST_CASE_P(
+    TestPattern4AccessorByteChecks,
+    AccessorByteCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern4_rmw),
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          RMAP_PACKET_TYPE_COMMAND << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          RMAP_COMMAND_CODE_VERIFY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT),
+        std::make_tuple(rmap_get_key, 0),
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67),
+        std::make_tuple(rmap_get_extended_address, 0x00))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern4ReplyAccessorByteChecks,
+    AccessorByteCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern4_expected_rmw_reply),
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          RMAP_PACKET_TYPE_REPLY << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          RMAP_COMMAND_CODE_VERIFY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT),
+        std::make_tuple(rmap_get_status, RMAP_STATUS_FIELD_CODE_SUCCESS),
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern5AccessorByteChecks,
+    AccessorByteCheckInPattern,
+    testing::Combine(
+      testing::Values(
+        test_pattern5_rmw_with_spacewire_addresses +
+        test_pattern5_target_address_length),
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          RMAP_PACKET_TYPE_COMMAND << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          RMAP_COMMAND_CODE_VERIFY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          (test_pattern5_reply_address_length_padded / 4) <<
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
+        std::make_tuple(rmap_get_key, 0),
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67),
+        std::make_tuple(rmap_get_extended_address, 0x00))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern5ReplyAccessorByteChecks,
+    AccessorByteCheckInPattern,
+    testing::Combine(
+      testing::Values(
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+        test_pattern5_reply_address_length),
+      testing::Values(
+        std::make_tuple(rmap_get_protocol, 1),
+        std::make_tuple(
+          rmap_get_instruction,
+          RMAP_PACKET_TYPE_REPLY << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT |
+          RMAP_COMMAND_CODE_VERIFY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_REPLY << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          RMAP_COMMAND_CODE_INCREMENT << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT |
+          (test_pattern5_reply_address_length_padded / 4) <<
+          RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT),
+        std::make_tuple(rmap_get_status, RMAP_STATUS_FIELD_CODE_SUCCESS),
+        std::make_tuple(rmap_get_target_logical_address, 0xFE),
+        std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
+
 static uint8_t patterns_with_non_rmap_protocols[][RMAP_HEADER_MINIMUM_SIZE] = {
   { 13, 0, 17 },
   { 13, 2, 17 },
@@ -648,6 +899,9 @@ INSTANTIATE_TEST_CASE_P(
         testing::Values(RMAP_PACKET_TYPE_COMMAND, RMAP_PACKET_TYPE_REPLY),
         testing::Values(
           RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+          RMAP_COMMAND_CODE_VERIFY |
+          RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
           RMAP_COMMAND_CODE_REPLY),
         testing::Range(
           (size_t)0,
@@ -707,6 +961,7 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(rmap_is_verify_data_before_write, false),
         std::make_tuple(rmap_is_with_reply, true),
         std::make_tuple(rmap_is_increment_address, true),
+        std::make_tuple(rmap_is_rmw, false),
         std::make_tuple(rmap_is_unused_command_code, false))));
 
 INSTANTIATE_TEST_CASE_P(
@@ -721,6 +976,7 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(rmap_is_verify_data_before_write, false),
         std::make_tuple(rmap_is_with_reply, true),
         std::make_tuple(rmap_is_increment_address, true),
+        std::make_tuple(rmap_is_rmw, false),
         std::make_tuple(rmap_is_unused_command_code, false))));
 
 INSTANTIATE_TEST_CASE_P(
@@ -735,6 +991,7 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(rmap_is_verify_data_before_write, false),
         std::make_tuple(rmap_is_with_reply, true),
         std::make_tuple(rmap_is_increment_address, true),
+        std::make_tuple(rmap_is_rmw, false),
         std::make_tuple(rmap_is_unused_command_code, false))));
 
 INSTANTIATE_TEST_CASE_P(
@@ -749,6 +1006,37 @@ INSTANTIATE_TEST_CASE_P(
         std::make_tuple(rmap_is_verify_data_before_write, false),
         std::make_tuple(rmap_is_with_reply, true),
         std::make_tuple(rmap_is_increment_address, true),
+        std::make_tuple(rmap_is_rmw, false),
+        std::make_tuple(rmap_is_unused_command_code, false))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern4AccessorBoolChecks,
+    AccessorBoolCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern4_rmw),
+      testing::Values(
+        std::make_tuple(rmap_is_command, true),
+        std::make_tuple(rmap_is_unused_packet_type, false),
+        std::make_tuple(rmap_is_write, false),
+        std::make_tuple(rmap_is_verify_data_before_write, true),
+        std::make_tuple(rmap_is_with_reply, true),
+        std::make_tuple(rmap_is_increment_address, true),
+        std::make_tuple(rmap_is_rmw, true),
+        std::make_tuple(rmap_is_unused_command_code, false))));
+
+INSTANTIATE_TEST_CASE_P(
+    TestPattern4ReplyAccessorBoolChecks,
+    AccessorBoolCheckInPattern,
+    testing::Combine(
+      testing::Values(test_pattern4_expected_rmw_reply),
+      testing::Values(
+        std::make_tuple(rmap_is_command, false),
+        std::make_tuple(rmap_is_unused_packet_type, false),
+        std::make_tuple(rmap_is_write, false),
+        std::make_tuple(rmap_is_verify_data_before_write, true),
+        std::make_tuple(rmap_is_with_reply, true),
+        std::make_tuple(rmap_is_increment_address, true),
+        std::make_tuple(rmap_is_rmw, true),
         std::make_tuple(rmap_is_unused_command_code, false))));
 
 TEST(RmapIsUnusedPacketType, UnusedPacketType)
@@ -863,6 +1151,31 @@ TEST(RmapGetReplyAddress, Patterns)
         test_pattern3_expected_read_reply_with_spacewire_addresses,
         test_pattern3_expected_read_reply_with_spacewire_addresses +
         test_pattern3_reply_address_length));
+
+  EXPECT_EQ(
+      rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        test_pattern4_rmw),
+      RMAP_OK);
+  EXPECT_EQ(reply_address_size, 0);
+
+  EXPECT_EQ(
+      rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        test_pattern5_rmw_with_spacewire_addresses +
+        test_pattern5_target_address_length),
+      RMAP_OK);
+  EXPECT_EQ(reply_address_size, test_pattern5_reply_address_length);
+  EXPECT_EQ(
+      std::vector<uint8_t>(reply_address, reply_address + reply_address_size),
+      std::vector<uint8_t>(
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses,
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+        test_pattern5_reply_address_length));
 }
 
 typedef std::tuple<std::vector<uint8_t>, std::vector<uint8_t>>
@@ -1013,6 +1326,24 @@ TEST(RmapGetTransationIdentifier, Patterns)
         test_pattern3_expected_read_reply_with_spacewire_addresses +
         test_pattern3_reply_address_length),
       0x0003);
+
+  EXPECT_EQ(rmap_get_transaction_identifier(test_pattern4_rmw), 0x0004);
+
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(test_pattern4_expected_rmw_reply),
+      0x0004);
+
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(
+        test_pattern5_rmw_with_spacewire_addresses +
+        test_pattern5_target_address_length),
+      0x0005);
+
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+        test_pattern5_reply_address_length),
+      0x0005);
 }
 
 typedef std::tuple<enum rmap_packet_type, int, size_t>
@@ -1065,6 +1396,9 @@ INSTANTIATE_TEST_CASE_P(
       testing::Values(RMAP_PACKET_TYPE_COMMAND, RMAP_PACKET_TYPE_REPLY),
       testing::Values(
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
         RMAP_COMMAND_CODE_REPLY),
       testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
@@ -1089,6 +1423,14 @@ TEST(RmapGetAddress, Patterns)
       rmap_get_address(
         test_pattern3_incrementing_read_with_spacewire_addresses +
         test_pattern3_target_address_length),
+      0xA0000010);
+
+  EXPECT_EQ(rmap_get_address(test_pattern4_rmw), 0xA0000010);
+
+  EXPECT_EQ(
+      rmap_get_address(
+        test_pattern5_rmw_with_spacewire_addresses +
+        test_pattern5_target_address_length),
       0xA0000010);
 }
 
@@ -1141,6 +1483,9 @@ INSTANTIATE_TEST_CASE_P(
       testing::Values(RMAP_PACKET_TYPE_COMMAND),
       testing::Values(
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
         RMAP_COMMAND_CODE_REPLY),
       testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
@@ -1176,6 +1521,24 @@ TEST(RmapGetHeaderDataLength, Patterns)
         test_pattern3_expected_read_reply_with_spacewire_addresses +
         test_pattern3_reply_address_length),
       0x00000010);
+
+  EXPECT_EQ(rmap_get_data_length(test_pattern4_rmw), 0x00000006);
+
+  EXPECT_EQ(
+      rmap_get_data_length(test_pattern4_expected_rmw_reply),
+      0x00000003);
+
+  EXPECT_EQ(
+      rmap_get_data_length(
+        test_pattern5_rmw_with_spacewire_addresses +
+        test_pattern5_target_address_length),
+      0x00000008);
+
+  EXPECT_EQ(
+      rmap_get_data_length(
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+        test_pattern5_reply_address_length),
+      0x0000004);
 }
 
 typedef std::tuple<enum rmap_packet_type, int, size_t> SetDataLengthParameters;
@@ -1242,6 +1605,28 @@ INSTANTIATE_TEST_CASE_P(
     testing::Combine(
       testing::Values(RMAP_PACKET_TYPE_REPLY),
       testing::Values(RMAP_COMMAND_CODE_REPLY),
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
+
+INSTANTIATE_TEST_CASE_P(
+    Rmw,
+    SetDataLength,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_COMMAND),
+      testing::Values(
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT),
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
+
+INSTANTIATE_TEST_CASE_P(
+    RmwReply,
+    SetDataLength,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_REPLY),
+      testing::Values(
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT),
       testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
 TEST(RmapCalculateHeaderSize, Patterns)
@@ -1326,6 +1711,9 @@ INSTANTIATE_TEST_CASE_P(
       testing::Values(
         RMAP_COMMAND_CODE_WRITE,
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
         RMAP_COMMAND_CODE_REPLY),
       testing::Values(
         std::make_tuple((size_t)0, (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE),
@@ -1382,6 +1770,19 @@ INSTANTIATE_TEST_CASE_P(
     testing::Combine(
       testing::Values(RMAP_PACKET_TYPE_REPLY),
       testing::Values(RMAP_COMMAND_CODE_REPLY),
+      testing::Combine(
+        testing::Range((size_t)0, (size_t)RMAP_REPLY_ADDRESS_LENGTH_MAX + 1),
+        testing::Values(RMAP_READ_REPLY_HEADER_STATIC_SIZE))));
+
+INSTANTIATE_TEST_CASE_P(
+    RmwReply,
+    CalculateHeaderSize,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_REPLY),
+      testing::Values(
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT),
       testing::Combine(
         testing::Range((size_t)0, (size_t)RMAP_REPLY_ADDRESS_LENGTH_MAX + 1),
         testing::Values(RMAP_READ_REPLY_HEADER_STATIC_SIZE))));
@@ -1635,7 +2036,21 @@ INSTANTIATE_TEST_CASE_P(
         test_pattern3_expected_read_reply_with_spacewire_addresses +
         test_pattern3_reply_address_length,
         sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
-        test_pattern3_reply_address_length)));
+        test_pattern3_reply_address_length),
+      std::make_tuple(test_pattern4_rmw, sizeof(test_pattern4_rmw)),
+      std::make_tuple(
+        test_pattern4_expected_rmw_reply,
+        sizeof(test_pattern4_expected_rmw_reply)),
+      std::make_tuple(
+        test_pattern5_rmw_with_spacewire_addresses +
+        test_pattern5_target_address_length,
+        sizeof(test_pattern5_rmw_with_spacewire_addresses) -
+        test_pattern5_target_address_length),
+      std::make_tuple(
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+        test_pattern5_reply_address_length,
+        sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses) -
+        test_pattern5_reply_address_length)));
 
 class TestPatternsWithData : public testing::TestWithParam<PatternParameters>
 {
@@ -1778,7 +2193,20 @@ INSTANTIATE_TEST_CASE_P(
         test_pattern3_expected_read_reply_with_spacewire_addresses +
         test_pattern3_reply_address_length,
         sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
-        test_pattern3_reply_address_length)));
+        test_pattern3_reply_address_length),
+      std::make_tuple(test_pattern4_rmw, sizeof(test_pattern4_rmw)),
+      std::make_tuple(
+        test_pattern4_expected_rmw_reply,
+        sizeof(test_pattern4_expected_rmw_reply)),
+      std::make_tuple(
+        test_pattern5_rmw_with_spacewire_addresses + test_pattern5_target_address_length,
+        sizeof(test_pattern5_rmw_with_spacewire_addresses) -
+        test_pattern5_target_address_length),
+      std::make_tuple(
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+        test_pattern5_reply_address_length,
+        sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses) -
+        test_pattern5_reply_address_length)));
 
 typedef std::tuple<enum rmap_packet_type, int, size_t, enum rmap_status>
 VerifyHeaderInstructionParameters;
@@ -2121,6 +2549,38 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_PACKET_TYPE_REPLY,
         RMAP_COMMAND_CODE_REPLY,
         0xFF,
+        RMAP_REPLY_ADDRESS_TOO_LONG),
+      std::make_tuple(
+        64,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX + 1,
+        RMAP_REPLY_ADDRESS_TOO_LONG),
+      std::make_tuple(
+        64,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        0xFF,
+        RMAP_REPLY_ADDRESS_TOO_LONG),
+      std::make_tuple(
+        64,
+        RMAP_PACKET_TYPE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX + 1,
+        RMAP_REPLY_ADDRESS_TOO_LONG),
+      std::make_tuple(
+        64,
+        RMAP_PACKET_TYPE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        0xFF,
         RMAP_REPLY_ADDRESS_TOO_LONG)));
 
 INSTANTIATE_TEST_CASE_P(
@@ -2299,6 +2759,120 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_REPLY_ADDRESS_LENGTH_MAX,
         RMAP_OK)));
 
+INSTANTIATE_TEST_CASE_P(
+    RmwCommandSizeLimits,
+    InitializeHeader,
+    testing::Values(
+      std::make_tuple(
+        RMAP_COMMAND_HEADER_STATIC_SIZE - 1,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        0,
+        RMAP_NOT_ENOUGH_SPACE),
+      std::make_tuple(
+        RMAP_COMMAND_HEADER_STATIC_SIZE,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        0,
+        RMAP_OK),
+      std::make_tuple(
+        RMAP_COMMAND_HEADER_STATIC_SIZE,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        1,
+        RMAP_NOT_ENOUGH_SPACE),
+      std::make_tuple(
+        RMAP_COMMAND_HEADER_STATIC_SIZE + 4 - 1,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        1,
+        RMAP_NOT_ENOUGH_SPACE),
+      std::make_tuple(
+        RMAP_COMMAND_HEADER_STATIC_SIZE + 4,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        1,
+        RMAP_OK),
+      std::make_tuple(
+        RMAP_COMMAND_HEADER_STATIC_SIZE + 4,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        4,
+        RMAP_OK),
+      std::make_tuple(
+        RMAP_COMMAND_HEADER_STATIC_SIZE + 11,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        9,
+        RMAP_NOT_ENOUGH_SPACE),
+      std::make_tuple(
+        RMAP_COMMAND_HEADER_STATIC_SIZE + 12,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        9,
+        RMAP_OK),
+      std::make_tuple(
+        RMAP_COMMAND_HEADER_STATIC_SIZE + 12,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        12,
+        RMAP_OK)));
+
+INSTANTIATE_TEST_CASE_P(
+    RmwReplySizeLimits,
+    InitializeHeader,
+    testing::Values(
+      std::make_tuple(
+        RMAP_READ_REPLY_HEADER_STATIC_SIZE - 1,
+        RMAP_PACKET_TYPE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        0,
+        RMAP_NOT_ENOUGH_SPACE),
+      std::make_tuple(
+        RMAP_READ_REPLY_HEADER_STATIC_SIZE - 1,
+        RMAP_PACKET_TYPE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX,
+        RMAP_NOT_ENOUGH_SPACE),
+      std::make_tuple(
+        RMAP_READ_REPLY_HEADER_STATIC_SIZE,
+        RMAP_PACKET_TYPE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        0,
+        RMAP_OK),
+      std::make_tuple(
+        RMAP_READ_REPLY_HEADER_STATIC_SIZE,
+        RMAP_PACKET_TYPE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        RMAP_REPLY_ADDRESS_LENGTH_MAX,
+        RMAP_OK)));
+
 typedef std::tuple<enum rmap_packet_type, int, size_t, uint8_t, uint8_t, uint16_t, uint32_t>
 CreateSuccessReplyFromCommandParameters;
 
@@ -2384,7 +2958,14 @@ TEST_P(CreateSuccessReplyFromCommand, Check)
       rmap_get_transaction_identifier(reply_packet + reply_header_offset),
       command_transaction_identifier);
 
-  if (!rmap_is_write(command_header)) {
+  if (rmap_is_rmw(command_header)) {
+    /* RMW reply contains data length and should be half of command data
+     * length.
+     */
+    EXPECT_EQ(
+        rmap_get_data_length(reply_packet + reply_header_offset),
+        command_data_length / 2);
+  } else if (!rmap_is_write(command_header)) {
     /* Read reply contains data length. */
     EXPECT_EQ(
         rmap_get_data_length(reply_packet + reply_header_offset),
@@ -2393,7 +2974,7 @@ TEST_P(CreateSuccessReplyFromCommand, Check)
 }
 
 INSTANTIATE_TEST_CASE_P(
-    WriteAndReadCommandsWithReply,
+    CommandsWithReply,
     CreateSuccessReplyFromCommand,
     testing::Combine(
       testing::Values(
@@ -2401,6 +2982,9 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_PACKET_TYPE_COMMAND_RESERVED),
       testing::Values(
         RMAP_COMMAND_CODE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY),
       testing::Values(
         (size_t)0,
@@ -2520,6 +3104,70 @@ TEST_P(CreateSuccessReplyFromCommandSizeLimits, ReadReply)
   rmap_set_extended_address(command_header, 0x12);
   rmap_set_address(command_header, 0x12345678);
   rmap_set_data_length(command_header, 123);
+
+  max_size =
+    RMAP_READ_REPLY_HEADER_STATIC_SIZE + reply_address_unpadded_size - 1;
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command(
+        reply_packet,
+        &reply_header_offset,
+        max_size,
+        command_header),
+      RMAP_NOT_ENOUGH_SPACE);
+
+  max_size = RMAP_READ_REPLY_HEADER_STATIC_SIZE + reply_address_unpadded_size;
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command(
+        reply_packet,
+        &reply_header_offset,
+        max_size,
+        command_header),
+      RMAP_OK);
+}
+
+TEST_P(CreateSuccessReplyFromCommandSizeLimits, RmwReply)
+{
+  uint8_t command_header[RMAP_HEADER_SIZE_MAX];
+  size_t max_size;
+  uint8_t reply_packet[RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX];
+  size_t reply_header_offset;
+
+  auto reply_address_unpadded_size = GetParam();
+
+  ASSERT_EQ(
+      rmap_initialize_header(
+        command_header,
+        sizeof(command_header),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        reply_address_unpadded_size),
+      RMAP_OK);
+
+  rmap_set_target_logical_address(
+      command_header,
+      0x12);
+  rmap_set_initiator_logical_address(
+      command_header,
+      0x12);
+  rmap_set_key(command_header, 123);
+
+  const uint8_t reply_address_data[] = {
+    0x11, 0x22, 0x33, 0x44,
+    0x55, 0x66, 0x77, 0x88,
+    0x99, 0xAA, 0xBB, 0xCC
+  };
+
+  rmap_set_reply_address(
+      command_header,
+      reply_address_data,
+      reply_address_unpadded_size),
+
+  rmap_set_transaction_identifier(command_header, 123);
+  rmap_set_extended_address(command_header, 0x12);
+  rmap_set_address(command_header, 0x12345678);
+  rmap_set_data_length(command_header, 6);
 
   max_size =
     RMAP_READ_REPLY_HEADER_STATIC_SIZE + reply_address_unpadded_size - 1;
@@ -2761,6 +3409,90 @@ TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern3Reply)
     0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
     0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF
   };
+
+  const size_t reply_header_size =
+    rmap_calculate_header_size(buf + reply_header_offset);
+
+  memcpy(buf + reply_header_offset + reply_header_size, data, sizeof(data));
+  buf[reply_header_offset + reply_header_size + sizeof(data)] =
+    rmap_crc_calculate(
+        buf + reply_header_offset + reply_header_size,
+        sizeof(data));
+
+  std::vector<uint8_t> reply_packet(
+      buf,
+      buf + reply_header_offset + reply_header_size + sizeof(data) + 1);
+  EXPECT_EQ(reply_packet, expected_packet);
+}
+
+TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern4Reply)
+{
+  uint8_t buf[123];
+  size_t reply_header_offset;
+
+  std::vector<uint8_t> expected_packet(
+      test_pattern4_expected_rmw_reply,
+      test_pattern4_expected_rmw_reply +
+      sizeof(test_pattern4_expected_rmw_reply));
+
+  memset(buf, 0, sizeof(buf));
+
+  std::vector<uint8_t> command_packet(
+      test_pattern4_rmw,
+      test_pattern4_rmw + sizeof(test_pattern4_rmw));
+
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command(
+        buf,
+        &reply_header_offset,
+        sizeof(buf),
+        command_packet.data()),
+      RMAP_OK);
+
+  const uint8_t data[] = { 0xA0, 0xA1, 0xA2 };
+
+  const size_t reply_header_size =
+    rmap_calculate_header_size(buf + reply_header_offset);
+
+  memcpy(buf + reply_header_offset + reply_header_size, data, sizeof(data));
+  buf[reply_header_offset + reply_header_size + sizeof(data)] =
+    rmap_crc_calculate(
+        buf + reply_header_offset + reply_header_size,
+        sizeof(data));
+
+  std::vector<uint8_t> reply_packet(
+      buf,
+      buf + reply_header_offset + reply_header_size + sizeof(data) + 1);
+  EXPECT_EQ(reply_packet, expected_packet);
+}
+
+TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern5Reply)
+{
+  uint8_t buf[123];
+  size_t reply_header_offset;
+
+  std::vector<uint8_t> expected_packet(
+      test_pattern5_expected_rmw_reply_with_spacewire_addresses,
+      test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+      sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses));
+
+  memset(buf, 0, sizeof(buf));
+
+  std::vector<uint8_t> command_packet(
+      test_pattern5_rmw_with_spacewire_addresses +
+      test_pattern5_target_address_length,
+      test_pattern5_rmw_with_spacewire_addresses +
+      sizeof(test_pattern5_rmw_with_spacewire_addresses));
+
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command(
+        buf,
+        &reply_header_offset,
+        sizeof(buf),
+        command_packet.data()),
+      RMAP_OK);
+
+  const uint8_t data[] = { 0xE0, 0x99, 0xA2, 0xA3 };
 
   const size_t reply_header_size =
     rmap_calculate_header_size(buf + reply_header_offset);
@@ -3136,6 +3868,228 @@ TEST(RmapRecreateHeader, TestPattern3Reply)
   rmap_set_status(header, RMAP_STATUS_FIELD_CODE_SUCCESS);
   rmap_set_target_logical_address(header, 0xFE);
   rmap_set_transaction_identifier(header, 3);
+  rmap_set_reserved(header);
+  rmap_set_data_length(header, sizeof(data));
+
+  rmap_calculate_and_set_header_crc(header);
+
+  memcpy(
+      header - sizeof(reply_address),
+      reply_address,
+      sizeof(reply_address));
+
+  buf[data_offset + sizeof(data)] =
+    rmap_crc_calculate(buf + data_offset, sizeof(data));
+
+  std::vector<uint8_t> packet(
+      buf + header_offset - sizeof(reply_address),
+      buf + data_offset + sizeof(data) + 1);
+  EXPECT_EQ(packet, expected_packet);
+}
+
+TEST(RmapRecreateHeader, TestPattern4Command)
+{
+  size_t header_offset;
+  uint8_t buf[1234];
+
+  std::vector<uint8_t> expected_packet(
+      test_pattern4_rmw,
+      test_pattern4_rmw + sizeof(test_pattern4_rmw));
+
+  memset(buf, 0, sizeof(buf));
+
+  const uint8_t data[] = { 0xC0, 0x18, 0x02 };
+  const uint8_t mask[] = { 0xF0, 0x3C, 0x03 };
+
+  const size_t  data_offset = 123;
+
+  memcpy(buf + data_offset, data, sizeof(data));
+  memcpy(buf + data_offset + sizeof(data), mask, sizeof(mask));
+
+  EXPECT_EQ(
+      rmap_initialize_header_before(
+        &header_offset,
+        buf,
+        data_offset,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        0),
+      RMAP_OK);
+
+  uint8_t *const header = buf + header_offset;
+
+  rmap_set_target_logical_address(header, 0xFE);
+  rmap_set_key(header, 0);
+  rmap_set_initiator_logical_address(header, 0x67);
+  rmap_set_transaction_identifier(header, 4);
+  rmap_set_extended_address(header, 0x00);
+  rmap_set_address(header, 0xA0000010);
+  rmap_set_data_length(header, sizeof(data) + sizeof(mask));
+
+  rmap_calculate_and_set_header_crc(header);
+
+  buf[data_offset + sizeof(data) + sizeof(mask)] =
+    rmap_crc_calculate(buf + data_offset, sizeof(data) + sizeof(mask));
+
+  std::vector<uint8_t> packet(
+      buf + header_offset,
+      buf + data_offset + sizeof(data) + sizeof(mask) + 1);
+  EXPECT_EQ(packet, expected_packet);
+}
+
+TEST(RmapRecreateHeader, TestPattern4Reply)
+{
+  size_t header_offset;
+  uint8_t buf[1234];
+
+  std::vector<uint8_t> expected_packet(
+      test_pattern4_expected_rmw_reply,
+      test_pattern4_expected_rmw_reply +
+      sizeof(test_pattern4_expected_rmw_reply));
+
+  memset(buf, 0, sizeof(buf));
+
+  const uint8_t data[] = { 0xA0, 0xA1, 0xA2 };
+
+  const size_t  data_offset = 123;
+
+  memcpy(buf + data_offset, data, sizeof(data));
+
+  EXPECT_EQ(
+      rmap_initialize_header_before(
+        &header_offset,
+        buf,
+        data_offset,
+        RMAP_PACKET_TYPE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        0),
+      RMAP_OK);
+
+  uint8_t *const header = buf + header_offset;
+
+  rmap_set_initiator_logical_address(header, 0x67);
+  rmap_set_status(header, RMAP_STATUS_FIELD_CODE_SUCCESS);
+  rmap_set_target_logical_address(header, 0xFE);
+  rmap_set_transaction_identifier(header, 4);
+  rmap_set_reserved(header);
+  rmap_set_data_length(header, sizeof(data));
+
+  rmap_calculate_and_set_header_crc(header);
+
+  buf[data_offset + sizeof(data)] =
+    rmap_crc_calculate(buf + data_offset, sizeof(data));
+
+  std::vector<uint8_t> packet(
+      buf + header_offset,
+      buf + data_offset + sizeof(data) + 1);
+  EXPECT_EQ(packet, expected_packet);
+}
+
+TEST(RmapRecreateHeader, TestPattern5CommandTODO)
+{
+  size_t header_offset;
+  uint8_t buf[1234];
+
+  std::vector<uint8_t> expected_packet(
+      test_pattern5_rmw_with_spacewire_addresses,
+      test_pattern5_rmw_with_spacewire_addresses +
+      sizeof(test_pattern5_rmw_with_spacewire_addresses));
+
+  memset(buf, 0, sizeof(buf));
+
+  const uint8_t data[] = { 0x07, 0x02, 0xA0, 0x00 };
+  const uint8_t mask[] = { 0x0F, 0x83, 0xE0, 0xFF };
+
+  const size_t  data_offset = 123;
+
+  memcpy(buf + data_offset, data, sizeof(data));
+  memcpy(buf + data_offset + sizeof(data), mask, sizeof(mask));
+
+  const uint8_t reply_address[] = { 0x88 };
+
+  EXPECT_EQ(
+      rmap_initialize_header_before(
+        &header_offset,
+        buf,
+        data_offset,
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address)),
+      RMAP_OK);
+
+  uint8_t *const header = buf + header_offset;
+
+  rmap_set_target_logical_address(header, 0xFE);
+  rmap_set_key(header, 0);
+  rmap_set_reply_address(header, reply_address, sizeof(reply_address));
+  rmap_set_initiator_logical_address(header, 0x67);
+  rmap_set_transaction_identifier(header, 5);
+  rmap_set_extended_address(header, 0x00);
+  rmap_set_address(header, 0xA0000010);
+  rmap_set_data_length(header, sizeof(data) + sizeof(mask));
+
+  rmap_calculate_and_set_header_crc(header);
+
+  buf[data_offset + sizeof(data) + sizeof(mask)] =
+    rmap_crc_calculate(buf + data_offset, sizeof(data) + sizeof(mask));
+
+  const uint8_t target_address[] = { 0x11 };
+
+  memcpy(
+      header - sizeof(target_address),
+      target_address,
+      sizeof(target_address));
+
+  std::vector<uint8_t> packet(
+      buf + header_offset - sizeof(target_address),
+      buf + data_offset + sizeof(data) + sizeof(mask) + 1);
+  EXPECT_EQ(packet, expected_packet);
+}
+
+TEST(RmapRecreateHeader, TestPattern5Reply)
+{
+  size_t header_offset;
+  uint8_t buf[1234];
+
+  std::vector<uint8_t> expected_packet(
+      test_pattern5_expected_rmw_reply_with_spacewire_addresses,
+      test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+      sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses));
+
+  memset(buf, 0, sizeof(buf));
+
+  const uint8_t reply_address[] = { 0x88 };
+
+  const uint8_t data[] = { 0xE0, 0x99, 0xA2, 0xA3 };
+
+  const size_t  data_offset = 123;
+
+  memcpy(buf + data_offset, data, sizeof(data));
+
+  EXPECT_EQ(
+      rmap_initialize_header_before(
+        &header_offset,
+        buf,
+        data_offset,
+        RMAP_PACKET_TYPE_REPLY,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address)),
+      RMAP_OK);
+
+  uint8_t *const header = buf + header_offset;
+
+  rmap_set_initiator_logical_address(header, 0x67);
+  rmap_set_status(header, RMAP_STATUS_FIELD_CODE_SUCCESS);
+  rmap_set_target_logical_address(header, 0xFE);
+  rmap_set_transaction_identifier(header, 5);
   rmap_set_reserved(header);
   rmap_set_data_length(header, sizeof(data));
 
