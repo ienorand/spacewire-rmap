@@ -390,6 +390,11 @@ static size_t calculate_header_size(const uint8_t instruction)
   return RMAP_READ_REPLY_HEADER_STATIC_SIZE;
 }
 
+size_t rmap_calculate_header_size(const void *const header)
+{
+  return calculate_header_size(rmap_get_instruction(header));
+}
+
 uint32_t rmap_get_data_length(const void *const header)
 {
   size_t offset;
@@ -435,11 +440,6 @@ void rmap_calculate_and_set_header_crc(void *const header)
     calculate_header_size(rmap_get_instruction(header));
   unsigned char *const header_bytes = header;
   header_bytes[header_size - 1] = rmap_crc_calculate(header, header_size - 1);
-}
-
-size_t rmap_calculate_header_size(const void *const header)
-{
-  return calculate_header_size(rmap_get_instruction(header));
 }
 
 enum rmap_status rmap_verify_header_integrity(
