@@ -1627,15 +1627,15 @@ INSTANTIATE_TEST_CASE_P(
         sizeof(test_pattern2_expected_write_reply_with_spacewire_addresses) -
         test_pattern2_reply_address_length),
       std::make_tuple(
-          test_pattern3_incrementing_read_with_spacewire_addresses +
-          test_pattern3_target_address_length,
-          sizeof(test_pattern3_incrementing_read_with_spacewire_addresses) -
-          test_pattern3_target_address_length),
+        test_pattern3_incrementing_read_with_spacewire_addresses +
+        test_pattern3_target_address_length,
+        sizeof(test_pattern3_incrementing_read_with_spacewire_addresses) -
+        test_pattern3_target_address_length),
       std::make_tuple(
-          test_pattern3_expected_read_reply_with_spacewire_addresses +
-          test_pattern3_reply_address_length,
-          sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
-          test_pattern3_reply_address_length)));
+        test_pattern3_expected_read_reply_with_spacewire_addresses +
+        test_pattern3_reply_address_length,
+        sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
+        test_pattern3_reply_address_length)));
 
 class TestPatternsWithData : public testing::TestWithParam<PatternParameters>
 {
@@ -1775,10 +1775,10 @@ INSTANTIATE_TEST_CASE_P(
         sizeof(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) -
         test_pattern2_target_address_length),
       std::make_tuple(
-          test_pattern3_expected_read_reply_with_spacewire_addresses +
-          test_pattern3_reply_address_length,
-          sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
-          test_pattern3_reply_address_length)));
+        test_pattern3_expected_read_reply_with_spacewire_addresses +
+        test_pattern3_reply_address_length,
+        sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
+        test_pattern3_reply_address_length)));
 
 typedef std::tuple<enum rmap_packet_type, int, size_t, enum rmap_status>
 VerifyHeaderInstructionParameters;
@@ -2744,10 +2744,10 @@ TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern3Reply)
   memset(buf, 0, sizeof(buf));
 
   std::vector<uint8_t> command_packet(
-        test_pattern3_incrementing_read_with_spacewire_addresses +
-        test_pattern3_target_address_length,
-        test_pattern3_incrementing_read_with_spacewire_addresses +
-        sizeof(test_pattern3_incrementing_read_with_spacewire_addresses));
+      test_pattern3_incrementing_read_with_spacewire_addresses +
+      test_pattern3_target_address_length,
+      test_pattern3_incrementing_read_with_spacewire_addresses +
+      sizeof(test_pattern3_incrementing_read_with_spacewire_addresses));
 
   EXPECT_EQ(
       rmap_create_success_reply_from_command(
