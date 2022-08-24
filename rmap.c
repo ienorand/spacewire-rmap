@@ -436,8 +436,7 @@ void rmap_set_data_length(void *const header, const uint32_t data_length)
 
 void rmap_calculate_and_set_header_crc(void *const header)
 {
-  const size_t header_size =
-    calculate_header_size(rmap_get_instruction(header));
+  const size_t header_size = rmap_calculate_header_size(header);
   unsigned char *const header_bytes = header;
   header_bytes[header_size - 1] = rmap_crc_calculate(header, header_size - 1);
 }
@@ -458,7 +457,7 @@ enum rmap_status rmap_verify_header_integrity(
     return RMAP_NO_RMAP_PROTOCOL;
   }
 
-  header_size = calculate_header_size(rmap_get_instruction(header));
+  header_size = rmap_calculate_header_size(header);
 
   if (size < header_size) {
     return RMAP_INCOMPLETE_HEADER;
@@ -477,25 +476,23 @@ enum rmap_status rmap_verify_header_integrity(
 
 enum rmap_status rmap_verify_header_instruction(const void *const header)
 {
-  const uint8_t instruction = rmap_get_instruction(header);
-
-  if (!rmap_is_instruction_command(instruction)) {
-    if (rmap_is_instruction_unused_packet_type(instruction)) {
+  if (!rmap_is_command(header)) {
+    if (rmap_is_unused_packet_type(header)) {
       /* Reply packet type with packet type reserved bit set */
       return RMAP_UNUSED_PACKET_TYPE;
     }
 
-    if (!rmap_is_instruction_with_reply(instruction)) {
+    if (!rmap_is_with_reply(header)) {
       /* Reply packet type without command code reply bit set. */
       return RMAP_NO_REPLY;
     }
   }
 
-  if (rmap_is_instruction_unused_packet_type(instruction)) {
+  if (rmap_is_unused_packet_type(header)) {
     return RMAP_UNUSED_PACKET_TYPE;
   }
 
-  if (rmap_is_instruction_unused_command_code(instruction)) {
+  if (rmap_is_unused_command_code(header)) {
     return RMAP_UNUSED_COMMAND_CODE;
   }
 
@@ -506,8 +503,7 @@ enum rmap_status rmap_verify_data(const void *const packet, const size_t size)
 {
   assert(packet);
 
-  const size_t data_offset =
-    calculate_header_size(rmap_get_instruction(packet));
+  const size_t data_offset = rmap_calculate_header_size(packet);
   const size_t data_length = rmap_get_data_length(packet);
 
   if (size < data_offset + data_length + 1) {
