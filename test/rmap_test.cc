@@ -1229,6 +1229,14 @@ INSTANTIATE_TEST_CASE_P(
       testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
 INSTANTIATE_TEST_CASE_P(
+    Read,
+    SetDataLength,
+    testing::Combine(
+      testing::Values(RMAP_PACKET_TYPE_COMMAND),
+      testing::Values(RMAP_COMMAND_CODE_REPLY),
+      testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
+
+INSTANTIATE_TEST_CASE_P(
     ReadReply,
     SetDataLength,
     testing::Combine(
