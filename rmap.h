@@ -923,8 +923,8 @@ enum rmap_status rmap_initialize_header_before(
  * @param max_size Maximum number of bytes to write into @p raw.
  * @param[in] command_header Existing RMAP command header.
  *
- * @retval RMAP_NOT_ENOUGH_SPACE @p max_size is less than the size of the
- *         header.
+ * @retval RMAP_NOT_ENOUGH_SPACE @p max_size is less than the size of the reply
+ *         address plus header.
  * @retval RMAP_NO_REPLY The command header did not have the reply bit set and
  *         should not result in a reply.
  * @retval RMAP_OK Reply packet created successfully.
