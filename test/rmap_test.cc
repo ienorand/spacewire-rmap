@@ -924,8 +924,8 @@ TEST(SetInstruction, GetGivesMatchingAfterSetValidValue)
 {
   uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
 
-  const uint8_t instruction =
-    rmap_get_instruction(test_pattern0_unverified_incrementing_write_with_reply);
+  const uint8_t instruction = rmap_get_instruction(
+        test_pattern0_unverified_incrementing_write_with_reply);
 
   rmap_set_instruction(buf, instruction);
   EXPECT_EQ(rmap_get_instruction(buf), instruction);
@@ -3731,7 +3731,9 @@ TEST(RmapRecreateHeader, TestPattern2Command)
   buf[data_offset + sizeof(data)] =
     rmap_crc_calculate(buf + data_offset, sizeof(data));
 
-  const uint8_t target_address[] = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77 };
+  const uint8_t target_address[] = {
+    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77
+  };
 
   memcpy(
       header - sizeof(target_address),
@@ -4141,8 +4143,9 @@ TEST(RmapCrcCalculate, TestPattern0Command)
         pattern_length - header_length - 1);
   EXPECT_EQ(data_calculated_excluding_received_crc, data_received_crc);
 
-  const uint8_t data_calculated_including_received_crc =
-    rmap_crc_calculate(pattern + header_length, pattern_length - header_length);
+  const uint8_t data_calculated_including_received_crc = rmap_crc_calculate(
+      pattern + header_length,
+      pattern_length - header_length);
   EXPECT_EQ(data_calculated_including_received_crc, 0);
 }
 
