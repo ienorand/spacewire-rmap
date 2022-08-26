@@ -3275,16 +3275,14 @@ TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern0Reply)
   size_t reply_header_offset;
 
   std::vector<uint8_t> expected_packet(
-      test_pattern0_expected_write_reply,
-      test_pattern0_expected_write_reply +
-      sizeof(test_pattern0_expected_write_reply));
+      std::begin(test_pattern0_expected_write_reply),
+      std::end(test_pattern0_expected_write_reply));
 
   memset(buf, 0, sizeof(buf));
 
   std::vector<uint8_t> command_packet(
-      test_pattern0_unverified_incrementing_write_with_reply,
-      test_pattern0_unverified_incrementing_write_with_reply +
-      sizeof(test_pattern0_unverified_incrementing_write_with_reply));
+      std::begin(test_pattern0_unverified_incrementing_write_with_reply),
+      std::end(test_pattern0_unverified_incrementing_write_with_reply));
 
   EXPECT_EQ(
       rmap_create_success_reply_from_command(
@@ -3307,16 +3305,14 @@ TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern1Reply)
   size_t reply_header_offset;
 
   std::vector<uint8_t> expected_packet(
-      test_pattern1_expected_read_reply,
-      test_pattern1_expected_read_reply +
-      sizeof(test_pattern1_expected_read_reply));
+      std::begin(test_pattern1_expected_read_reply),
+      std::end(test_pattern1_expected_read_reply));
 
   memset(buf, 0, sizeof(buf));
 
   std::vector<uint8_t> command_packet(
-      test_pattern1_incrementing_read,
-      test_pattern1_incrementing_read +
-      sizeof(test_pattern1_incrementing_read));
+      std::begin(test_pattern1_incrementing_read),
+      std::end(test_pattern1_incrementing_read));
 
   EXPECT_EQ(
       rmap_create_success_reply_from_command(
@@ -3352,17 +3348,15 @@ TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern2Reply)
   size_t reply_header_offset;
 
   std::vector<uint8_t> expected_packet(
-      test_pattern2_expected_write_reply_with_spacewire_addresses,
-      test_pattern2_expected_write_reply_with_spacewire_addresses +
-      sizeof(test_pattern2_expected_write_reply_with_spacewire_addresses));
+      std::begin(test_pattern2_expected_write_reply_with_spacewire_addresses),
+      std::end(test_pattern2_expected_write_reply_with_spacewire_addresses));
 
   memset(buf, 0, sizeof(buf));
 
   std::vector<uint8_t> command_packet(
-      test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+      std::begin(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) +
       test_pattern2_target_address_length,
-      test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
-      sizeof(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses));
+      std::end(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses));
 
   EXPECT_EQ(
       rmap_create_success_reply_from_command(
@@ -3385,17 +3379,15 @@ TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern3Reply)
   size_t reply_header_offset;
 
   std::vector<uint8_t> expected_packet(
-      test_pattern3_expected_read_reply_with_spacewire_addresses,
-      test_pattern3_expected_read_reply_with_spacewire_addresses +
-      sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses));
+      std::begin(test_pattern3_expected_read_reply_with_spacewire_addresses),
+      std::end(test_pattern3_expected_read_reply_with_spacewire_addresses));
 
   memset(buf, 0, sizeof(buf));
 
   std::vector<uint8_t> command_packet(
-      test_pattern3_incrementing_read_with_spacewire_addresses +
+      std::begin(test_pattern3_incrementing_read_with_spacewire_addresses) +
       test_pattern3_target_address_length,
-      test_pattern3_incrementing_read_with_spacewire_addresses +
-      sizeof(test_pattern3_incrementing_read_with_spacewire_addresses));
+      std::end(test_pattern3_incrementing_read_with_spacewire_addresses));
 
   EXPECT_EQ(
       rmap_create_success_reply_from_command(
@@ -3431,15 +3423,14 @@ TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern4Reply)
   size_t reply_header_offset;
 
   std::vector<uint8_t> expected_packet(
-      test_pattern4_expected_rmw_reply,
-      test_pattern4_expected_rmw_reply +
-      sizeof(test_pattern4_expected_rmw_reply));
+      std::begin(test_pattern4_expected_rmw_reply),
+      std::end(test_pattern4_expected_rmw_reply));
 
   memset(buf, 0, sizeof(buf));
 
   std::vector<uint8_t> command_packet(
-      test_pattern4_rmw,
-      test_pattern4_rmw + sizeof(test_pattern4_rmw));
+      std::begin(test_pattern4_rmw),
+      std::end(test_pattern4_rmw));
 
   EXPECT_EQ(
       rmap_create_success_reply_from_command(
@@ -3472,17 +3463,15 @@ TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern5Reply)
   size_t reply_header_offset;
 
   std::vector<uint8_t> expected_packet(
-      test_pattern5_expected_rmw_reply_with_spacewire_addresses,
-      test_pattern5_expected_rmw_reply_with_spacewire_addresses +
-      sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses));
+      std::begin(test_pattern5_expected_rmw_reply_with_spacewire_addresses),
+      std::end(test_pattern5_expected_rmw_reply_with_spacewire_addresses));
 
   memset(buf, 0, sizeof(buf));
 
   std::vector<uint8_t> command_packet(
-      test_pattern5_rmw_with_spacewire_addresses +
+      std::begin(test_pattern5_rmw_with_spacewire_addresses) +
       test_pattern5_target_address_length,
-      test_pattern5_rmw_with_spacewire_addresses +
-      sizeof(test_pattern5_rmw_with_spacewire_addresses));
+      std::end(test_pattern5_rmw_with_spacewire_addresses));
 
   EXPECT_EQ(
       rmap_create_success_reply_from_command(
@@ -3515,9 +3504,8 @@ TEST(RmapRecreateHeader, TestPattern0Command)
   uint8_t buf[1234];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern0_unverified_incrementing_write_with_reply,
-      test_pattern0_unverified_incrementing_write_with_reply +
-      sizeof(test_pattern0_unverified_incrementing_write_with_reply));
+      std::begin(test_pattern0_unverified_incrementing_write_with_reply),
+      std::end(test_pattern0_unverified_incrementing_write_with_reply));
 
   memset(buf, 0, sizeof(buf));
 
@@ -3568,9 +3556,8 @@ TEST(RmapRecreateHeader, TestPattern0Reply)
   uint8_t buf[123];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern0_expected_write_reply,
-      test_pattern0_expected_write_reply +
-      sizeof(test_pattern0_expected_write_reply));
+      std::begin(test_pattern0_expected_write_reply),
+      std::end(test_pattern0_expected_write_reply));
 
   memset(buf, 0, sizeof(buf));
 
@@ -3600,9 +3587,8 @@ TEST(RmapRecreateHeader, TestPattern1Command)
   uint8_t buf[123];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern1_incrementing_read,
-      test_pattern1_incrementing_read +
-      sizeof(test_pattern1_incrementing_read));
+      std::begin(test_pattern1_incrementing_read),
+      std::end(test_pattern1_incrementing_read));
 
   memset(buf, 0, sizeof(buf));
 
@@ -3635,9 +3621,8 @@ TEST(RmapRecreateHeader, TestPattern1Reply)
   uint8_t buf[1234];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern1_expected_read_reply,
-      test_pattern1_expected_read_reply +
-      sizeof(test_pattern1_expected_read_reply));
+      std::begin(test_pattern1_expected_read_reply),
+      std::end(test_pattern1_expected_read_reply));
 
   memset(buf, 0, sizeof(buf));
 
@@ -3686,9 +3671,8 @@ TEST(RmapRecreateHeader, TestPattern2Command)
   uint8_t buf[1234];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses,
-      test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
-      sizeof(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses));
+      std::begin(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses),
+      std::end(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses));
 
   memset(buf, 0, sizeof(buf));
 
@@ -3751,9 +3735,8 @@ TEST(RmapRecreateHeader, TestPattern2Reply)
   uint8_t buf[123];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern2_expected_write_reply_with_spacewire_addresses,
-      test_pattern2_expected_write_reply_with_spacewire_addresses +
-      sizeof(test_pattern2_expected_write_reply_with_spacewire_addresses));
+      std::begin(test_pattern2_expected_write_reply_with_spacewire_addresses),
+      std::end(test_pattern2_expected_write_reply_with_spacewire_addresses));
 
   memset(buf, 0, sizeof(buf));
 
@@ -3791,9 +3774,8 @@ TEST(RmapRecreateHeader, TestPattern3Command)
   uint8_t buf[123];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern3_incrementing_read_with_spacewire_addresses,
-      test_pattern3_incrementing_read_with_spacewire_addresses +
-      sizeof(test_pattern3_incrementing_read_with_spacewire_addresses));
+      std::begin(test_pattern3_incrementing_read_with_spacewire_addresses),
+      std::end(test_pattern3_incrementing_read_with_spacewire_addresses));
 
   memset(buf, 0, sizeof(buf));
 
@@ -3837,9 +3819,8 @@ TEST(RmapRecreateHeader, TestPattern3Reply)
   uint8_t buf[1234];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern3_expected_read_reply_with_spacewire_addresses,
-      test_pattern3_expected_read_reply_with_spacewire_addresses +
-      sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses));
+      std::begin(test_pattern3_expected_read_reply_with_spacewire_addresses),
+      std::end(test_pattern3_expected_read_reply_with_spacewire_addresses));
 
   memset(buf, 0, sizeof(buf));
 
@@ -3895,8 +3876,8 @@ TEST(RmapRecreateHeader, TestPattern4Command)
   uint8_t buf[1234];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern4_rmw,
-      test_pattern4_rmw + sizeof(test_pattern4_rmw));
+      std::begin(test_pattern4_rmw),
+      std::end(test_pattern4_rmw));
 
   memset(buf, 0, sizeof(buf));
 
@@ -3947,9 +3928,8 @@ TEST(RmapRecreateHeader, TestPattern4Reply)
   uint8_t buf[1234];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern4_expected_rmw_reply,
-      test_pattern4_expected_rmw_reply +
-      sizeof(test_pattern4_expected_rmw_reply));
+      std::begin(test_pattern4_expected_rmw_reply),
+      std::end(test_pattern4_expected_rmw_reply));
 
   memset(buf, 0, sizeof(buf));
 
@@ -3997,9 +3977,8 @@ TEST(RmapRecreateHeader, TestPattern5CommandTODO)
   uint8_t buf[1234];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern5_rmw_with_spacewire_addresses,
-      test_pattern5_rmw_with_spacewire_addresses +
-      sizeof(test_pattern5_rmw_with_spacewire_addresses));
+      std::begin(test_pattern5_rmw_with_spacewire_addresses),
+      std::end(test_pattern5_rmw_with_spacewire_addresses));
 
   memset(buf, 0, sizeof(buf));
 
@@ -4060,9 +4039,8 @@ TEST(RmapRecreateHeader, TestPattern5Reply)
   uint8_t buf[1234];
 
   std::vector<uint8_t> expected_packet(
-      test_pattern5_expected_rmw_reply_with_spacewire_addresses,
-      test_pattern5_expected_rmw_reply_with_spacewire_addresses +
-      sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses));
+      std::begin(test_pattern5_expected_rmw_reply_with_spacewire_addresses),
+      std::end(test_pattern5_expected_rmw_reply_with_spacewire_addresses));
 
   memset(buf, 0, sizeof(buf));
 
