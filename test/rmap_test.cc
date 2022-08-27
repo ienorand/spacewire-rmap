@@ -3971,7 +3971,7 @@ TEST(RmapRecreateHeader, TestPattern4Reply)
   EXPECT_EQ(packet, expected_packet);
 }
 
-TEST(RmapRecreateHeader, TestPattern5CommandTODO)
+TEST(RmapRecreateHeader, TestPattern5Command)
 {
   size_t header_offset;
   uint8_t buf[1234];
