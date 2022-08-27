@@ -179,10 +179,6 @@ enum rmap_status rmap_get_reply_address(
 {
   const unsigned char *reply_address_padded;
 
-  assert(reply_address);
-  assert(reply_address_size);
-  assert(header);
-
   const size_t reply_address_padded_size =
     calculate_reply_address_padded_size(rmap_get_instruction(header));
   const unsigned char *const header_bytes = header;
@@ -460,8 +456,6 @@ enum rmap_status rmap_verify_header_integrity(
 {
   size_t header_size;
 
-  assert(header);
-
   if (size < RMAP_HEADER_MINIMUM_SIZE) {
     return RMAP_INCOMPLETE_HEADER;
   }
@@ -514,8 +508,6 @@ enum rmap_status rmap_verify_header_instruction(const void *const header)
 
 enum rmap_status rmap_verify_data(const void *const packet, const size_t size)
 {
-  assert(packet);
-
   const size_t data_offset = rmap_calculate_header_size(packet);
   const size_t data_length = rmap_get_data_length(packet);
 
@@ -596,8 +588,6 @@ static enum rmap_status make_instruction(
     const int command_code,
     const size_t reply_address_unpadded_size)
 {
-  assert(instruction);
-
   *instruction = 0;
 
   if (packet_type < 0 || packet_type > RMAP_PACKET_TYPE_COMMAND_RESERVED) {
@@ -639,8 +629,6 @@ enum rmap_status rmap_initialize_header(
 {
   uint8_t instruction;
 
-  assert(header);
-
   const enum rmap_status status = make_instruction(
       &instruction,
       packet_type,
@@ -677,9 +665,6 @@ enum rmap_status rmap_initialize_header_before(
 {
   enum rmap_status status;
   uint8_t instruction;
-
-  assert(header_offset);
-  assert(raw);
 
   status = make_instruction(
       &instruction,
@@ -720,10 +705,6 @@ enum rmap_status rmap_create_success_reply_from_command(
 {
   uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
   size_t reply_address_size;
-
-  assert(raw);
-  assert(reply_header_offset);
-  assert(command_header);
 
   if (!rmap_is_with_reply(command_header)) {
     return RMAP_NO_REPLY;
@@ -912,8 +893,6 @@ uint8_t rmap_crc_calculate(const void *const data, const size_t data_size)
     0xB4, 0x25, 0x57, 0xC6, 0xB3, 0x22, 0x50, 0xC1,
     0xBA, 0x2B, 0x59, 0xC8, 0xBD, 0x2C, 0x5E, 0xCF
   };
-
-  assert(data);
 
   const unsigned char *const data_bytes = data;
   crc = 0;
