@@ -821,7 +821,7 @@ enum rmap_status rmap_verify_data(const void *packet, size_t size);
  *
  * The instruction field fully defines the format of an RMAP packet, so all
  * further writes via accessor function will be valid if this initialization
- * succeeds
+ * succeeds.
  *
  * Creating invalid headers with unused packet types or unused command codes is
  * supported in order to allow creating invalid RMAP packets for testing
