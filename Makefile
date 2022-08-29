@@ -3,8 +3,8 @@ CFLAGS += -Wshadow -Wundef -Wcast-qual -Wcast-align -Wstrict-prototypes
 CFLAGS += -Wstrict-overflow -Wwrite-strings -Wunused-macros -Wredundant-decls
 LDFLAGS += -Wl,--warn-common
 
-.PHONY: all
-all: librmap.a
+.PHONY: default
+default: librmap.a
 
 librmap.a: rmap.o
 	$(AR) $(ARFLAGS) $@ $^
