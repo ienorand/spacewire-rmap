@@ -722,6 +722,8 @@ enum rmap_status rmap_create_success_reply_from_command(
         sizeof(reply_address),
         command_header);
   assert(status == RMAP_OK);
+  /* Avoid unused warning if asserts are disabled. */
+  (void)status;
 
   if (reply_address_size + calculate_header_size(instruction) > max_size) {
     return RMAP_NOT_ENOUGH_SPACE;
