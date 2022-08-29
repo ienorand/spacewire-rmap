@@ -36,7 +36,7 @@ CPPFLAGS += -isystem $(GTEST_DIR)/include -isystem $(GMOCK_DIR)/include -I$(USER
 CXXFLAGS += -g -Wall -Wextra -pthread -std=c++11
 
 # Flags passed to the C compiler.
-CFLAGS += -g -Wall -Wextra -std=c99 -Wpedantic -pthread
+CFLAGS += -O2 -g -Wall -Wextra -std=c99 -Wpedantic -pthread
 
 LDLIBS += -pthread
 
