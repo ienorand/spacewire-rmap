@@ -189,23 +189,26 @@ enum rmap_status {
   /** A reply packet type was combined with a without-reply command code. */
   RMAP_NO_REPLY = 261,
 
+  /** The provided packet does not contain a data field based on its header. */
+  RMAP_NO_DATA = 262,
+
   /** There is less data in the data field than indicated in the header data
    *  length field.
    */
-  RMAP_INSUFFICIENT_DATA = 262,
+  RMAP_INSUFFICIENT_DATA = 263,
 
   /** There is more data than expected from the packet type and/or data field
    *  length.
    */
-  RMAP_TOO_MUCH_DATA = 263,
+  RMAP_TOO_MUCH_DATA = 264,
 
   /** The data CRC indicates that errors are present in the data. */
-  RMAP_INVALID_DATA_CRC = 264,
+  RMAP_INVALID_DATA_CRC = 265,
 
   /** The data length field of a RMW command or RMW reply has an invalid
    *  value.
    */
-  RMAP_RMW_DATA_LENGTH_ERROR = 265,
+  RMAP_RMW_DATA_LENGTH_ERROR = 266,
 
   /** The provided packet type value cannot be represented in an RMAP header
    *  packet type field.
@@ -217,7 +220,7 @@ enum rmap_status {
    * - RMAP_PACKET_TYPE_COMMAND_RESERVED.
    * - RMAP_PACKET_TYPE_REPLY_RESERVED.
    */
-  RMAP_INVALID_PACKET_TYPE = 266,
+  RMAP_INVALID_PACKET_TYPE = 267,
 
   /** The provided command code value cannot be represented in an RMAP header
    *  command code field.
@@ -226,13 +229,13 @@ enum rmap_status {
    * header with a command code value that is less than 0 or greater than the
    * combination of all available command code flags (0xF).
    */
-  RMAP_INVALID_COMMAND_CODE = 267,
+  RMAP_INVALID_COMMAND_CODE = 268,
 
   /** The provided reply address is longer than 12 bytes. */
-  RMAP_REPLY_ADDRESS_TOO_LONG = 268,
+  RMAP_REPLY_ADDRESS_TOO_LONG = 269,
 
   /** Not enough space to initialize header. */
-  RMAP_NOT_ENOUGH_SPACE = 269
+  RMAP_NOT_ENOUGH_SPACE = 270
 };
 
 /** Size constants for RMAP packets. */
@@ -789,17 +792,17 @@ enum rmap_status rmap_verify_header_integrity(const void *header, size_t size);
  */
 enum rmap_status rmap_verify_header_instruction(const void *header);
 
-/** Verify the data field in a packet with a verified RMAP write command or
- *  read reply header.
+/** Verify the data field in a potential RMAP packet.
  *
- * @pre @p packet must contain a verified RMAP command, read reply, or RMW
- *      reply header.
+ * @pre The RMAP header in @p packet must have been verified to be complete via
+ *      rmap_verify_header_integrity().
  * @pre @p size Must be equal to the size of the packet being verified.
  *
- * @param[in] packet Packet with a verified RMAP command, read reply, or RMW
- *            reply header.
+ * @param[in] packet Potential RMAP packet.
  * @param size Number of bytes in @p packet.
  *
+ * @retval RMAP_NO_DATA The packet is a type (read command or write reply)
+ *         which do not contain a data field.
  * @retval RMAP_RMW_DATA_LENGTH_ERROR The packet is an RMW command or RMW reply
  *         and the data length field has an invalid value.
  * @retval RMAP_INSUFFICIENT_DATA @p size is too small to fit the whole packet.

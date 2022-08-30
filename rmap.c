@@ -506,8 +506,29 @@ enum rmap_status rmap_verify_header_instruction(const void *const header)
   return RMAP_OK;
 }
 
+static bool has_data_field(const void *const packet)
+{
+  if (rmap_is_rmw(packet)) {
+    return true;
+  }
+
+  if (rmap_is_command(packet) && rmap_is_write(packet)) {
+    return true;
+  }
+
+  if (!rmap_is_command(packet) && !rmap_is_write(packet)) {
+    return true;
+  }
+
+  return false;
+}
+
 enum rmap_status rmap_verify_data(const void *const packet, const size_t size)
 {
+  if (!has_data_field(packet)) {
+    return RMAP_NO_DATA;
+  }
+
   const size_t data_offset = rmap_calculate_header_size(packet);
   const size_t data_length = rmap_get_data_length(packet);
 
@@ -827,6 +848,9 @@ const char *rmap_status_text(const int status)
 
     case RMAP_NO_REPLY:
       return "RMAP_NO_REPLY";
+
+    case RMAP_NO_DATA:
+      return "RMAP_NO_DATA";
 
     case RMAP_INSUFFICIENT_DATA:
       return "RMAP_INSUFFICIENT_DATA";

@@ -2208,6 +2208,39 @@ INSTANTIATE_TEST_CASE_P(
         sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses) -
         test_pattern5_reply_address_length)));
 
+class TestPatternsWithoutData : public testing::TestWithParam<PatternParameters>
+{
+};
+
+TEST_P(TestPatternsWithoutData, VerifyDataNoData)
+{
+  auto pattern = std::get<0>(GetParam());
+  auto pattern_size = std::get<1>(GetParam());
+
+  EXPECT_EQ(rmap_verify_data(pattern, pattern_size), RMAP_NO_DATA);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    PatternsWithoutData,
+    TestPatternsWithoutData,
+    testing::Values(
+      std::make_tuple(
+        test_pattern0_expected_write_reply,
+        sizeof(test_pattern0_expected_write_reply)),
+      std::make_tuple(
+        test_pattern1_incrementing_read,
+        sizeof(test_pattern1_incrementing_read)),
+      std::make_tuple(
+        test_pattern2_expected_write_reply_with_spacewire_addresses +
+        test_pattern2_reply_address_length,
+        sizeof(test_pattern2_expected_write_reply_with_spacewire_addresses) -
+        test_pattern2_reply_address_length),
+      std::make_tuple(
+        test_pattern3_incrementing_read_with_spacewire_addresses +
+        test_pattern3_target_address_length,
+        sizeof(test_pattern3_incrementing_read_with_spacewire_addresses) -
+        test_pattern3_target_address_length)));
+
 typedef std::tuple<enum rmap_packet_type, int, size_t, enum rmap_status>
 VerifyHeaderInstructionParameters;
 
