@@ -3547,7 +3547,7 @@ TEST(RmapRecreateHeader, TestPattern0Command)
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17
   };
 
-  const size_t  data_offset = 123;
+  const size_t data_offset = 123;
 
   memcpy(buf + data_offset, data, sizeof(data));
 
@@ -3664,7 +3664,7 @@ TEST(RmapRecreateHeader, TestPattern1Reply)
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17
   };
 
-  const size_t  data_offset = 123;
+  const size_t data_offset = 123;
 
   memcpy(buf + data_offset, data, sizeof(data));
 
@@ -3714,7 +3714,7 @@ TEST(RmapRecreateHeader, TestPattern2Command)
     0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF
   };
 
-  const size_t  data_offset = 123;
+  const size_t data_offset = 123;
 
   memcpy(buf + data_offset, data, sizeof(data));
 
@@ -3864,7 +3864,7 @@ TEST(RmapRecreateHeader, TestPattern3Reply)
     0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF
   };
 
-  const size_t  data_offset = 123;
+  const size_t data_offset = 123;
 
   memcpy(buf + data_offset, data, sizeof(data));
 
@@ -3917,7 +3917,7 @@ TEST(RmapRecreateHeader, TestPattern4Command)
   const uint8_t data[] = { 0xC0, 0x18, 0x02 };
   const uint8_t mask[] = { 0xF0, 0x3C, 0x03 };
 
-  const size_t  data_offset = 123;
+  const size_t data_offset = 123;
 
   memcpy(buf + data_offset, data, sizeof(data));
   memcpy(buf + data_offset + sizeof(data), mask, sizeof(mask));
@@ -3968,7 +3968,7 @@ TEST(RmapRecreateHeader, TestPattern4Reply)
 
   const uint8_t data[] = { 0xA0, 0xA1, 0xA2 };
 
-  const size_t  data_offset = 123;
+  const size_t data_offset = 123;
 
   memcpy(buf + data_offset, data, sizeof(data));
 
@@ -4018,7 +4018,7 @@ TEST(RmapRecreateHeader, TestPattern5Command)
   const uint8_t data[] = { 0x07, 0x02, 0xA0, 0x00 };
   const uint8_t mask[] = { 0x0F, 0x83, 0xE0, 0xFF };
 
-  const size_t  data_offset = 123;
+  const size_t data_offset = 123;
 
   memcpy(buf + data_offset, data, sizeof(data));
   memcpy(buf + data_offset + sizeof(data), mask, sizeof(mask));
@@ -4081,7 +4081,7 @@ TEST(RmapRecreateHeader, TestPattern5Reply)
 
   const uint8_t data[] = { 0xE0, 0x99, 0xA2, 0xA3 };
 
-  const size_t  data_offset = 123;
+  const size_t data_offset = 123;
 
   memcpy(buf + data_offset, data, sizeof(data));
 
