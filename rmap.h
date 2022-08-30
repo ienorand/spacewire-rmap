@@ -911,7 +911,7 @@ enum rmap_status rmap_initialize_header_before(
  * It is expected that the caller will update the status field to reflect the
  * actual result of the command verification and execution.
  *
- * If the reply is a read reply or an RMW reply, is is expected that the caller
+ * If the reply is a read reply or an RMW reply, it is expected that the caller
  * will:
  * - Add the data field.
  * - Add the data CRC.
