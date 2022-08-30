@@ -2914,7 +2914,7 @@ class CreateSuccessReplyFromCommand :
 {
 };
 
-TEST_P(CreateSuccessReplyFromCommand, Check)
+TEST_P(CreateSuccessReplyFromCommand, RmapCreateSuccessReplyFromCommand)
 {
   uint8_t command_header[RMAP_HEADER_SIZE_MAX];
   uint8_t reply_packet[RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX];
@@ -3006,6 +3006,108 @@ TEST_P(CreateSuccessReplyFromCommand, Check)
   }
 }
 
+TEST_P(CreateSuccessReplyFromCommand, RmapCreateSuccessReplyFromCommandBefore)
+{
+  uint8_t command_header[RMAP_HEADER_SIZE_MAX];
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  auto command_packet_type = std::get<0>(GetParam());
+  auto command_command_code = std::get<1>(GetParam());
+  auto command_reply_address_unpadded_size = std::get<2>(GetParam());
+  auto command_target_logical_address = std::get<3>(GetParam());
+  auto command_initiator_logical_address = std::get<4>(GetParam());
+  auto command_transaction_identifier = std::get<5>(GetParam());
+  auto command_data_length = std::get<6>(GetParam());
+
+  ASSERT_EQ(
+      rmap_initialize_header(
+        command_header,
+        sizeof(command_header),
+        command_packet_type,
+        command_command_code,
+        command_reply_address_unpadded_size),
+      RMAP_OK);
+
+  rmap_set_target_logical_address(
+      command_header,
+      command_target_logical_address);
+  rmap_set_initiator_logical_address(
+      command_header,
+      command_initiator_logical_address);
+  rmap_set_key(command_header, 123);
+
+  const uint8_t reply_address_data[] = {
+    0x11, 0x22, 0x33, 0x44,
+    0x55, 0x66, 0x77, 0x88,
+    0x99, 0xAA, 0xBB, 0xCC
+  };
+
+  rmap_set_reply_address(
+      command_header,
+      reply_address_data,
+      command_reply_address_unpadded_size),
+
+  rmap_set_transaction_identifier(
+      command_header,
+      command_transaction_identifier);
+  rmap_set_extended_address(command_header, 0x12);
+  rmap_set_address(command_header, 0x3456789A);
+  rmap_set_data_length(command_header, command_data_length);
+
+  const size_t data_offset = 123;
+
+  ASSERT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_header),
+      RMAP_OK);
+
+  ASSERT_EQ(
+      rmap_verify_header_integrity(
+        buf + reply_header_offset,
+        data_offset - reply_header_offset),
+      RMAP_OK);
+
+  EXPECT_EQ(
+      reply_offset,
+      reply_header_offset - command_reply_address_unpadded_size);
+  EXPECT_EQ(
+      rmap_get_initiator_logical_address(buf + reply_header_offset),
+      command_initiator_logical_address);
+  EXPECT_EQ(rmap_is_command(buf + reply_header_offset), false);
+  EXPECT_EQ(rmap_is_unused_packet_type(buf + reply_header_offset), false);
+  EXPECT_EQ(
+      std::vector<uint8_t>(buf + reply_offset, buf + reply_header_offset),
+      std::vector<uint8_t>(
+        reply_address_data,
+        reply_address_data + command_reply_address_unpadded_size));
+  EXPECT_EQ(
+      rmap_get_target_logical_address(buf + reply_header_offset),
+      command_target_logical_address);
+  EXPECT_EQ(
+      rmap_get_transaction_identifier(buf + reply_header_offset),
+      command_transaction_identifier);
+
+  if (rmap_is_rmw(command_header)) {
+    /* RMW reply contains data length and should be half of command data
+     * length.
+     */
+    EXPECT_EQ(
+        rmap_get_data_length(buf + reply_header_offset),
+        command_data_length / 2);
+  } else if (!rmap_is_write(command_header)) {
+    /* Read reply contains data length. */
+    EXPECT_EQ(
+        rmap_get_data_length(buf + reply_header_offset),
+        command_data_length);
+  }
+}
+
 INSTANTIATE_TEST_CASE_P(
     CommandsWithReply,
     CreateSuccessReplyFromCommand,
@@ -3034,7 +3136,9 @@ class CreateSuccessReplyFromCommandSizeLimits :
 {
 };
 
-TEST_P(CreateSuccessReplyFromCommandSizeLimits, WriteReply)
+TEST_P(
+    CreateSuccessReplyFromCommandSizeLimits,
+    RmapCreateSuccessReplyFromCommandWriteReply)
 {
   uint8_t command_header[RMAP_HEADER_SIZE_MAX];
   size_t max_size;
@@ -3096,7 +3200,9 @@ TEST_P(CreateSuccessReplyFromCommandSizeLimits, WriteReply)
       RMAP_OK);
 }
 
-TEST_P(CreateSuccessReplyFromCommandSizeLimits, ReadReply)
+TEST_P(
+    CreateSuccessReplyFromCommandSizeLimits,
+    RmapCreateSuccessReplyFromCommandReadReply)
 {
   uint8_t command_header[RMAP_HEADER_SIZE_MAX];
   size_t max_size;
@@ -3158,7 +3264,9 @@ TEST_P(CreateSuccessReplyFromCommandSizeLimits, ReadReply)
       RMAP_OK);
 }
 
-TEST_P(CreateSuccessReplyFromCommandSizeLimits, RmwReply)
+TEST_P(
+    CreateSuccessReplyFromCommandSizeLimits,
+    RmapCreateSuccessReplyFromCommandRmwReply)
 {
   uint8_t command_header[RMAP_HEADER_SIZE_MAX];
   size_t max_size;
@@ -3218,6 +3326,212 @@ TEST_P(CreateSuccessReplyFromCommandSizeLimits, RmwReply)
         reply_packet,
         &reply_header_offset,
         max_size,
+        command_header),
+      RMAP_OK);
+}
+
+TEST_P(
+    CreateSuccessReplyFromCommandSizeLimits,
+    RmapCreateSuccessReplyFromCommandBeforeWriteReply)
+{
+  uint8_t command_header[RMAP_HEADER_SIZE_MAX];
+  size_t data_offset;
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  auto reply_address_unpadded_size = GetParam();
+
+  ASSERT_EQ(
+      rmap_initialize_header(
+        command_header,
+        sizeof(command_header),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+        reply_address_unpadded_size),
+      RMAP_OK);
+
+  rmap_set_target_logical_address(
+      command_header,
+      0x12);
+  rmap_set_initiator_logical_address(
+      command_header,
+      0x12);
+  rmap_set_key(command_header, 123);
+
+  const uint8_t reply_address_data[] = {
+    0x11, 0x22, 0x33, 0x44,
+    0x55, 0x66, 0x77, 0x88,
+    0x99, 0xAA, 0xBB, 0xCC
+  };
+
+  rmap_set_reply_address(
+      command_header,
+      reply_address_data,
+      reply_address_unpadded_size),
+
+  rmap_set_transaction_identifier(command_header, 123);
+  rmap_set_extended_address(command_header, 0x12);
+  rmap_set_address(command_header, 0x12345678);
+  rmap_set_data_length(command_header, 123);
+
+  data_offset =
+    RMAP_WRITE_REPLY_HEADER_STATIC_SIZE + reply_address_unpadded_size - 1;
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_header),
+      RMAP_NOT_ENOUGH_SPACE);
+
+  data_offset =
+    RMAP_WRITE_REPLY_HEADER_STATIC_SIZE + reply_address_unpadded_size;
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_header),
+      RMAP_OK);
+}
+
+TEST_P(
+    CreateSuccessReplyFromCommandSizeLimits,
+    RmapCreateSuccessReplyFromCommandBeforeReadReply)
+{
+  uint8_t command_header[RMAP_HEADER_SIZE_MAX];
+  size_t data_offset;
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  auto reply_address_unpadded_size = GetParam();
+
+  ASSERT_EQ(
+      rmap_initialize_header(
+        command_header,
+        sizeof(command_header),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_REPLY,
+        reply_address_unpadded_size),
+      RMAP_OK);
+
+  rmap_set_target_logical_address(
+      command_header,
+      0x12);
+  rmap_set_initiator_logical_address(
+      command_header,
+      0x12);
+  rmap_set_key(command_header, 123);
+
+  const uint8_t reply_address_data[] = {
+    0x11, 0x22, 0x33, 0x44,
+    0x55, 0x66, 0x77, 0x88,
+    0x99, 0xAA, 0xBB, 0xCC
+  };
+
+  rmap_set_reply_address(
+      command_header,
+      reply_address_data,
+      reply_address_unpadded_size),
+
+  rmap_set_transaction_identifier(command_header, 123);
+  rmap_set_extended_address(command_header, 0x12);
+  rmap_set_address(command_header, 0x12345678);
+  rmap_set_data_length(command_header, 123);
+
+  data_offset =
+    RMAP_READ_REPLY_HEADER_STATIC_SIZE + reply_address_unpadded_size - 1;
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_header),
+      RMAP_NOT_ENOUGH_SPACE);
+
+  data_offset =
+    RMAP_READ_REPLY_HEADER_STATIC_SIZE + reply_address_unpadded_size;
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_header),
+      RMAP_OK);
+}
+
+TEST_P(
+    CreateSuccessReplyFromCommandSizeLimits,
+    RmapCreateSuccessReplyFromCommandBeforeRmwReply)
+{
+  uint8_t command_header[RMAP_HEADER_SIZE_MAX];
+  size_t data_offset;
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  auto reply_address_unpadded_size = GetParam();
+
+  ASSERT_EQ(
+      rmap_initialize_header(
+        command_header,
+        sizeof(command_header),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_VERIFY |
+        RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
+        reply_address_unpadded_size),
+      RMAP_OK);
+
+  rmap_set_target_logical_address(
+      command_header,
+      0x12);
+  rmap_set_initiator_logical_address(
+      command_header,
+      0x12);
+  rmap_set_key(command_header, 123);
+
+  const uint8_t reply_address_data[] = {
+    0x11, 0x22, 0x33, 0x44,
+    0x55, 0x66, 0x77, 0x88,
+    0x99, 0xAA, 0xBB, 0xCC
+  };
+
+  rmap_set_reply_address(
+      command_header,
+      reply_address_data,
+      reply_address_unpadded_size),
+
+  rmap_set_transaction_identifier(command_header, 123);
+  rmap_set_extended_address(command_header, 0x12);
+  rmap_set_address(command_header, 0x12345678);
+  rmap_set_data_length(command_header, 6);
+
+  data_offset =
+    RMAP_READ_REPLY_HEADER_STATIC_SIZE + reply_address_unpadded_size - 1;
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_header),
+      RMAP_NOT_ENOUGH_SPACE);
+
+  data_offset =
+    RMAP_READ_REPLY_HEADER_STATIC_SIZE + reply_address_unpadded_size;
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
         command_header),
       RMAP_OK);
 }
@@ -3528,6 +3842,320 @@ TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern5Reply)
   std::vector<uint8_t> reply_packet(
       buf,
       buf + reply_header_offset + reply_header_size + sizeof(data) + 1);
+  EXPECT_EQ(reply_packet, expected_packet);
+}
+
+TEST(RmapCreateSuccessReplyFromCommandBefore, WriteCommandWithoutReply)
+{
+  uint8_t command_header[RMAP_HEADER_SIZE_MAX];
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  const size_t reply_address_unpadded_size = 0;
+  ASSERT_EQ(
+      rmap_initialize_header(
+        command_header,
+        sizeof(command_header),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE,
+        reply_address_unpadded_size),
+      RMAP_OK);
+
+  rmap_set_target_logical_address(
+      command_header,
+      0x12);
+  rmap_set_initiator_logical_address(
+      command_header,
+      0x12);
+  rmap_set_key(command_header, 123);
+  rmap_set_transaction_identifier(command_header, 123);
+  rmap_set_extended_address(command_header, 0x12);
+  rmap_set_address(command_header, 0x12345678);
+  rmap_set_data_length(command_header, 123);
+
+  const size_t data_offset = 123;
+
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_header),
+      RMAP_NO_REPLY);
+}
+
+TEST(RmapCreateSuccessReplyFromCommandBefore, ReadCommandWithoutReply)
+{
+  uint8_t command_header[RMAP_HEADER_SIZE_MAX];
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  const size_t reply_address_unpadded_size = 0;
+  const int command_code = 0;
+  ASSERT_EQ(
+      rmap_initialize_header(
+        command_header,
+        sizeof(command_header),
+        RMAP_PACKET_TYPE_COMMAND,
+        command_code,
+        reply_address_unpadded_size),
+      RMAP_OK);
+
+  rmap_set_target_logical_address(
+      command_header,
+      0x12);
+  rmap_set_initiator_logical_address(
+      command_header,
+      0x12);
+  rmap_set_key(command_header, 123);
+  rmap_set_transaction_identifier(command_header, 123);
+  rmap_set_extended_address(command_header, 0x12);
+  rmap_set_address(command_header, 0x12345678);
+  rmap_set_data_length(command_header, 123);
+
+  const size_t data_offset = 123;
+
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_header),
+      RMAP_NO_REPLY);
+}
+
+TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern0Reply)
+{
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  std::vector<uint8_t> expected_packet(
+      std::begin(test_pattern0_expected_write_reply),
+      std::end(test_pattern0_expected_write_reply));
+
+  memset(buf, 0, sizeof(buf));
+
+  std::vector<uint8_t> command_packet(
+      std::begin(test_pattern0_unverified_incrementing_write_with_reply),
+      std::end(test_pattern0_unverified_incrementing_write_with_reply));
+
+  const size_t data_offset = 123;
+
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_packet.data()),
+      RMAP_OK);
+
+  std::vector<uint8_t> reply_packet(buf + reply_offset, buf + data_offset);
+  EXPECT_EQ(reply_packet, expected_packet);
+}
+
+TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern1Reply)
+{
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  std::vector<uint8_t> expected_packet(
+      std::begin(test_pattern1_expected_read_reply),
+      std::end(test_pattern1_expected_read_reply));
+
+  memset(buf, 0, sizeof(buf));
+
+  std::vector<uint8_t> command_packet(
+      std::begin(test_pattern1_incrementing_read),
+      std::end(test_pattern1_incrementing_read));
+
+  const uint8_t data[] = {
+    0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17
+  };
+
+  const size_t data_offset = 123;
+
+  memcpy(buf + data_offset, data, sizeof(data));
+
+  buf[data_offset + sizeof(data)] =
+    rmap_crc_calculate(buf + data_offset, sizeof(data));
+
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_packet.data()),
+      RMAP_OK);
+
+  std::vector<uint8_t> reply_packet(
+      buf + reply_offset,
+      buf + data_offset + sizeof(data) + 1);
+  EXPECT_EQ(reply_packet, expected_packet);
+}
+
+TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern2Reply)
+{
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  std::vector<uint8_t> expected_packet(
+      std::begin(test_pattern2_expected_write_reply_with_spacewire_addresses),
+      std::end(test_pattern2_expected_write_reply_with_spacewire_addresses));
+
+  memset(buf, 0, sizeof(buf));
+
+  std::vector<uint8_t> command_packet(
+      std::begin(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) +
+      test_pattern2_target_address_length,
+      std::end(test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses));
+
+  const size_t data_offset = 123;
+
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_packet.data()),
+      RMAP_OK);
+
+  std::vector<uint8_t> reply_packet(buf + reply_offset, buf + data_offset);
+  EXPECT_EQ(reply_packet, expected_packet);
+}
+
+TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern3Reply)
+{
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  std::vector<uint8_t> expected_packet(
+      std::begin(test_pattern3_expected_read_reply_with_spacewire_addresses),
+      std::end(test_pattern3_expected_read_reply_with_spacewire_addresses));
+
+  memset(buf, 0, sizeof(buf));
+
+  std::vector<uint8_t> command_packet(
+      std::begin(test_pattern3_incrementing_read_with_spacewire_addresses) +
+      test_pattern3_target_address_length,
+      std::end(test_pattern3_incrementing_read_with_spacewire_addresses));
+
+  const uint8_t data[] = {
+    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
+    0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF
+  };
+
+  const size_t data_offset = 123;
+
+  memcpy(buf + data_offset, data, sizeof(data));
+
+  buf[data_offset + sizeof(data)] =
+    rmap_crc_calculate(buf + data_offset, sizeof(data));
+
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_packet.data()),
+      RMAP_OK);
+
+  std::vector<uint8_t> reply_packet(
+      buf + reply_offset,
+      buf + data_offset + sizeof(data) + 1);
+  EXPECT_EQ(reply_packet, expected_packet);
+}
+
+TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern4Reply)
+{
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  std::vector<uint8_t> expected_packet(
+      std::begin(test_pattern4_expected_rmw_reply),
+      std::end(test_pattern4_expected_rmw_reply));
+
+  memset(buf, 0, sizeof(buf));
+
+  std::vector<uint8_t> command_packet(
+      std::begin(test_pattern4_rmw),
+      std::end(test_pattern4_rmw));
+
+  const uint8_t data[] = { 0xA0, 0xA1, 0xA2 };
+
+  const size_t data_offset = 123;
+
+  memcpy(buf + data_offset, data, sizeof(data));
+
+  buf[data_offset + sizeof(data)] =
+    rmap_crc_calculate(buf + data_offset, sizeof(data));
+
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_packet.data()),
+      RMAP_OK);
+
+  std::vector<uint8_t> reply_packet(
+      buf + reply_offset,
+      buf + data_offset + sizeof(data) + 1);
+  EXPECT_EQ(reply_packet, expected_packet);
+}
+
+TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern5Reply)
+{
+  uint8_t buf[1234];
+  size_t reply_offset;
+  size_t reply_header_offset;
+
+  std::vector<uint8_t> expected_packet(
+      std::begin(test_pattern5_expected_rmw_reply_with_spacewire_addresses),
+      std::end(test_pattern5_expected_rmw_reply_with_spacewire_addresses));
+
+  memset(buf, 0, sizeof(buf));
+
+  std::vector<uint8_t> command_packet(
+      std::begin(test_pattern5_rmw_with_spacewire_addresses) +
+      test_pattern5_target_address_length,
+      std::end(test_pattern5_rmw_with_spacewire_addresses));
+
+  const uint8_t data[] = { 0xE0, 0x99, 0xA2, 0xA3 };
+
+  const size_t data_offset = 123;
+
+  memcpy(buf + data_offset, data, sizeof(data));
+
+  buf[data_offset + sizeof(data)] =
+    rmap_crc_calculate(buf + data_offset, sizeof(data));
+
+  EXPECT_EQ(
+      rmap_create_success_reply_from_command_before(
+        buf,
+        &reply_offset,
+        &reply_header_offset,
+        data_offset,
+        command_packet.data()),
+      RMAP_OK);
+
+  std::vector<uint8_t> reply_packet(
+      buf + reply_offset,
+      buf + data_offset + sizeof(data) + 1);
   EXPECT_EQ(reply_packet, expected_packet);
 }
 

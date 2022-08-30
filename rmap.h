@@ -900,8 +900,7 @@ enum rmap_status rmap_initialize_header_before(
     int command_code,
     size_t reply_address_unpadded_size);
 
-/** Create a complete success reply header with reply address from an existing
- *  RMAP command header.
+/** Create a success reply header from an existing RMAP command header.
  *
  * Initialize a complete reply header with all fields set to correspond to a
  * success reply based on an existing command header.
@@ -936,6 +935,44 @@ enum rmap_status rmap_create_success_reply_from_command(
     void *raw,
     size_t *reply_header_offset,
     size_t max_size,
+    const void *command_header);
+
+/** Create a success reply header from an existing RMAP command header, before
+ *  existing data.
+ *
+ * Initialize a complete reply header before existing data, with all fields set
+ * to correspond to a success reply based on an existing command header.
+ *
+ * The reply address will be added before the reply header.
+ *
+ * It is expected that the caller will update the status field to reflect the
+ * actual result of the command verification and execution.
+ *
+ * If the reply is a read reply or an RMW reply, it is expected that the caller
+ * will:
+ * - Add the data CRC.
+ * - Update the data length to reflect the actual amount of data in the reply.
+ *
+ * @pre @p command_header must have been verified to be a valid RMAP command
+ *      header.
+ *
+ * @param[out] raw Destination for the reply packet.
+ * @param[out] reply_offset Offset of start of reply address from @p raw.
+ * @param[out] reply_header_offset Offset of start of header from @p raw.
+ * @param data_offset Offset of existing data field from @p raw.
+ * @param[in] command_header Existing RMAP command header.
+ *
+ * @retval RMAP_NOT_ENOUGH_SPACE Reply address and header would not fit before
+ *         @p data_offset.
+ * @retval RMAP_NO_REPLY The command header did not have the reply bit set and
+ *         should not result in a reply.
+ * @retval RMAP_OK Reply packet created successfully.
+ */
+enum rmap_status rmap_create_success_reply_from_command_before(
+    void *raw,
+    size_t *reply_offset,
+    size_t *reply_header_offset,
+    size_t data_offset,
     const void *command_header);
 
 /** Get string representation of a status or error constant.

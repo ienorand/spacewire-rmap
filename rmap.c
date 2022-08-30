@@ -791,6 +791,53 @@ enum rmap_status rmap_create_success_reply_from_command(
   return RMAP_OK;
 }
 
+enum rmap_status rmap_create_success_reply_from_command_before(
+    void *const raw,
+    size_t *const reply_offset,
+    size_t *const reply_header_offset,
+    const size_t data_offset,
+    const void *const command_header)
+{
+  enum rmap_status status;
+  uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
+  size_t reply_address_size;
+
+  const uint8_t instruction =
+    rmap_get_instruction(command_header) & ~RMAP_INSTRUCTION_PACKET_TYPE_MASK;
+
+  status = rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        command_header);
+  assert(status == RMAP_OK);
+  /* Avoid unused warning if asserts are disabled. */
+  (void)status;
+
+  const size_t size = reply_address_size + calculate_header_size(instruction);
+
+  if (size > data_offset) {
+    return RMAP_NOT_ENOUGH_SPACE;
+  }
+
+  uint8_t *const raw_bytes = raw;
+  status = rmap_create_success_reply_from_command(
+      raw_bytes + data_offset - size,
+      reply_header_offset,
+      size,
+      command_header);
+  if (status != RMAP_OK) {
+    /* RMAP_NOT_ENOUGH_SPACE should not be possible since checked above. */
+    assert(status == RMAP_NO_REPLY);
+    return RMAP_NO_REPLY;
+  }
+
+  *reply_offset = data_offset - size;
+  *reply_header_offset = *reply_offset + reply_address_size;
+
+  return RMAP_OK;
+}
+
 const char *rmap_status_text(const int status)
 {
   switch (status) {
