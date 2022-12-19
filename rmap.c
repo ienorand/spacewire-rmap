@@ -3,28 +3,71 @@
 #include <assert.h>
 #include <string.h>
 
+struct common_header {
+  uint8_t logical_address;
+  uint8_t protocol_identifier;
+  uint8_t instruction;
+};
+
+struct command_header_first_static_part {
+  uint8_t target_logical_address;
+  uint8_t protocol_identifier;
+  uint8_t instruction;
+  uint8_t key;
+};
+
+struct command_header_second_static_part {
+  uint8_t initiator_logical_address;
+  uint8_t transaction_identifier[2];
+  uint8_t extended_address;
+  uint8_t address[4];
+  uint8_t data_length[3];
+  uint8_t crc;
+};
+
+struct reply_common_header {
+  uint8_t initiator_logical_address;
+  uint8_t protocol_identifier;
+  uint8_t instruction;
+  uint8_t status;
+  uint8_t target_logical_address;
+  uint8_t transaction_identifier[2];
+};
+
+struct read_or_rmw_reply_header {
+  uint8_t initiator_logical_address;
+  uint8_t protocol_identifier;
+  uint8_t instruction;
+  uint8_t status;
+  uint8_t target_logical_address;
+  uint8_t transaction_identifier[2];
+  uint8_t reserved;
+  uint8_t data_length[3];
+  uint8_t crc;
+};
+
 uint8_t rmap_get_protocol(const void *const header)
 {
-  const unsigned char *const header_bytes = header;
-  return header_bytes[1];
+  const struct common_header *const common = header;
+  return common->protocol_identifier;
 }
 
 void rmap_set_protocol(void *const header)
 {
-  unsigned char *const header_bytes = header;
-  header_bytes[1] = 1;
+  struct common_header *const common = header;
+  common->protocol_identifier = 1;
 }
 
 uint8_t rmap_get_instruction(const void *const header)
 {
-  const unsigned char *const header_bytes = header;
-  return header_bytes[2];
+  const struct common_header *const common = header;
+  return common->instruction;
 }
 
 void rmap_set_instruction(void *const header, const uint8_t instruction)
 {
-  unsigned char *const header_bytes = header;
-  header_bytes[2] = instruction;
+  struct common_header *const common = header;
+  common->instruction = instruction;
 }
 
 bool rmap_is_instruction_command(const uint8_t instruction)
@@ -134,26 +177,27 @@ bool rmap_is_unused_command_code(const void *const header)
 
 uint8_t rmap_get_key(const void *const header)
 {
-  const unsigned char *const header_bytes = header;
-  return header_bytes[3];
+  const struct command_header_first_static_part *const first_static_part =
+    header;
+  return first_static_part->key;
 }
 
 void rmap_set_key(void *const header, const uint8_t key)
 {
-  unsigned char *const header_bytes = header;
-  header_bytes[3] = key;
+  struct command_header_first_static_part *const first_static_part = header;
+  first_static_part->key = key;
 }
 
 uint8_t rmap_get_status(const void *const header)
 {
-  const unsigned char *const header_bytes = header;
-  return header_bytes[3];
+  const struct reply_common_header  *const reply_common = header;
+  return reply_common->status;
 }
 
 void rmap_set_status(void *const header, const uint8_t status)
 {
-  unsigned char *const header_bytes = header;
-  header_bytes[3] = status;
+  struct reply_common_header *const reply_common = header;
+  reply_common->status = status;
 }
 
 /** Calculate the padded reply address size from an instruction field.
@@ -182,7 +226,8 @@ enum rmap_status rmap_get_reply_address(
   const size_t reply_address_padded_size =
     calculate_reply_address_padded_size(rmap_get_instruction(header));
   const unsigned char *const header_bytes = header;
-  reply_address_padded = header_bytes + 4;
+  reply_address_padded =
+    header_bytes + sizeof(struct command_header_first_static_part);
 
   uint8_t *const reply_address0 = reply_address;
 
@@ -222,7 +267,8 @@ void rmap_set_reply_address(
   unsigned char *reply_address_padded;
 
   unsigned char *const header_bytes = header;
-  reply_address_padded = header_bytes + 4;
+  reply_address_padded =
+    header_bytes + sizeof(struct command_header_first_static_part);
 
   const size_t padding_size =
     calculate_reply_address_padded_size(rmap_get_instruction(header)) -
@@ -237,142 +283,153 @@ void rmap_set_reply_address(
 
 uint8_t rmap_get_target_logical_address(const void *const header)
 {
-  const unsigned char *const header_bytes = header;
-
   if (rmap_is_command(header)) {
-    return header_bytes[0];
+    const struct command_header_first_static_part *const first_static_part =
+      header;
+    return first_static_part->target_logical_address;
   }
 
   /* Reply. */
-  return header_bytes[4];
+  const struct reply_common_header *const reply_common = header;
+  return reply_common->target_logical_address;
 }
 
 void rmap_set_target_logical_address(
     void *const header,
     const uint8_t target_logical_address)
 {
-  unsigned char *const header_bytes = header;
-
   if (rmap_is_command(header)) {
-    header_bytes[0] = target_logical_address;
+    struct command_header_first_static_part *const first_static_part = header;
+    first_static_part->target_logical_address = target_logical_address;
     return;
   }
 
   /* Reply. */
-  header_bytes[4] = target_logical_address;
+  struct reply_common_header *const reply_common = header;
+  reply_common->target_logical_address = target_logical_address;
+}
+
+static struct command_header_second_static_part
+*get_command_header_second_static_part(void *const header)
+{
+  unsigned char *const header_bytes = header;
+  size_t reply_address_padded_size =
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
+  void *const second_static_part_raw =
+    header_bytes + sizeof(struct command_header_first_static_part) +
+    reply_address_padded_size;
+  return second_static_part_raw;
+}
+
+static const struct command_header_second_static_part
+*get_command_header_second_static_part_const(const void *const header)
+{
+  const unsigned char *const header_bytes = header;
+  const size_t reply_address_padded_size =
+    calculate_reply_address_padded_size(rmap_get_instruction(header));
+  const void *const second_static_part_raw =
+    header_bytes + sizeof(struct command_header_first_static_part) +
+    reply_address_padded_size;
+  return second_static_part_raw;
 }
 
 uint8_t rmap_get_initiator_logical_address(const void *const header)
 {
-  const unsigned char *const header_bytes = header;
-
   if (rmap_is_command(header)) {
-    size_t reply_address_padded_size =
-      calculate_reply_address_padded_size(rmap_get_instruction(header));
-    return header_bytes[4 + reply_address_padded_size];
+    return get_command_header_second_static_part_const(header)->
+      initiator_logical_address;
   }
 
   /* Reply. */
-  return header_bytes[0];
+  const struct reply_common_header *const reply_common = header;
+  return reply_common->initiator_logical_address;
 }
 
 void rmap_set_initiator_logical_address(
     void *const header,
     const uint8_t initiator_logical_address)
 {
-  unsigned char *const header_bytes = header;
-
   if (rmap_is_command(header)) {
-    size_t reply_address_padded_size =
-      calculate_reply_address_padded_size(rmap_get_instruction(header));
-    header_bytes[4 + reply_address_padded_size] = initiator_logical_address;
+    get_command_header_second_static_part(header)->initiator_logical_address =
+      initiator_logical_address;
     return;
   }
 
   /* Reply. */
-  header_bytes[0] = initiator_logical_address;
+  struct reply_common_header *const reply_common = header;
+  reply_common->initiator_logical_address = initiator_logical_address;
 }
 
 uint16_t rmap_get_transaction_identifier(const void *const header)
 {
-  size_t offset;
-
-  offset = 4 + 1;
   if (rmap_is_command(header)) {
-    size_t reply_address_padded_size =
-      calculate_reply_address_padded_size(rmap_get_instruction(header));
-    offset += reply_address_padded_size;
+    const struct command_header_second_static_part *const second_static_part =
+      get_command_header_second_static_part_const(header);
+    return (second_static_part->transaction_identifier[0] << 8) |
+      (second_static_part->transaction_identifier[1] << 0);
   }
 
-  const unsigned char *const header_bytes = header;
-  return (header_bytes[offset] << 8) | (header_bytes[offset + 1] << 0);
+  const struct reply_common_header *const reply_common = header;
+    return (reply_common->transaction_identifier[0] << 8) |
+      (reply_common->transaction_identifier[1] << 0);
 }
 
 void rmap_set_transaction_identifier(
     void *const header,
     const uint16_t transaction_identifier)
 {
-  size_t offset;
-
-  offset = 4 + 1;
   if (rmap_is_command(header)) {
-    size_t reply_address_padded_size =
-      calculate_reply_address_padded_size(rmap_get_instruction(header));
-    offset += reply_address_padded_size;
+    struct command_header_second_static_part *const second_static_part =
+      get_command_header_second_static_part(header);
+    second_static_part->transaction_identifier[0] =
+      transaction_identifier >> 8;
+    second_static_part->transaction_identifier[1] =
+      transaction_identifier & 0xFF;
+    return;
   }
 
-  unsigned char *const header_bytes = header;
-  header_bytes[offset] = transaction_identifier >> 8;
-  header_bytes[offset + 1] = transaction_identifier & 0xFF;
+  struct reply_common_header *const reply_common = header;
+  reply_common->transaction_identifier[0] = transaction_identifier >> 8;
+  reply_common->transaction_identifier[1] = transaction_identifier & 0xFF;
 }
 
 void rmap_set_reserved(void *const header)
 {
-  unsigned char *const header_bytes = header;
-  header_bytes[7] = 0;
+  struct read_or_rmw_reply_header *const read_or_rmw_reply = header;
+  read_or_rmw_reply->reserved = 0;
 }
 
 uint8_t rmap_get_extended_address(const void *const header)
 {
-  size_t reply_address_padded_size =
-    calculate_reply_address_padded_size(rmap_get_instruction(header));
-  const unsigned char *const header_bytes = header;
-  return header_bytes[4 + reply_address_padded_size + 3];
+  return get_command_header_second_static_part_const(header)->extended_address;
 }
 
 void rmap_set_extended_address(
     void *const header,
     const uint8_t extended_address)
 {
-  size_t reply_address_padded_size =
-    calculate_reply_address_padded_size(rmap_get_instruction(header));
-  unsigned char *const header_bytes = header;
-  header_bytes[4 + reply_address_padded_size + 3] = extended_address;
+  get_command_header_second_static_part(header)->extended_address =
+    extended_address;
 }
 
 uint32_t rmap_get_address(const void *const header)
 {
-  size_t reply_address_padded_size =
-    calculate_reply_address_padded_size(rmap_get_instruction(header));
-  const size_t offset = 4 + reply_address_padded_size + 4;
-  const unsigned char *const header_bytes = header;
-  return ((uint32_t)header_bytes[offset + 0] << 24) |
-    ((uint32_t)header_bytes[offset + 1] << 16) |
-    (header_bytes[offset + 2] << 8) |
-    (header_bytes[offset + 3] << 0);
+  const struct command_header_second_static_part *const second_static_part =
+    get_command_header_second_static_part_const(header);
+  return ((uint32_t)second_static_part->address[0] << 24) |
+    ((uint32_t)second_static_part->address[1] << 16) |
+    (second_static_part->address[2] << 8) |
+    (second_static_part->address[3] << 0);
 }
 
 void rmap_set_address(void *const header, const uint32_t address)
 {
-  size_t reply_address_padded_size =
-    calculate_reply_address_padded_size(rmap_get_instruction(header));
-  const size_t offset = 4 + reply_address_padded_size + 4;
-
-  unsigned char *const header_bytes = header;
-  header_bytes[offset + 0] = (address >> 24) & 0xFF;
-  header_bytes[offset + 1] = (address >> 16) & 0xFF;
-  header_bytes[offset + 2] = (address >> 8) & 0xFF;
-  header_bytes[offset + 3] = (address >> 0) & 0xFF;
+  struct command_header_second_static_part *const second_static_part =
+    get_command_header_second_static_part(header);
+  second_static_part->address[0] = (address >> 24) & 0xFF;
+  second_static_part->address[1] = (address >> 16) & 0xFF;
+  second_static_part->address[2] = (address >> 8) & 0xFF;
+  second_static_part->address[3] = (address >> 0) & 0xFF;
 }
 
 /** Calculate the RMAP header size from an instruction field.
@@ -406,41 +463,53 @@ size_t rmap_calculate_header_size(const void *const header)
 
 uint32_t rmap_get_data_length(const void *const header)
 {
-  size_t offset;
-
   const uint8_t instruction = rmap_get_instruction(header);
 
-  offset = RMAP_READ_REPLY_HEADER_STATIC_SIZE - 4;
   if (rmap_is_instruction_command(instruction)) {
-    offset = RMAP_COMMAND_HEADER_STATIC_SIZE +
-      calculate_reply_address_padded_size(instruction) - 4;
-  } else if (rmap_is_instruction_write(instruction)) {
+    const struct command_header_second_static_part *const second_static_part =
+      get_command_header_second_static_part_const(header);
+    return ((uint32_t)second_static_part->data_length[0] << 16) |
+      (second_static_part->data_length[1] << 8) |
+      (second_static_part->data_length[2] << 0);
+  }
+
+  /* Reply. */
+
+  if (rmap_is_instruction_write(instruction)) {
     /* Write reply has no data. */
     return 0;
   }
 
-  const unsigned char *const header_bytes = header;
-  return ((uint32_t)header_bytes[offset + 0] << 16) |
-    (header_bytes[offset + 1] << 8) |
-    (header_bytes[offset + 2] << 0);
+  const struct read_or_rmw_reply_header *const read_or_rmw_reply = header;
+  return ((uint32_t)read_or_rmw_reply->data_length[0] << 16) |
+    (read_or_rmw_reply->data_length[1] << 8) |
+    (read_or_rmw_reply->data_length[2] << 0);
 }
 
 void rmap_set_data_length(void *const header, const uint32_t data_length)
 {
-  size_t offset;
-
   const uint8_t instruction = rmap_get_instruction(header);
 
-  offset = RMAP_READ_REPLY_HEADER_STATIC_SIZE - 4;
   if (rmap_is_instruction_command(instruction)) {
-    offset = RMAP_COMMAND_HEADER_STATIC_SIZE +
-      calculate_reply_address_padded_size(instruction) - 4;
+    struct command_header_second_static_part *const second_static_part =
+      get_command_header_second_static_part(header);
+    second_static_part->data_length[0] = (data_length >> 16) & 0xFF;
+    second_static_part->data_length[1] = (data_length >> 8) & 0xFF;
+    second_static_part->data_length[2] = (data_length >> 0) & 0xFF;
+    return;
   }
 
-  unsigned char *const header_bytes = header;
-  header_bytes[offset + 0] = (data_length >> 16) & 0xFF;
-  header_bytes[offset + 1] = (data_length >> 8) & 0xFF;
-  header_bytes[offset + 2] = (data_length >> 0) & 0xFF;
+  /* Reply. */
+
+  if (rmap_is_instruction_write(instruction)) {
+    /* Write reply has no data. */
+    return;
+  }
+
+  struct read_or_rmw_reply_header *const read_or_rmw_reply = header;
+  read_or_rmw_reply->data_length[0] = (data_length >> 16) & 0xFF;
+  read_or_rmw_reply->data_length[1] = (data_length >> 8) & 0xFF;
+  read_or_rmw_reply->data_length[2] = (data_length >> 0) & 0xFF;
 }
 
 void rmap_calculate_and_set_header_crc(void *const header)
