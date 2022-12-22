@@ -120,7 +120,7 @@ The basic procedure for creating an RMAP packet using this library is:
 * Set remaining RMAP header fields using access functions
 * Add data and CRC after the header if applicable
 
-The function `rmap_initialize_header_before()` is a convenience functions which
+The function `rmap_initialize_header_before()` is a convenience function which
 allows initializing an RMAP header before already existing data, without
 needing to calculate the header size beforehand.
 
