@@ -159,7 +159,7 @@ The `rmap_create_success_reply_from_command_before()` function allows the data
 and CRC to be added first, with the rest of the packet being created
 immediately before the existing data.
 
-#### Examples
+### Examples
 
 Examples showing creation of RMAP commands and replies using this library are
 available in the following files:
