@@ -41,7 +41,13 @@ struct rmap_node_target_request {
 /* Callback for allocating memory for reply packets. */
 typedef void *(*rmap_node_allocate_callback)(void *context, size_t size);
 
-/* Callback for sending replies. */
+/* Callback for sending replies.
+ *
+ * Data in @p packet will have been allocated via
+ * rmap_node_allocate_callback(), ownership of this allocation is transferred
+ * from the caller to the callee. This library will not handle its
+ * deallocation.
+ */
 typedef void (*rmap_node_target_send_reply_callback)(
     struct rmap_node_context *context,
     const void *packet,
@@ -95,8 +101,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_rmw_request_callback)(
     void *read_data,
     size_t *read_data_size,
     const struct rmap_node_target_request *request,
-    const void *write_data,
-    const void *mask_data);
+    const void *data);
 
 typedef void (*rmap_node_initiator_received_write_reply_callback)(
     struct rmap_node_context *context,
