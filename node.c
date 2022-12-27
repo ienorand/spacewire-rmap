@@ -147,8 +147,7 @@ static void handle_write_command(
 
 static void handle_read_command(
     struct rmap_node_context *const context,
-    const uint8_t *const packet,
-    const size_t size)
+    const uint8_t *const packet)
 {
     enum rmap_status status;
     enum rmap_status_field_code status_field_code;
@@ -185,6 +184,7 @@ static void handle_read_command(
         data_offset,
         packet);
     assert(status == RMAP_OK);
+    (void)status;
 
     if (status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS) {
         reply_buf[data_offset + rmap_get_data_length(packet)] =
@@ -350,7 +350,7 @@ static void handle_command(
         handle_rmw_command(context, packet, size);
     }
 
-    handle_read_command(context, packet, size);
+    handle_read_command(context, packet);
 }
 
 static void handle_reply(

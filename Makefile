@@ -14,12 +14,17 @@ EXAMPLES = \
 	examples/print_packet_descriptions
 
 .PHONY: default
-default: librmap.a
+default: librmap.a librmap-node.a
 
 librmap.a: rmap.o
 	$(AR) $(ARFLAGS) $@ $^
 
+librmap-node.a: rmap.o node.o
+	$(AR) $(ARFLAGS) $@ $^
+
 rmap.o: rmap.h
+
+node.o: node.h
 
 .PHONY: test
 test:
@@ -36,6 +41,6 @@ $(EXAMPLES): librmap.a
 
 .PHONY: clean
 clean:
-	rm -f rmap.o librmap.a $(EXAMPLES:%=%.o) $(EXAMPLES)
+	rm -f rmap.o node.o librmap.a librmap-node.a $(EXAMPLES:%=%.o) $(EXAMPLES)
 	rm -rf html
 	$(MAKE) -C test clean
