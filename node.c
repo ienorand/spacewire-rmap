@@ -53,7 +53,8 @@ static void send_error_reply(
     rmap_set_status(reply_header, error);
     if (!rmap_is_write(command)) {
         rmap_set_data_length(reply_header, 0);
-        uint8_t *data = reply_header + rmap_calculate_header_size(reply_header);
+        uint8_t *const data =
+            reply_header + rmap_calculate_header_size(reply_header);
         data[0] = rmap_crc_calculate(data, 0);
         reply_size += 1;
     }
