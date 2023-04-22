@@ -62,7 +62,7 @@ enum rmap_node_status {
 #define RMAP_INVALID_REPLY (12345 + 2)
 #define RMAP_PACKET_ERROR (12345 + 3)
 
-struct rmap_node_inialize_flags {
+struct rmap_node_initialize_flags {
     unsigned int is_target : 1;
     unsigned int is_initator : 1;
     unsigned int is_reply_for_unused_packet_type_enabled : 1;
@@ -208,7 +208,7 @@ void rmap_node_initialize(
     struct rmap_node_context *context,
     void *custom_context,
     const struct rmap_node_callbacks *callbacks,
-    struct rmap_node_inialize_flags flags,
+    struct rmap_node_initialize_flags flags,
     const struct rmap_node_target_callbacks *target_callbacks,
     const struct rmap_node_initiator_callbacks *initiator_callbacks);
 

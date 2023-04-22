@@ -6,7 +6,7 @@ void rmap_node_initialize(
     struct rmap_node_context *const context,
     void *const custom_context,
     const struct rmap_node_callbacks *const callbacks,
-    const struct rmap_node_inialize_flags flags,
+    const struct rmap_node_initialize_flags flags,
     const struct rmap_node_target_callbacks *const target_callbacks,
     const struct rmap_node_initiator_callbacks *const initiator_callbacks)
 {
