@@ -463,6 +463,7 @@ void rmap_target_handle_incoming(
 
     if (rmap_is_command(packet)) {
         handle_command(context, packet, size);
+        return;
     }
 
     handle_reply(context, packet, size);
