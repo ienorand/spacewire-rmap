@@ -36,7 +36,8 @@ static void send_error_reply(
     const size_t reply_size_max =
         RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX;
 
-    uint8_t *reply_buf = context->callbacks.allocate(context, reply_size_max);
+    uint8_t *const reply_buf =
+        context->callbacks.allocate(context, reply_size_max);
 
     status = rmap_create_success_reply_from_command(
         reply_buf,
@@ -130,7 +131,8 @@ static void handle_write_command(
     const size_t reply_size_max =
         RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX;
 
-    uint8_t *reply_buf = context->callbacks.allocate(context, reply_size_max);
+    uint8_t *const reply_buf =
+        context->callbacks.allocate(context, reply_size_max);
 
     status = rmap_create_success_reply_from_command(
         reply_buf,
@@ -161,7 +163,8 @@ static void handle_read_command(
     const size_t reply_size_max =
         data_offset + rmap_get_data_length(packet) + 1;
 
-    uint8_t *reply_buf = context->callbacks.allocate(context, reply_size_max);
+    uint8_t *const reply_buf =
+        context->callbacks.allocate(context, reply_size_max);
 
     const struct rmap_node_target_request read_request = {
         .target_logical_address = rmap_get_target_logical_address(packet),
@@ -255,7 +258,8 @@ static void handle_rmw_command(
     const size_t reply_size_max =
         data_offset + rmap_get_data_length(packet) + 1;
 
-    uint8_t *reply_buf = context->callbacks.allocate(context, reply_size_max);
+    uint8_t *const reply_buf =
+        context->callbacks.allocate(context, reply_size_max);
 
     const struct rmap_node_target_request rmw_request = {
         .target_logical_address = rmap_get_target_logical_address(packet),
