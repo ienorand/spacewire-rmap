@@ -434,7 +434,7 @@ static void handle_reply(
         size - rmap_calculate_header_size(packet) - 1);
 }
 
-void rmap_target_handle_incoming(
+void rmap_node_target_handle_incoming(
     struct rmap_node_context *const context,
     const void *const packet,
     const size_t size)
