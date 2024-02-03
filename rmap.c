@@ -997,6 +997,7 @@ const char *rmap_status_text(const int status)
   }
 }
 
+#ifndef RMAP_CUSTOM_CRC_IMPLEMENTATION
 uint8_t rmap_crc_calculate(const void *const data, const size_t data_size)
 {
   uint8_t crc;
@@ -1044,3 +1045,4 @@ uint8_t rmap_crc_calculate(const void *const data, const size_t data_size)
 
   return crc;
 }
+#endif /* RMAP_CUSTOM_CRC_IMPLEMENTATION */

@@ -159,6 +159,34 @@ The `rmap_create_success_reply_from_command_before()` function allows the data
 and CRC to be added first, with the rest of the packet being created
 immediately before the existing data.
 
+### Custom CRC implementation support
+
+It is possible to use a different CRC implementation instead of the table-based
+implementation normally defined in the library via the following steps:
+
+*   Use the `RMAP_CUSTOM_CRC_IMPLEMENTATION` make flag when compiling the
+    library to remove the included definition of the `rmap_crc_calculate()`
+    function.
+*   Provide a compatible definition of the `rmap_crc_calculate()` function at
+    link time.
+
+#### Disabling CRC
+
+It is possible to effectively disable the CRC calculation and verification by
+providing a custom definition of the `rmap_crc_calculate()` function which
+always returns `0`.
+
+This will make the CRC verification always succeed; the library includes the
+trailing reference CRC when performing the verification calculation, which will
+always produce a `0` result (for data without errors) based on the RMAP CRC
+algorithm.
+
+Using a `0`-return `rmap_crc_calculate()` function will result in RMAP packets
+being created with a `0` header (and data) CRC.
+
+This can be useful if CRC calculation and verification is handled by other
+means.
+
 ### Examples
 
 Examples showing creation of RMAP commands and replies using this library are
