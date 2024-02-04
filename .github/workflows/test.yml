@@ -18,4 +18,4 @@ jobs:
     - name: build and run tests
       run: make test
     - name: build and run tests with custom crc implementation
-      run: make test-with-custom-crc
+      run: make -C test test-with-custom-crc
