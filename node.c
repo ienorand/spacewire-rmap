@@ -437,6 +437,10 @@ static void handle_reply(
         size - rmap_calculate_header_size(packet) - 1);
 }
 
+/* TODO: How to handle EEP? Should this be passed to incoming and on to
+ * handle_write_command() and handle_rmw_command() and acted upon if located in
+ * data?
+ */
 void rmap_node_target_handle_incoming(
     struct rmap_node_context *const context,
     const void *const packet,
@@ -450,6 +454,7 @@ void rmap_node_target_handle_incoming(
         return;
 
     case RMAP_INCOMPLETE_HEADER:
+        /* TODO: Would need to report EEP instead if relevant. */
         if (context->is_target) {
             context->target.error_information = RMAP_NODE_EARLY_EOP;
         }
