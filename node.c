@@ -121,6 +121,29 @@ static void handle_write_command(
         context,
         &write_request,
         packet + rmap_calculate_header_size(packet));
+    switch (status_field_code) {
+    case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
+        context->target.error_information = RMAP_NODE_INVALID_KEY;
+        break;
+
+    case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
+        context->target.error_information =
+            RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        break;
+
+    case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
+        context->target.error_information =
+            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        break;
+
+    case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
+        context->target.error_information = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        break;
+
+    default:
+        assert(status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS);
+        break;
+    }
     if (status_field_code != RMAP_STATUS_FIELD_CODE_SUCCESS) {
         if (rmap_is_with_reply(packet)) {
             send_error_reply(context, packet, status_field_code);
@@ -180,6 +203,29 @@ static void handle_read_command(
         reply_buf + data_offset,
         &reply_data_size,
         &read_request);
+    switch (status_field_code) {
+    case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
+        context->target.error_information = RMAP_NODE_INVALID_KEY;
+        break;
+
+    case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
+        context->target.error_information =
+            RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        break;
+
+    case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
+        context->target.error_information =
+            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        break;
+
+    case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
+        context->target.error_information = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        break;
+
+    default:
+        assert(status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS);
+        break;
+    }
 
     status = rmap_create_success_reply_from_command_before(
         reply_buf,
@@ -276,6 +322,29 @@ static void handle_rmw_command(
         &reply_data_size,
         &rmw_request,
         packet + rmap_calculate_header_size(packet));
+    switch (status_field_code) {
+    case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
+        context->target.error_information = RMAP_NODE_INVALID_KEY;
+        break;
+
+    case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
+        context->target.error_information =
+            RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        break;
+
+    case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
+        context->target.error_information =
+            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        break;
+
+    case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
+        context->target.error_information = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        break;
+
+    default:
+        assert(status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS);
+        break;
+    }
 
     status = rmap_create_success_reply_from_command_before(
         reply_buf,
