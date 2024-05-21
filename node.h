@@ -51,7 +51,7 @@ enum rmap_node_status {
     RMAP_NODE_RMW_DATA_LENGTH_ERROR = 525,
     RMAP_NODE_ = 52,
     RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR = 514,
-    RMAP_NODE_REPLY_RECIEVED_BY_TARGET = 514,
+    RMAP_NODE_REPLY_RECEIVED_BY_TARGET = 514,
     /* RMAP_NODE_INVALID_REPLY = 51, */
     /* RMAP_NODE_PACKET_ERROR = 51, */
 };
@@ -185,13 +185,13 @@ struct rmap_node_initiator_callbacks {
 };
 
 struct rmap_node_target_context {
-    enum rmap_status error_information;
+    enum rmap_node_status error_information;
     struct rmap_node_target_callbacks callbacks;
     unsigned int is_reply_for_unused_packet_type_enabled : 1;
 };
 
 struct rmap_node_initiator_context {
-    enum rmap_status error_information;
+    enum rmap_node_status error_information;
     struct rmap_node_initiator_callbacks callbacks;
 };
 
