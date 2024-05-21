@@ -217,12 +217,6 @@ void rmap_node_target_handle_incoming(
     const void *packet,
     size_t size);
 
-enum rmap_status
-rmap_node_target_error_information(struct rmap_node_context *context);
-
-enum rmap_status
-rmap_node_initiator_error_information(struct rmap_node_context *context);
-
 #ifdef __cplusplus
 }
 #endif

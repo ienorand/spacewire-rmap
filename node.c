@@ -468,15 +468,3 @@ void rmap_node_target_handle_incoming(
 
     handle_reply(context, packet, size);
 }
-
-enum rmap_status
-rmap_node_target_error_information(struct rmap_node_context *const context)
-{
-    return context->target.error_information;
-}
-
-enum rmap_status
-rmap_node_initiator_error_information(struct rmap_node_context *const context)
-{
-    return context->initiator.error_information;
-}
