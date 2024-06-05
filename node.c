@@ -13,7 +13,7 @@ void rmap_node_initialize(
     context->custom_context = custom_context;
     context->callbacks = *callbacks;
     context->is_target = flags.is_target;
-    context->is_initator = flags.is_initator;
+    context->is_initiator = flags.is_initiator;
 
     context->target.error_information = RMAP_NODE_OK;
     context->target.callbacks = *target_callbacks;
@@ -381,7 +381,7 @@ static void handle_command(
     enum rmap_status status;
 
     if (!context->is_target) {
-        if (context->is_initator) {
+        if (context->is_initiator) {
             context->target.error_information =
                 RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR;
         }
@@ -436,7 +436,7 @@ static void handle_reply(
 {
     enum rmap_status status;
 
-    if (!context->is_initator) {
+    if (!context->is_initiator) {
         if (context->is_target) {
             context->target.error_information =
                 RMAP_NODE_REPLY_RECEIVED_BY_TARGET;
@@ -527,7 +527,7 @@ void rmap_node_target_handle_incoming(
         if (context->is_target) {
             context->target.error_information = RMAP_NODE_EARLY_EOP;
         }
-        if (context->is_initator) {
+        if (context->is_initiator) {
             context->initiator.error_information = RMAP_NODE_EARLY_EOP;
         }
         return;
@@ -536,7 +536,7 @@ void rmap_node_target_handle_incoming(
         if (context->is_target) {
             context->target.error_information = RMAP_NODE_HEADER_CRC_ERROR;
         }
-        if (context->is_initator) {
+        if (context->is_initiator) {
             context->initiator.error_information = RMAP_NODE_HEADER_CRC_ERROR;
         }
         return;

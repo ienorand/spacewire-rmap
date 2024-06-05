@@ -62,7 +62,7 @@ enum rmap_node_status {
 
 struct rmap_node_initialize_flags {
     unsigned int is_target : 1;
-    unsigned int is_initator : 1;
+    unsigned int is_initiator : 1;
     unsigned int is_reply_for_unused_packet_type_enabled : 1;
 };
 
@@ -193,7 +193,7 @@ struct rmap_node_context {
     void *custom_context;
     struct rmap_node_callbacks callbacks;
     unsigned int is_target : 1;
-    unsigned int is_initator : 1;
+    unsigned int is_initiator : 1;
     struct rmap_node_target_context target;
     struct rmap_node_initiator_context initiator;
 };
