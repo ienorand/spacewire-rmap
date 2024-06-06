@@ -438,6 +438,7 @@ static void handle_command(
 
     if (rmap_is_rmw(packet)) {
         handle_rmw_command(context, packet, size);
+        return;
     }
 
     handle_read_command(context, packet);
