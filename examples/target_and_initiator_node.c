@@ -42,6 +42,12 @@ static void send_reply(
 
     printf("Sending reply with size %zu:\n", size);
     print_data(packet, size);
+    /* Strip known reply address and feed reply back into current node. */
+    const size_t reply_address_size = 3;
+    rmap_node_target_handle_incoming(
+        context,
+        packet + reply_address_size,
+        size - reply_address_size);
     free(packet);
 }
 
@@ -280,9 +286,10 @@ static void received_write_reply(
     (void)context;
 
     printf(
-        "Received write reply with transaction ID %u and status %u\n",
+        "Received write reply with transaction ID %u and status:\n"
+        "%s\n",
         transaction_identifier,
-        status);
+        rmap_status_text(status));
 }
 
 static void received_read_reply(
@@ -295,9 +302,11 @@ static void received_read_reply(
     (void)context;
 
     printf(
-        "Received read reply with transaction ID %u, status %u, data:\n",
+        "Received read reply with transaction ID %u, status:\n"
+        "%s\n"
+        "data:\n",
         transaction_identifier,
-        status);
+        rmap_status_text(status));
     print_data(data, data_length);
 }
 
@@ -311,9 +320,11 @@ static void received_rmw_reply(
     (void)context;
 
     printf(
-        "Received RMW reply with transaction ID %u, status %u, data:\n",
+        "Received RMW reply with transaction ID %u, status:\n"
+        "%s\n"
+        "data:\n",
         transaction_identifier,
-        status);
+        rmap_status_text(status));
     print_data(data, data_length);
 }
 
