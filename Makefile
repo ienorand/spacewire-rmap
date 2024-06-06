@@ -46,6 +46,6 @@ $(NODE_EXAMPLES): librmap-node.a
 
 .PHONY: clean
 clean:
-	rm -f rmap.o node.o librmap.a librmap-node.a $(EXAMPLES:%=%.o) $(EXAMPLES)
+	rm -f rmap.o node.o librmap.a librmap-node.a $(EXAMPLES:%=%.o) $(EXAMPLES) $(NODE_EXAMPLES:%=%.o) $(NODE_EXAMPLES)
 	rm -rf html
 	$(MAKE) -C test clean
