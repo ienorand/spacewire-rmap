@@ -82,7 +82,9 @@ struct rmap_node_target_request {
 };
 
 /* Callback for allocating memory for reply packets. */
-typedef void *(*rmap_node_allocate_callback)(void *context, size_t size);
+typedef void *(*rmap_node_allocate_callback)(
+    struct rmap_node_context *context,
+    size_t size);
 
 /* Callback for sending replies.
  *
