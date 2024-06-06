@@ -138,10 +138,9 @@ bool rmap_is_increment_address(const void *const header)
 
 bool rmap_is_instruction_rmw(const uint8_t instruction)
 {
-  return !rmap_is_instruction_write(instruction) &&
-    rmap_is_instruction_verify_data_before_write(instruction) &&
-    rmap_is_instruction_with_reply(instruction) &&
-    rmap_is_instruction_increment_address(instruction);
+  const uint8_t mask =
+    RMAP_COMMAND_CODE_RMW << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT;
+  return (instruction & mask) == mask;
 }
 
 bool rmap_is_rmw(const void *const header)
