@@ -237,10 +237,8 @@ static void handle_read_command(
     (void)status;
 
     if (status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS) {
-        reply_buf[data_offset + rmap_get_data_length(packet)] =
-            rmap_crc_calculate(
-                reply_buf + data_offset,
-                rmap_get_data_length(packet));
+        reply_buf[data_offset + reply_data_size] =
+            rmap_crc_calculate(reply_buf + data_offset, reply_data_size);
     } else {
         rmap_set_status(reply_buf + reply_header_offset, status_field_code);
         rmap_set_data_length(reply_buf + reply_header_offset, 0);
@@ -251,8 +249,8 @@ static void handle_read_command(
     context->target.callbacks.send_reply(
         context,
         reply_buf + reply_offset,
-        data_offset + rmap_get_data_length(reply_buf + reply_header_offset) +
-            1);
+        data_offset - reply_offset +
+            rmap_get_data_length(reply_buf + reply_header_offset) + 1);
 }
 
 static void handle_rmw_command(
@@ -356,9 +354,7 @@ static void handle_rmw_command(
 
     if (status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS) {
         reply_buf[data_offset + rmap_get_data_length(packet)] =
-            rmap_crc_calculate(
-                reply_buf + data_offset,
-                rmap_get_data_length(packet));
+            rmap_crc_calculate(reply_buf + data_offset, reply_data_size);
     } else {
         rmap_set_status(reply_buf + reply_header_offset, status_field_code);
         rmap_set_data_length(reply_buf + reply_header_offset, 0);
@@ -369,8 +365,8 @@ static void handle_rmw_command(
     context->target.callbacks.send_reply(
         context,
         reply_buf + reply_offset,
-        data_offset + rmap_get_data_length(reply_buf + reply_header_offset) +
-            1);
+        data_offset - reply_offset +
+            rmap_get_data_length(reply_buf + reply_header_offset) + 1);
 }
 
 static void handle_command(
