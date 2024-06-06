@@ -189,14 +189,87 @@ static enum rmap_status_field_code rmw_request(
     const struct rmap_node_target_request *const request,
     const void *const data)
 {
-    (void)context;
-    (void)read_data;
-    (void)read_data_size;
-    (void)request;
-    (void)data;
+    printf("Processing RMW request\n");
+    struct custom_context *const custom_context = context->custom_context;
 
-    printf("Rejecting unsupported RMW request\n");
-    return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+    if (request->key != custom_context->target_key) {
+        printf("Rejecting RMW request due to invalid key\n");
+        context->target.error_information = RMAP_NODE_INVALID_KEY;
+        return RMAP_STATUS_FIELD_CODE_INVALID_KEY;
+    }
+
+    if (request->target_logical_address !=
+        custom_context->target_logical_address) {
+        printf("Rejecting RMW request due to invalid logical address\n");
+        context->target.error_information =
+            RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        return RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS;
+    }
+
+    /* This implementation writes bytewise and has no alignment requirements. */
+
+    const uint64_t start_address =
+        (uint64_t)request->extended_address << 32 | request->address;
+
+    if (start_address < custom_context->target_memory_start_address ||
+        start_address > custom_context->target_memory_start_address +
+                custom_context->target_memory_size - 1) {
+        printf("Rejecting RMW request due to address outside target memory\n");
+        context->target.error_information =
+            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+    }
+
+    assert(
+        start_address + request->data_length >= start_address &&
+        "Unexpected wrap");
+    const uint64_t end_address = start_address + request->data_length;
+    if (end_address > custom_context->target_memory_start_address +
+            custom_context->target_memory_size) {
+        printf("Rejecting RMW request due to end outside target memory\n");
+        context->target.error_information =
+            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+    }
+
+    /* This implementation uses bitwise (mask AND data) OR ((NOT mask) AND read)
+     * to form the write data (similar to the example in the RMAP standard).
+     *
+     * This means bits set in the mask will be taken from the command data and
+     * bits cleared in the mask will be taken from the read data.
+     *
+     * For example replacing bits 0-3:
+     * - Command data: 0x01
+     * - Read data: 0x22
+     * - Mask: 0x0F
+     * - Written data: 0x21
+     *
+     * For example clearing bits 2-5:
+     * - Command data: 0x00
+     * - Read data: 0xFF
+     * - Mask: 0x3C
+     * - Written data: 0xC3
+     */
+    const size_t offset =
+        start_address - custom_context->target_memory_start_address;
+    *read_data_size = request->data_length / 2;
+    memcpy(read_data, custom_context->target_memory + offset, *read_data_size);
+    const unsigned char *const data_bytes = data;
+    const unsigned char *const read_data_bytes = read_data;
+    for (size_t i = 0; i < *read_data_size; ++i) {
+        const uint8_t mask = data_bytes[*read_data_size + i];
+        const uint8_t write_data =
+            (mask & data_bytes[i]) | (~mask & read_data_bytes[i]);
+        custom_context->target_memory[offset + i] = write_data;
+    }
+
+    printf(
+        "Wrote data to address 0x%08" PRIX64 " with size %zu:\n",
+        start_address,
+        *read_data_size);
+    print_data(custom_context->target_memory + offset, *read_data_size);
+
+    return RMAP_STATUS_FIELD_CODE_SUCCESS;
 }
 
 static void received_write_reply(
@@ -238,8 +311,7 @@ static void received_rmw_reply(
     (void)context;
 
     printf(
-        "Received unsupported RMW reply with transaction ID %u, status %u, "
-        "data:\n",
+        "Received RMW reply with transaction ID %u, status %u, data:\n",
         transaction_identifier,
         status);
     print_data(data, data_length);
@@ -510,6 +582,70 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
+    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+
+    /* Read whole target memory. */
+    rmap_status = rmap_initialize_header(
+        buf,
+        sizeof(buf),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address));
+    if (rmap_status != RMAP_OK) {
+        printf(
+            "Failed to initialize header: %s\n",
+            rmap_status_text(rmap_status));
+        exit(EXIT_FAILURE);
+    }
+    rmap_set_target_logical_address(buf, 0xFE);
+    rmap_set_key(buf, 0x00);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
+    rmap_set_initiator_logical_address(buf, 0x67);
+    rmap_set_transaction_identifier(buf, transaction_identifier++);
+    rmap_set_extended_address(buf, 0x00);
+    rmap_set_address(buf, custom_context.target_memory_start_address);
+    rmap_set_data_length(buf, custom_context.target_memory_size);
+    rmap_calculate_and_set_header_crc(buf);
+    packet_size = rmap_calculate_header_size(buf);
+    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+
+    /* RMW. */
+    rmap_status = rmap_initialize_header(
+        buf,
+        sizeof(buf),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_RMW,
+        sizeof(reply_address));
+    if (rmap_status != RMAP_OK) {
+        printf(
+            "Failed to initialize header: %s\n",
+            rmap_status_text(rmap_status));
+        exit(EXIT_FAILURE);
+    }
+    rmap_set_target_logical_address(buf, 0xFE);
+    rmap_set_key(buf, 0x00);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
+    rmap_set_initiator_logical_address(buf, 0x67);
+    rmap_set_transaction_identifier(buf, transaction_identifier++);
+    rmap_set_extended_address(buf, 0x00);
+    rmap_set_address(buf, 0x00000110);
+    const uint8_t rmw_data_and_mask[] = {
+        0x0F,
+        0xF0,
+        0x0F,
+        0xF0,
+        0x0F,
+        0xF0,
+        0x0F,
+        0xF0,
+    };
+    rmap_set_data_length(buf, sizeof(rmw_data_and_mask));
+    rmap_calculate_and_set_header_crc(buf);
+    header_size = rmap_calculate_header_size(buf);
+    memcpy(buf + header_size, rmw_data_and_mask, sizeof(rmw_data_and_mask));
+    buf[header_size + sizeof(rmw_data_and_mask)] =
+        rmap_crc_calculate(buf + header_size, sizeof(rmw_data_and_mask));
+    packet_size = header_size + sizeof(rmw_data_and_mask) + 1;
     rmap_node_target_handle_incoming(&node_context, buf, packet_size);
 
     /* Read whole target memory. */
