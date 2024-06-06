@@ -95,7 +95,7 @@ typedef void *(*rmap_node_allocate_callback)(
  */
 typedef void (*rmap_node_target_send_reply_callback)(
     struct rmap_node_context *context,
-    const void *packet,
+    void *packet,
     size_t size);
 
 /* Callback for both authorizing and performing a write.

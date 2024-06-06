@@ -35,15 +35,14 @@ static void print_data(const void *const data, const size_t size)
 
 static void send_reply(
     struct rmap_node_context *const context,
-    const void *const packet,
+    void *const packet,
     const size_t size)
 {
     (void)context;
 
     printf("Sending reply with size %zu:\n", size);
     print_data(packet, size);
-    /* TODO */
-    /* free((void *)packet); */
+    free(packet);
 }
 
 static enum rmap_status_field_code write_request(
