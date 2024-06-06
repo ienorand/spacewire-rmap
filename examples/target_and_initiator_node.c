@@ -287,14 +287,13 @@ int main(void)
     size_t header_size;
     size_t packet_size;
     const uint8_t reply_address[] = {0x01, 0x02, 0x03};
-    const size_t reply_address_unpadded_size = 0;
 
     rmap_status = rmap_initialize_header(
         buf,
         sizeof(buf),
         RMAP_PACKET_TYPE_COMMAND,
         RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
-        reply_address_unpadded_size);
+        sizeof(reply_address));
     if (rmap_status != RMAP_OK) {
         printf(
             "Failed to initialize header: %s\n",
@@ -303,7 +302,7 @@ int main(void)
     }
     rmap_set_target_logical_address(buf, 0xFE);
     rmap_set_key(buf, 0x00);
-    rmap_set_reply_address(buf, NULL, 0);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
     rmap_set_initiator_logical_address(buf, 0x67);
     rmap_set_transaction_identifier(buf, 0);
     rmap_set_extended_address(buf, 0x00);
@@ -320,7 +319,7 @@ int main(void)
         RMAP_PACKET_TYPE_COMMAND,
         RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY |
             RMAP_COMMAND_CODE_INCREMENT,
-        reply_address_unpadded_size);
+        sizeof(reply_address));
     if (rmap_status != RMAP_OK) {
         printf(
             "Failed to initialize header: %s\n",
@@ -329,7 +328,7 @@ int main(void)
     }
     rmap_set_target_logical_address(buf, 0xFE);
     rmap_set_key(buf, 0x00);
-    rmap_set_reply_address(buf, NULL, 0);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
     rmap_set_initiator_logical_address(buf, 0x67);
     rmap_set_transaction_identifier(buf, 1);
     rmap_set_extended_address(buf, 0x00);
@@ -367,7 +366,7 @@ int main(void)
         sizeof(buf),
         RMAP_PACKET_TYPE_COMMAND,
         RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
-        reply_address_unpadded_size);
+        sizeof(reply_address));
     if (rmap_status != RMAP_OK) {
         printf(
             "Failed to initialize header: %s\n",
@@ -376,7 +375,7 @@ int main(void)
     }
     rmap_set_target_logical_address(buf, 0xFE);
     rmap_set_key(buf, 0x00);
-    rmap_set_reply_address(buf, NULL, 0);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
     rmap_set_initiator_logical_address(buf, 0x67);
     rmap_set_transaction_identifier(buf, 2);
     rmap_set_extended_address(buf, 0x00);
