@@ -151,24 +151,32 @@ static void handle_write_command(
         return;
     }
 
-    const size_t reply_size_max =
-        RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX;
+    /* TODO:
+     * Maybe expose rmap_calculate_reply_address_size() or
+     * rmap_calculate_theoretical_header_size()?
+     */
+    uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
+    size_t reply_address_size;
+    status = rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        packet);
+    const size_t reply_size =
+        reply_address_size + RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
 
-    uint8_t *const reply_buf =
-        context->callbacks.allocate(context, reply_size_max);
+    uint8_t *const reply_buf = context->callbacks.allocate(context, reply_size);
 
     status = rmap_create_success_reply_from_command(
         reply_buf,
         &reply_header_offset,
-        reply_size_max,
+        reply_address_size + RMAP_WRITE_REPLY_HEADER_STATIC_SIZE,
         packet);
     assert(status == RMAP_OK);
+    (void)status;
+    assert(reply_header_offset == reply_address_size);
 
-    context->target.callbacks.send_reply(
-        context,
-        reply_buf,
-        reply_header_offset +
-            rmap_calculate_header_size(reply_buf + reply_header_offset));
+    context->target.callbacks.send_reply(context, reply_buf, reply_size);
 }
 
 static void handle_read_command(
@@ -177,17 +185,33 @@ static void handle_read_command(
 {
     enum rmap_status status;
     enum rmap_status_field_code status_field_code;
-    size_t reply_offset;
     size_t reply_header_offset;
     size_t reply_data_size;
 
-    const size_t data_offset =
-        RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX;
-    const size_t reply_size_max =
-        data_offset + rmap_get_data_length(packet) + 1;
+    /* TODO:
+     * Maybe expose rmap_calculate_reply_address_size() or
+     * rmap_calculate_theoretical_header_size()?
+     */
+    uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
+    size_t reply_address_size;
+    status = rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        packet);
+    const size_t reply_size = reply_address_size +
+        RMAP_READ_REPLY_HEADER_STATIC_SIZE + rmap_get_data_length(packet) + 1;
 
-    uint8_t *const reply_buf =
-        context->callbacks.allocate(context, reply_size_max);
+    uint8_t *const reply_buf = context->callbacks.allocate(context, reply_size);
+
+    status = rmap_create_success_reply_from_command(
+        reply_buf,
+        &reply_header_offset,
+        reply_address_size + RMAP_READ_REPLY_HEADER_STATIC_SIZE,
+        packet);
+    assert(status == RMAP_OK);
+    (void)status;
+    assert(reply_header_offset == reply_address_size);
 
     const struct rmap_node_target_request read_request = {
         .target_logical_address = rmap_get_target_logical_address(packet),
@@ -198,6 +222,8 @@ static void handle_read_command(
         .extended_address = rmap_get_extended_address(packet),
         .address = rmap_get_address(packet),
         .data_length = rmap_get_data_length(packet)};
+    const size_t data_offset = reply_header_offset +
+        rmap_calculate_header_size(reply_buf + reply_header_offset);
     status_field_code = context->target.callbacks.read_request(
         context,
         reply_buf + data_offset,
@@ -227,15 +253,6 @@ static void handle_read_command(
         break;
     }
 
-    status = rmap_create_success_reply_from_command_before(
-        reply_buf,
-        &reply_offset,
-        &reply_header_offset,
-        data_offset,
-        packet);
-    assert(status == RMAP_OK);
-    (void)status;
-
     if (status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS) {
         reply_buf[data_offset + reply_data_size] =
             rmap_crc_calculate(reply_buf + data_offset, reply_data_size);
@@ -246,11 +263,7 @@ static void handle_read_command(
         reply_buf[data_offset] = rmap_crc_calculate(reply_buf + data_offset, 0);
     }
 
-    context->target.callbacks.send_reply(
-        context,
-        reply_buf + reply_offset,
-        data_offset - reply_offset +
-            rmap_get_data_length(reply_buf + reply_header_offset) + 1);
+    context->target.callbacks.send_reply(context, reply_buf, reply_size);
 }
 
 static void handle_rmw_command(
@@ -260,7 +273,6 @@ static void handle_rmw_command(
 {
     enum rmap_status status;
     enum rmap_status_field_code status_field_code;
-    size_t reply_offset;
     size_t reply_header_offset;
     size_t reply_data_size;
 
@@ -297,13 +309,32 @@ static void handle_rmw_command(
         break;
     }
 
-    const size_t data_offset =
-        RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX;
-    const size_t reply_size_max =
-        data_offset + rmap_get_data_length(packet) + 1;
+    /* TODO:
+     * Maybe expose rmap_calculate_reply_address_size() or
+     * rmap_calculate_theoretical_header_size()?
+     */
+    uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
+    size_t reply_address_size;
+    status = rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        packet);
+    const size_t reply_size = reply_address_size +
+        RMAP_READ_REPLY_HEADER_STATIC_SIZE + rmap_get_data_length(packet) + 1;
 
-    uint8_t *const reply_buf =
-        context->callbacks.allocate(context, reply_size_max);
+    uint8_t *const reply_buf = context->callbacks.allocate(context, reply_size);
+
+    status = rmap_create_success_reply_from_command(
+        reply_buf,
+        &reply_header_offset,
+        reply_address_size + RMAP_READ_REPLY_HEADER_STATIC_SIZE,
+        packet);
+    assert(status == RMAP_OK);
+    (void)status;
+    assert(reply_header_offset == reply_address_size);
+    const size_t data_offset =
+        reply_header_offset + RMAP_READ_REPLY_HEADER_STATIC_SIZE;
 
     const struct rmap_node_target_request rmw_request = {
         .target_logical_address = rmap_get_target_logical_address(packet),
@@ -344,14 +375,6 @@ static void handle_rmw_command(
         break;
     }
 
-    status = rmap_create_success_reply_from_command_before(
-        reply_buf,
-        &reply_offset,
-        &reply_header_offset,
-        data_offset,
-        packet);
-    assert(status == RMAP_OK);
-
     if (status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS) {
         reply_buf[data_offset + rmap_get_data_length(packet)] =
             rmap_crc_calculate(reply_buf + data_offset, reply_data_size);
@@ -362,11 +385,7 @@ static void handle_rmw_command(
         reply_buf[data_offset] = rmap_crc_calculate(reply_buf + data_offset, 0);
     }
 
-    context->target.callbacks.send_reply(
-        context,
-        reply_buf + reply_offset,
-        data_offset - reply_offset +
-            rmap_get_data_length(reply_buf + reply_header_offset) + 1);
+    context->target.callbacks.send_reply(context, reply_buf, reply_size);
 }
 
 static void handle_command(
