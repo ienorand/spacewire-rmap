@@ -13,6 +13,9 @@ EXAMPLES = \
 	examples/creating_a_reply_from_a_command \
 	examples/print_packet_descriptions
 
+NODE_EXAMPLES = \
+	examples/target_and_initiator_node
+
 .PHONY: default
 default: librmap.a librmap-node.a
 
@@ -35,9 +38,11 @@ coverage:
 	$(MAKE) -C test coverage
 
 .PHONY: examples
-examples: $(EXAMPLES)
+examples: $(EXAMPLES) $(NODE_EXAMPLES)
 
 $(EXAMPLES): librmap.a
+
+$(NODE_EXAMPLES): librmap-node.a
 
 .PHONY: clean
 clean:
