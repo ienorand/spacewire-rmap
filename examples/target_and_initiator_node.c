@@ -285,53 +285,8 @@ int main(void)
     uint8_t buf[RMAP_COMMAND_HEADER_STATIC_SIZE + 32];
     size_t header_size;
     size_t packet_size;
+    uint16_t transaction_identifier = 0;
     const uint8_t reply_address[] = {0x01, 0x02, 0x03};
-
-    rmap_status = rmap_initialize_header(
-        buf,
-        sizeof(buf),
-        RMAP_PACKET_TYPE_COMMAND,
-        RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
-        sizeof(reply_address));
-    if (rmap_status != RMAP_OK) {
-        printf(
-            "Failed to initialize header: %s\n",
-            rmap_status_text(rmap_status));
-        exit(EXIT_FAILURE);
-    }
-    rmap_set_target_logical_address(buf, 0xFE);
-    rmap_set_key(buf, 0x00);
-    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
-    rmap_set_initiator_logical_address(buf, 0x67);
-    rmap_set_transaction_identifier(buf, 0);
-    rmap_set_extended_address(buf, 0x00);
-    rmap_set_address(buf, custom_context.target_memory_start_address);
-    rmap_set_data_length(buf, custom_context.target_memory_size);
-    rmap_calculate_and_set_header_crc(buf);
-    packet_size = rmap_calculate_header_size(buf);
-
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
-
-    rmap_status = rmap_initialize_header(
-        buf,
-        sizeof(buf),
-        RMAP_PACKET_TYPE_COMMAND,
-        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY |
-            RMAP_COMMAND_CODE_INCREMENT,
-        sizeof(reply_address));
-    if (rmap_status != RMAP_OK) {
-        printf(
-            "Failed to initialize header: %s\n",
-            rmap_status_text(rmap_status));
-        exit(EXIT_FAILURE);
-    }
-    rmap_set_target_logical_address(buf, 0xFE);
-    rmap_set_key(buf, 0x00);
-    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
-    rmap_set_initiator_logical_address(buf, 0x67);
-    rmap_set_transaction_identifier(buf, 1);
-    rmap_set_extended_address(buf, 0x00);
-    rmap_set_address(buf, 0x00000110);
     const uint8_t write_data[] = {
         0x00,
         0x11,
@@ -350,16 +305,8 @@ int main(void)
         0xEE,
         0xFF,
     };
-    rmap_set_data_length(buf, sizeof(write_data));
-    rmap_calculate_and_set_header_crc(buf);
-    header_size = rmap_calculate_header_size(buf);
-    memcpy(buf + header_size, write_data, sizeof(write_data));
-    buf[header_size + sizeof(write_data)] =
-        rmap_crc_calculate(buf + header_size, sizeof(write_data));
-    packet_size = header_size + sizeof(write_data) + 1;
 
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
-
+    /* Read whole target memory. */
     rmap_status = rmap_initialize_header(
         buf,
         sizeof(buf),
@@ -376,12 +323,217 @@ int main(void)
     rmap_set_key(buf, 0x00);
     rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
     rmap_set_initiator_logical_address(buf, 0x67);
-    rmap_set_transaction_identifier(buf, 2);
+    rmap_set_transaction_identifier(buf, transaction_identifier++);
     rmap_set_extended_address(buf, 0x00);
     rmap_set_address(buf, custom_context.target_memory_start_address);
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
+    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
 
+    /* Write to a subset of target memory. */
+    rmap_status = rmap_initialize_header(
+        buf,
+        sizeof(buf),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY |
+            RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address));
+    if (rmap_status != RMAP_OK) {
+        printf(
+            "Failed to initialize header: %s\n",
+            rmap_status_text(rmap_status));
+        exit(EXIT_FAILURE);
+    }
+    rmap_set_target_logical_address(buf, 0xFE);
+    rmap_set_key(buf, 0x00);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
+    rmap_set_initiator_logical_address(buf, 0x67);
+    rmap_set_transaction_identifier(buf, transaction_identifier++);
+    rmap_set_extended_address(buf, 0x00);
+    rmap_set_address(buf, 0x00000110);
+    rmap_set_data_length(buf, sizeof(write_data));
+    rmap_calculate_and_set_header_crc(buf);
+    header_size = rmap_calculate_header_size(buf);
+    memcpy(buf + header_size, write_data, sizeof(write_data));
+    buf[header_size + sizeof(write_data)] =
+        rmap_crc_calculate(buf + header_size, sizeof(write_data));
+    packet_size = header_size + sizeof(write_data) + 1;
+    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+
+    /* Read whole target memory. */
+    rmap_status = rmap_initialize_header(
+        buf,
+        sizeof(buf),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address));
+    if (rmap_status != RMAP_OK) {
+        printf(
+            "Failed to initialize header: %s\n",
+            rmap_status_text(rmap_status));
+        exit(EXIT_FAILURE);
+    }
+    rmap_set_target_logical_address(buf, 0xFE);
+    rmap_set_key(buf, 0x00);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
+    rmap_set_initiator_logical_address(buf, 0x67);
+    rmap_set_transaction_identifier(buf, transaction_identifier++);
+    rmap_set_extended_address(buf, 0x00);
+    rmap_set_address(buf, custom_context.target_memory_start_address);
+    rmap_set_data_length(buf, custom_context.target_memory_size);
+    rmap_calculate_and_set_header_crc(buf);
+    packet_size = rmap_calculate_header_size(buf);
+    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+
+    /* Write with invalid logical address. */
+    rmap_status = rmap_initialize_header(
+        buf,
+        sizeof(buf),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY |
+            RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address));
+    if (rmap_status != RMAP_OK) {
+        printf(
+            "Failed to initialize header: %s\n",
+            rmap_status_text(rmap_status));
+        exit(EXIT_FAILURE);
+    }
+    rmap_set_target_logical_address(buf, 0xAA);
+    rmap_set_key(buf, 0x00);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
+    rmap_set_initiator_logical_address(buf, 0x67);
+    rmap_set_transaction_identifier(buf, transaction_identifier++);
+    rmap_set_extended_address(buf, 0x00);
+    rmap_set_address(buf, custom_context.target_memory_start_address);
+    rmap_set_data_length(buf, sizeof(write_data));
+    rmap_calculate_and_set_header_crc(buf);
+    header_size = rmap_calculate_header_size(buf);
+    memcpy(buf + header_size, write_data, sizeof(write_data));
+    buf[header_size + sizeof(write_data)] =
+        rmap_crc_calculate(buf + header_size, sizeof(write_data));
+    packet_size = header_size + sizeof(write_data) + 1;
+    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+
+    /* Write with invalid address before target memory. */
+    rmap_status = rmap_initialize_header(
+        buf,
+        sizeof(buf),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY |
+            RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address));
+    if (rmap_status != RMAP_OK) {
+        printf(
+            "Failed to initialize header: %s\n",
+            rmap_status_text(rmap_status));
+        exit(EXIT_FAILURE);
+    }
+    rmap_set_target_logical_address(buf, 0xFE);
+    rmap_set_key(buf, 0x00);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
+    rmap_set_initiator_logical_address(buf, 0x67);
+    rmap_set_transaction_identifier(buf, transaction_identifier++);
+    rmap_set_extended_address(buf, 0x00);
+    rmap_set_address(buf, custom_context.target_memory_start_address - 1);
+    rmap_set_data_length(buf, sizeof(write_data));
+    rmap_calculate_and_set_header_crc(buf);
+    header_size = rmap_calculate_header_size(buf);
+    memcpy(buf + header_size, write_data, sizeof(write_data));
+    buf[header_size + sizeof(write_data)] =
+        rmap_crc_calculate(buf + header_size, sizeof(write_data));
+    packet_size = header_size + sizeof(write_data) + 1;
+    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+
+    /* Write with invalid address and size moving past target memory end. */
+    rmap_status = rmap_initialize_header(
+        buf,
+        sizeof(buf),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY |
+            RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address));
+    if (rmap_status != RMAP_OK) {
+        printf(
+            "Failed to initialize header: %s\n",
+            rmap_status_text(rmap_status));
+        exit(EXIT_FAILURE);
+    }
+    rmap_set_target_logical_address(buf, 0xFE);
+    rmap_set_key(buf, 0x00);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
+    rmap_set_initiator_logical_address(buf, 0x67);
+    rmap_set_transaction_identifier(buf, transaction_identifier++);
+    rmap_set_extended_address(buf, 0x00);
+    rmap_set_address(
+        buf,
+        custom_context.target_memory_start_address +
+            custom_context.target_memory_size - sizeof(write_data) + 1);
+    rmap_set_data_length(buf, sizeof(write_data));
+    rmap_calculate_and_set_header_crc(buf);
+    header_size = rmap_calculate_header_size(buf);
+    memcpy(buf + header_size, write_data, sizeof(write_data));
+    buf[header_size + sizeof(write_data)] =
+        rmap_crc_calculate(buf + header_size, sizeof(write_data));
+    packet_size = header_size + sizeof(write_data) + 1;
+    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+
+    /* Write with address and size reaching target memory end. */
+    rmap_status = rmap_initialize_header(
+        buf,
+        sizeof(buf),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY |
+            RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address));
+    if (rmap_status != RMAP_OK) {
+        printf(
+            "Failed to initialize header: %s\n",
+            rmap_status_text(rmap_status));
+        exit(EXIT_FAILURE);
+    }
+    rmap_set_target_logical_address(buf, 0xFE);
+    rmap_set_key(buf, 0x00);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
+    rmap_set_initiator_logical_address(buf, 0x67);
+    rmap_set_transaction_identifier(buf, transaction_identifier++);
+    rmap_set_extended_address(buf, 0x00);
+    rmap_set_address(
+        buf,
+        custom_context.target_memory_start_address +
+            custom_context.target_memory_size - sizeof(write_data));
+    rmap_set_data_length(buf, sizeof(write_data));
+    rmap_calculate_and_set_header_crc(buf);
+    header_size = rmap_calculate_header_size(buf);
+    memcpy(buf + header_size, write_data, sizeof(write_data));
+    buf[header_size + sizeof(write_data)] =
+        rmap_crc_calculate(buf + header_size, sizeof(write_data));
+    packet_size = header_size + sizeof(write_data) + 1;
+    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+
+    /* Read whole target memory. */
+    rmap_status = rmap_initialize_header(
+        buf,
+        sizeof(buf),
+        RMAP_PACKET_TYPE_COMMAND,
+        RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
+        sizeof(reply_address));
+    if (rmap_status != RMAP_OK) {
+        printf(
+            "Failed to initialize header: %s\n",
+            rmap_status_text(rmap_status));
+        exit(EXIT_FAILURE);
+    }
+    rmap_set_target_logical_address(buf, 0xFE);
+    rmap_set_key(buf, 0x00);
+    rmap_set_reply_address(buf, reply_address, sizeof(reply_address));
+    rmap_set_initiator_logical_address(buf, 0x67);
+    rmap_set_transaction_identifier(buf, transaction_identifier++);
+    rmap_set_extended_address(buf, 0x00);
+    rmap_set_address(buf, custom_context.target_memory_start_address);
+    rmap_set_data_length(buf, custom_context.target_memory_size);
+    rmap_calculate_and_set_header_crc(buf);
+    packet_size = rmap_calculate_header_size(buf);
     rmap_node_target_handle_incoming(&node_context, buf, packet_size);
 }
