@@ -14,7 +14,8 @@ RMAP_EXAMPLES = \
 	examples/print_packet_descriptions
 
 NODE_EXAMPLES = \
-	examples/target_and_initiator_node
+	examples/target_and_initiator_node \
+	examples/target_node
 
 EXAMPLES = $(RMAP_EXAMPLES) $(NODE_EXAMPLES)
 
