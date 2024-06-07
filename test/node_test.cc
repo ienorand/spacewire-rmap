@@ -827,6 +827,8 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
+
+    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
@@ -901,6 +903,8 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
+
+    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
@@ -959,6 +963,8 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
+
+    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
@@ -1035,6 +1041,8 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
+
+    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
@@ -1104,6 +1112,8 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
+
+    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
@@ -1182,6 +1192,8 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
+
+    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, ValidIncomingRead)
@@ -1280,6 +1292,8 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
         rmap_crc_calculate(expected_reply.data() + data_offset, 234);
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
+
+    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
@@ -1296,6 +1310,8 @@ TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
         &node_context,
         test_pattern0_expected_write_reply,
         sizeof(test_pattern0_expected_write_reply));
+
+    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
@@ -1318,6 +1334,8 @@ TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
         &node_context,
         test_pattern1_expected_read_reply,
         sizeof(test_pattern1_expected_read_reply));
+
+    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
@@ -1336,6 +1354,8 @@ TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
             test_pattern2_reply_address_length,
         sizeof(test_pattern2_expected_write_reply_with_spacewire_addresses) -
             test_pattern2_reply_address_length);
+
+    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
@@ -1362,6 +1382,8 @@ TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
             test_pattern3_reply_address_length,
         sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
             test_pattern3_reply_address_length);
+
+    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
@@ -1384,6 +1406,8 @@ TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
         &node_context,
         test_pattern4_expected_rmw_reply,
         sizeof(test_pattern4_expected_rmw_reply));
+
+    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
@@ -1410,4 +1434,6 @@ TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
             test_pattern5_reply_address_length,
         sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses) -
             test_pattern5_reply_address_length);
+
+    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
 }
