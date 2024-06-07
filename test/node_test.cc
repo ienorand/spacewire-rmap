@@ -669,18 +669,32 @@ TEST_F(MockedTargetNode, TestPattern0Incoming)
 {
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
-        .WillOnce(
-            [&allocation](struct rmap_node_context *node_context, size_t size) {
-                (void)node_context;
-                allocation.resize(size);
-                return allocation.data();
-            });
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
 
     struct rmap_node_target_request request;
+    std::vector<uint8_t> request_data;
     EXPECT_CALL(mock_callbacks, WriteRequest)
         .WillOnce(testing::DoAll(
             testing::SaveArgPointee<1>(&request),
-            testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS)));
+            [&request_data](
+                struct rmap_node_context *const node_context,
+                const struct rmap_node_target_request *const request,
+                const void *const data) {
+                (void)node_context;
+                (void)request;
+                const unsigned char *const data_bytes =
+                    reinterpret_cast<const unsigned char *>(data);
+                request_data = std::vector<uint8_t>(
+                    data_bytes,
+                    data_bytes + request->data_length);
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            }));
 
     const std::vector<uint8_t> expected_reply(
         test_pattern0_expected_write_reply,
@@ -705,6 +719,26 @@ TEST_F(MockedTargetNode, TestPattern0Incoming)
     EXPECT_EQ(request.extended_address, 0x00);
     EXPECT_EQ(request.address, 0xA0000000);
     EXPECT_EQ(request.data_length, 0x10);
+    EXPECT_EQ(
+        request_data,
+        std::vector<uint8_t>({
+            0x01,
+            0x23,
+            0x45,
+            0x67,
+            0x89,
+            0xAB,
+            0xCD,
+            0xEF,
+            0x10,
+            0x11,
+            0x12,
+            0x13,
+            0x14,
+            0x15,
+            0x16,
+            0x17,
+        }));
     EXPECT_EQ(reply_allocation_ptr, allocation.data());
 
     allocation.resize(expected_reply.size());
@@ -715,21 +749,22 @@ TEST_F(MockedTargetNode, TestPattern1Incoming)
 {
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
-        .WillOnce(
-            [&allocation](struct rmap_node_context *node_context, size_t size) {
-                (void)node_context;
-                allocation.resize(size);
-                return allocation.data();
-            });
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
 
     struct rmap_node_target_request request;
     EXPECT_CALL(mock_callbacks, ReadRequest)
         .WillOnce(testing::DoAll(
             testing::SaveArgPointee<3>(&request),
-            [](struct rmap_node_context *node_context,
-               void *data,
-               size_t *data_size,
-               const struct rmap_node_target_request *request) {
+            [](struct rmap_node_context *const node_context,
+               void *const data,
+               size_t *const data_size,
+               const struct rmap_node_target_request *const request) {
                 (void)node_context;
                 const std::vector<uint8_t> source_data = {
                     0x01,
@@ -784,6 +819,311 @@ TEST_F(MockedTargetNode, TestPattern1Incoming)
     EXPECT_EQ(allocation, expected_reply);
 }
 
+TEST_F(MockedTargetNode, TestPattern2Incoming)
+{
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    struct rmap_node_target_request request;
+    std::vector<uint8_t> request_data;
+    EXPECT_CALL(mock_callbacks, WriteRequest)
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<1>(&request),
+            [&request_data](
+                struct rmap_node_context *const node_context,
+                const struct rmap_node_target_request *const request,
+                const void *const data) {
+                (void)node_context;
+                (void)request;
+                const unsigned char *const data_bytes =
+                    reinterpret_cast<const unsigned char *>(data);
+                request_data = std::vector<uint8_t>(
+                    data_bytes,
+                    data_bytes + request->data_length);
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            }));
+
+    const std::vector<uint8_t> expected_reply(
+        test_pattern2_expected_write_reply_with_spacewire_addresses,
+        test_pattern2_expected_write_reply_with_spacewire_addresses +
+            sizeof(
+                test_pattern2_expected_write_reply_with_spacewire_addresses));
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+            test_pattern2_target_address_length,
+        sizeof(
+            test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) -
+            test_pattern2_target_address_length);
+
+    EXPECT_EQ(request.target_logical_address, 0xFE);
+    EXPECT_EQ(request.key, 0x00);
+    EXPECT_EQ(request.initiator_logical_address, 0x67);
+    EXPECT_EQ(request.transaction_identifier, 0x02);
+    EXPECT_EQ(request.extended_address, 0x00);
+    EXPECT_EQ(request.address, 0xA0000010);
+    EXPECT_EQ(request.data_length, 0x10);
+    EXPECT_EQ(
+        request_data,
+        std::vector<uint8_t>({
+            0xA0,
+            0xA1,
+            0xA2,
+            0xA3,
+            0xA4,
+            0xA5,
+            0xA6,
+            0xA7,
+            0xA8,
+            0xA9,
+            0xAA,
+            0xAB,
+            0xAC,
+            0xAD,
+            0xAE,
+            0xAF,
+        }));
+    EXPECT_EQ(reply_allocation_ptr, allocation.data());
+
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+TEST_F(MockedTargetNode, TestPattern3Incoming)
+{
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    struct rmap_node_target_request request;
+    EXPECT_CALL(mock_callbacks, ReadRequest)
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<3>(&request),
+            [](struct rmap_node_context *const node_context,
+               void *const data,
+               size_t *const data_size,
+               const struct rmap_node_target_request *const request) {
+                (void)node_context;
+                const std::vector<uint8_t> source_data = {
+                    0xA0,
+                    0xA1,
+                    0xA2,
+                    0xA3,
+                    0xA4,
+                    0xA5,
+                    0xA6,
+                    0xA7,
+                    0xA8,
+                    0xA9,
+                    0xAA,
+                    0xAB,
+                    0xAC,
+                    0xAD,
+                    0xAE,
+                    0xAF,
+                };
+                assert(request->data_length == source_data.size());
+                memcpy(data, source_data.data(), request->data_length);
+                *data_size = request->data_length;
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            }));
+
+    const std::vector<uint8_t> expected_reply(
+        test_pattern3_expected_read_reply_with_spacewire_addresses,
+        test_pattern3_expected_read_reply_with_spacewire_addresses +
+            sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses));
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern3_incrementing_read_with_spacewire_addresses +
+            test_pattern3_target_address_length,
+        sizeof(test_pattern3_incrementing_read_with_spacewire_addresses) -
+            test_pattern3_target_address_length);
+
+    EXPECT_EQ(request.target_logical_address, 0xFE);
+    EXPECT_EQ(request.key, 0x00);
+    EXPECT_EQ(request.initiator_logical_address, 0x67);
+    EXPECT_EQ(request.transaction_identifier, 0x03);
+    EXPECT_EQ(request.extended_address, 0x00);
+    EXPECT_EQ(request.address, 0xA0000010);
+    EXPECT_EQ(request.data_length, 0x10);
+    EXPECT_EQ(reply_allocation_ptr, allocation.data());
+
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+TEST_F(MockedTargetNode, TestPattern4Incoming)
+{
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    struct rmap_node_target_request request;
+    std::vector<uint8_t> request_data;
+    EXPECT_CALL(mock_callbacks, RmwRequest)
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<3>(&request),
+            [&request_data](
+                struct rmap_node_context *const node_context,
+                void *const read_data,
+                size_t *const read_data_size,
+                const struct rmap_node_target_request *const request,
+                const void *const data) {
+                (void)node_context;
+                (void)data;
+                const std::vector<uint8_t> source_data = {0xA0, 0xA1, 0xA2};
+                assert(request->data_length / 2 == source_data.size());
+                memcpy(read_data, source_data.data(), request->data_length / 2);
+                *read_data_size = request->data_length / 2;
+                const unsigned char *const data_bytes =
+                    reinterpret_cast<const unsigned char *>(data);
+                request_data = std::vector<uint8_t>(
+                    data_bytes,
+                    data_bytes + request->data_length);
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            }));
+
+    const std::vector<uint8_t> expected_reply(
+        test_pattern4_expected_rmw_reply,
+        test_pattern4_expected_rmw_reply +
+            sizeof(test_pattern4_expected_rmw_reply));
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern4_rmw,
+        sizeof(test_pattern4_rmw));
+
+    EXPECT_EQ(request.target_logical_address, 0xFE);
+    EXPECT_EQ(request.key, 0x00);
+    EXPECT_EQ(request.initiator_logical_address, 0x67);
+    EXPECT_EQ(request.transaction_identifier, 0x04);
+    EXPECT_EQ(request.extended_address, 0x00);
+    EXPECT_EQ(request.address, 0xA0000010);
+    EXPECT_EQ(request.data_length, 0x06);
+    EXPECT_EQ(
+        request_data,
+        std::vector<uint8_t>({0xC0, 0x18, 0x02, 0xF0, 0x3C, 0x03}));
+    EXPECT_EQ(reply_allocation_ptr, allocation.data());
+
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+TEST_F(MockedTargetNode, TestPattern5Incoming)
+{
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    struct rmap_node_target_request request;
+    std::vector<uint8_t> request_data;
+    EXPECT_CALL(mock_callbacks, RmwRequest)
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<3>(&request),
+            [&request_data](
+                struct rmap_node_context *const node_context,
+                void *const read_data,
+                size_t *const read_data_size,
+                const struct rmap_node_target_request *const request,
+                const void *const data) {
+                (void)node_context;
+                (void)data;
+                const std::vector<uint8_t> source_data = {
+                    0xE0,
+                    0x99,
+                    0xA2,
+                    0xA3,
+                };
+                assert(request->data_length / 2 == source_data.size());
+                memcpy(read_data, source_data.data(), request->data_length / 2);
+                *read_data_size = request->data_length / 2;
+                const unsigned char *const data_bytes =
+                    reinterpret_cast<const unsigned char *>(data);
+                request_data = std::vector<uint8_t>(
+                    data_bytes,
+                    data_bytes + request->data_length);
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            }));
+
+    const std::vector<uint8_t> expected_reply(
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses,
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+            sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses));
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern5_rmw_with_spacewire_addresses +
+            test_pattern5_target_address_length,
+        sizeof(test_pattern5_rmw_with_spacewire_addresses) -
+            test_pattern5_target_address_length);
+
+    EXPECT_EQ(request.target_logical_address, 0xFE);
+    EXPECT_EQ(request.key, 0x00);
+    EXPECT_EQ(request.initiator_logical_address, 0x67);
+    EXPECT_EQ(request.transaction_identifier, 0x05);
+    EXPECT_EQ(request.extended_address, 0x00);
+    EXPECT_EQ(request.address, 0xA0000010);
+    EXPECT_EQ(request.data_length, 0x08);
+    EXPECT_EQ(
+        request_data,
+        std::vector<uint8_t>({0x07, 0x02, 0xA0, 0x00, 0x0F, 0x83, 0xE0, 0xFF}));
+    EXPECT_EQ(reply_allocation_ptr, allocation.data());
+
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
 TEST_F(MockedTargetNode, ValidIncomingRead)
 {
     std::vector<uint8_t> incoming_packet(RMAP_COMMAND_HEADER_STATIC_SIZE + 32);
@@ -814,21 +1154,22 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
 
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
-        .WillOnce(
-            [&allocation](struct rmap_node_context *node_context, size_t size) {
-                (void)node_context;
-                allocation.resize(size);
-                return allocation.data();
-            });
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
 
     struct rmap_node_target_request read_request;
     EXPECT_CALL(mock_callbacks, ReadRequest)
         .WillOnce(testing::DoAll(
             testing::SaveArgPointee<3>(&read_request),
-            [](struct rmap_node_context *node_context,
-               void *data,
-               size_t *data_size,
-               const struct rmap_node_target_request *request) {
+            [](struct rmap_node_context *const node_context,
+               void *const data,
+               size_t *const data_size,
+               const struct rmap_node_target_request *const request) {
                 (void)node_context;
                 memset(data, 0xDA, request->data_length);
                 *data_size = request->data_length;
