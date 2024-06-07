@@ -560,6 +560,28 @@ class MockCallbacks
          size_t *read_data_size,
          const struct rmap_node_target_request *request,
          const void *data));
+    MOCK_METHOD(
+        void,
+        ReceivedWriteReply,
+        (struct rmap_node_context * context,
+         uint16_t transaction_identifier,
+         enum rmap_status_field_code status));
+    MOCK_METHOD(
+        void,
+        ReceivedReadReply,
+        (struct rmap_node_context * context,
+         uint16_t transaction_identifier,
+         enum rmap_status_field_code status,
+         const void *data,
+         size_t data_length));
+    MOCK_METHOD(
+        void,
+        ReceivedRmwReply,
+        (struct rmap_node_context * context,
+         uint16_t transaction_identifier,
+         enum rmap_status_field_code status,
+         const void *data,
+         size_t data_length));
 };
 
 struct mocked_callbacks_custom_context {
@@ -625,6 +647,56 @@ static enum rmap_status_field_code rmw_request_mock_wrapper(
         ->RmwRequest(context, read_data, read_data_size, request, data);
 }
 
+static void received_write_reply_mock_wrapper(
+    struct rmap_node_context *const context,
+    const uint16_t transaction_identifier,
+    const enum rmap_status_field_code status)
+{
+    struct mocked_callbacks_custom_context *const custom_context =
+        reinterpret_cast<struct mocked_callbacks_custom_context *>(
+            context->custom_context);
+    return custom_context->mock_callbacks->ReceivedWriteReply(
+        context,
+        transaction_identifier,
+        status);
+}
+
+static void received_read_reply_mock_wrapper(
+    struct rmap_node_context *const context,
+    const uint16_t transaction_identifier,
+    const enum rmap_status_field_code status,
+    const void *const data,
+    const size_t data_length)
+{
+    struct mocked_callbacks_custom_context *const custom_context =
+        reinterpret_cast<struct mocked_callbacks_custom_context *>(
+            context->custom_context);
+    return custom_context->mock_callbacks->ReceivedReadReply(
+        context,
+        transaction_identifier,
+        status,
+        data,
+        data_length);
+}
+
+static void received_rmw_reply_mock_wrapper(
+    struct rmap_node_context *const context,
+    const uint16_t transaction_identifier,
+    const enum rmap_status_field_code status,
+    const void *const data,
+    const size_t data_length)
+{
+    struct mocked_callbacks_custom_context *const custom_context =
+        reinterpret_cast<struct mocked_callbacks_custom_context *>(
+            context->custom_context);
+    return custom_context->mock_callbacks->ReceivedRmwReply(
+        context,
+        transaction_identifier,
+        status,
+        data,
+        data_length);
+}
+
 class MockedTargetNode : public testing::Test
 {
   protected:
@@ -665,7 +737,46 @@ class MockedTargetNode : public testing::Test
     const struct rmap_node_initiator_callbacks initiator_callbacks;
 };
 
-TEST_F(MockedTargetNode, TestPattern0Incoming)
+class MockedInitiatorNode : public testing::Test
+{
+  protected:
+    MockedInitiatorNode()
+        : callbacks({allocate_mock_wrapper}),
+          target_callbacks({nullptr, nullptr, nullptr, nullptr}),
+          initiator_callbacks(
+              {received_write_reply_mock_wrapper,
+               received_read_reply_mock_wrapper,
+               received_rmw_reply_mock_wrapper})
+    {
+        const struct mocked_callbacks_custom_context custom_context_init = {
+            .mock_callbacks = &mock_callbacks,
+        };
+        custom_context = custom_context_init;
+        const struct rmap_node_initialize_flags flags = {
+            .is_target = 0,
+            .is_initiator = 1,
+            .is_reply_for_unused_packet_type_enabled = 0,
+        };
+        rmap_node_initialize(
+            &node_context,
+            &custom_context,
+            &callbacks,
+            flags,
+            &target_callbacks,
+            &initiator_callbacks);
+    }
+
+    struct rmap_node_context node_context;
+    MockCallbacks mock_callbacks;
+
+  private:
+    struct mocked_callbacks_custom_context custom_context;
+    const struct rmap_node_callbacks callbacks;
+    const struct rmap_node_target_callbacks target_callbacks;
+    const struct rmap_node_initiator_callbacks initiator_callbacks;
+};
+
+TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
 {
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
@@ -718,7 +829,7 @@ TEST_F(MockedTargetNode, TestPattern0Incoming)
     EXPECT_EQ(allocation, expected_reply);
 }
 
-TEST_F(MockedTargetNode, TestPattern1Incoming)
+TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
 {
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
@@ -792,7 +903,7 @@ TEST_F(MockedTargetNode, TestPattern1Incoming)
     EXPECT_EQ(allocation, expected_reply);
 }
 
-TEST_F(MockedTargetNode, TestPattern2Incoming)
+TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
 {
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
@@ -850,7 +961,7 @@ TEST_F(MockedTargetNode, TestPattern2Incoming)
     EXPECT_EQ(allocation, expected_reply);
 }
 
-TEST_F(MockedTargetNode, TestPattern3Incoming)
+TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
 {
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
@@ -926,7 +1037,7 @@ TEST_F(MockedTargetNode, TestPattern3Incoming)
     EXPECT_EQ(allocation, expected_reply);
 }
 
-TEST_F(MockedTargetNode, TestPattern4Incoming)
+TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
 {
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
@@ -995,7 +1106,7 @@ TEST_F(MockedTargetNode, TestPattern4Incoming)
     EXPECT_EQ(allocation, expected_reply);
 }
 
-TEST_F(MockedTargetNode, TestPattern5Incoming)
+TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
 {
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
@@ -1169,4 +1280,134 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
         rmap_crc_calculate(expected_reply.data() + data_offset, 234);
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
+}
+
+TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
+{
+    const uint16_t expected_transaction_id = 0x00;
+    EXPECT_CALL(
+        mock_callbacks,
+        ReceivedWriteReply(
+            testing::_,
+            expected_transaction_id,
+            RMAP_STATUS_FIELD_CODE_SUCCESS));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern0_expected_write_reply,
+        sizeof(test_pattern0_expected_write_reply));
+}
+
+TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
+{
+    const uint8_t *const incoming_header = test_pattern1_expected_read_reply;
+    const uint8_t *const incoming_data =
+        incoming_header + rmap_calculate_header_size(incoming_header);
+
+    const uint16_t expected_transaction_id = 0x01;
+    EXPECT_CALL(
+        mock_callbacks,
+        ReceivedReadReply(
+            testing::_,
+            expected_transaction_id,
+            RMAP_STATUS_FIELD_CODE_SUCCESS,
+            incoming_data,
+            rmap_get_data_length(incoming_header)));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern1_expected_read_reply,
+        sizeof(test_pattern1_expected_read_reply));
+}
+
+TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
+{
+    const uint16_t expected_transaction_id = 0x02;
+    EXPECT_CALL(
+        mock_callbacks,
+        ReceivedWriteReply(
+            testing::_,
+            expected_transaction_id,
+            RMAP_STATUS_FIELD_CODE_SUCCESS));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern2_expected_write_reply_with_spacewire_addresses +
+            test_pattern2_reply_address_length,
+        sizeof(test_pattern2_expected_write_reply_with_spacewire_addresses) -
+            test_pattern2_reply_address_length);
+}
+
+TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
+{
+    const uint8_t *const incoming_header =
+        test_pattern3_expected_read_reply_with_spacewire_addresses +
+        test_pattern3_reply_address_length;
+    const uint8_t *const incoming_data =
+        incoming_header + rmap_calculate_header_size(incoming_header);
+
+    const uint16_t expected_transaction_id = 0x03;
+    EXPECT_CALL(
+        mock_callbacks,
+        ReceivedReadReply(
+            testing::_,
+            expected_transaction_id,
+            RMAP_STATUS_FIELD_CODE_SUCCESS,
+            incoming_data,
+            rmap_get_data_length(incoming_header)));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern3_expected_read_reply_with_spacewire_addresses +
+            test_pattern3_reply_address_length,
+        sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
+            test_pattern3_reply_address_length);
+}
+
+TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
+{
+    const uint8_t *const incoming_header = test_pattern4_expected_rmw_reply;
+    const uint8_t *const incoming_data =
+        incoming_header + rmap_calculate_header_size(incoming_header);
+
+    const uint16_t expected_transaction_id = 0x04;
+    EXPECT_CALL(
+        mock_callbacks,
+        ReceivedRmwReply(
+            testing::_,
+            expected_transaction_id,
+            RMAP_STATUS_FIELD_CODE_SUCCESS,
+            incoming_data,
+            rmap_get_data_length(incoming_header)));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern4_expected_rmw_reply,
+        sizeof(test_pattern4_expected_rmw_reply));
+}
+
+TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
+{
+    const uint8_t *const incoming_header =
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+        test_pattern5_reply_address_length;
+    const uint8_t *const incoming_data =
+        incoming_header + rmap_calculate_header_size(incoming_header);
+
+    const uint16_t expected_transaction_id = 0x05;
+    EXPECT_CALL(
+        mock_callbacks,
+        ReceivedRmwReply(
+            testing::_,
+            expected_transaction_id,
+            RMAP_STATUS_FIELD_CODE_SUCCESS,
+            incoming_data,
+            rmap_get_data_length(incoming_header)));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+            test_pattern5_reply_address_length,
+        sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses) -
+            test_pattern5_reply_address_length);
 }
