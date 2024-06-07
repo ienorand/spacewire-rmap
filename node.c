@@ -407,7 +407,7 @@ static void handle_command(
 
     if (!context->is_target) {
         if (context->is_initiator) {
-            context->target.error_information =
+            context->initiator.error_information =
                 RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR;
         }
         return;
@@ -418,7 +418,7 @@ static void handle_command(
     status = rmap_verify_header_instruction(packet);
     switch (status) {
     case RMAP_UNUSED_PACKET_TYPE:
-        context->initiator.error_information =
+        context->target.error_information =
             RMAP_NODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
         if (context->target.is_reply_for_unused_packet_type_enabled) {
             send_error_reply(
@@ -429,7 +429,7 @@ static void handle_command(
         return;
 
     case RMAP_UNUSED_COMMAND_CODE:
-        context->initiator.error_information =
+        context->target.error_information =
             RMAP_NODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
         send_error_reply(
             context,
