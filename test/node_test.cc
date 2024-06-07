@@ -1296,6 +1296,92 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
     EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
 }
 
+TEST_F(MockedTargetNode, TestPattern0IncomingReplyToTarget)
+{
+    EXPECT_CALL(mock_callbacks, ReceivedWriteReply).Times(0);
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern0_expected_write_reply,
+        sizeof(test_pattern0_expected_write_reply));
+    EXPECT_EQ(
+        node_context.target.error_information,
+        RMAP_NODE_REPLY_RECEIVED_BY_TARGET);
+}
+
+TEST_F(MockedTargetNode, TestPattern1IncomingReplyToTarget)
+{
+    EXPECT_CALL(mock_callbacks, ReceivedReadReply).Times(0);
+
+    node_context.target.error_information = RMAP_NODE_OK;
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern1_expected_read_reply,
+        sizeof(test_pattern1_expected_read_reply));
+    EXPECT_EQ(
+        node_context.target.error_information,
+        RMAP_NODE_REPLY_RECEIVED_BY_TARGET);
+}
+
+TEST_F(MockedTargetNode, TestPattern2IncomingReplyToTarget)
+{
+    EXPECT_CALL(mock_callbacks, ReceivedWriteReply).Times(0);
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern2_expected_write_reply_with_spacewire_addresses +
+            test_pattern2_reply_address_length,
+        sizeof(test_pattern2_expected_write_reply_with_spacewire_addresses) -
+            test_pattern2_reply_address_length);
+    EXPECT_EQ(
+        node_context.target.error_information,
+        RMAP_NODE_REPLY_RECEIVED_BY_TARGET);
+}
+
+TEST_F(MockedTargetNode, TestPattern3IncomingReplyToTarget)
+{
+    EXPECT_CALL(mock_callbacks, ReceivedReadReply).Times(0);
+
+    node_context.target.error_information = RMAP_NODE_OK;
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern3_expected_read_reply_with_spacewire_addresses +
+            test_pattern3_reply_address_length,
+        sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
+            test_pattern3_reply_address_length);
+    EXPECT_EQ(
+        node_context.target.error_information,
+        RMAP_NODE_REPLY_RECEIVED_BY_TARGET);
+}
+
+TEST_F(MockedTargetNode, TestPattern4IncomingReplyToTarget)
+{
+    EXPECT_CALL(mock_callbacks, ReceivedRmwReply).Times(0);
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern4_expected_rmw_reply,
+        sizeof(test_pattern4_expected_rmw_reply));
+    EXPECT_EQ(
+        node_context.target.error_information,
+        RMAP_NODE_REPLY_RECEIVED_BY_TARGET);
+}
+
+TEST_F(MockedTargetNode, TestPattern5IncomingReplyToTarget)
+{
+    EXPECT_CALL(mock_callbacks, ReceivedRmwReply).Times(0);
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+            test_pattern5_reply_address_length,
+        sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses) -
+            test_pattern5_reply_address_length);
+    EXPECT_EQ(
+        node_context.target.error_information,
+        RMAP_NODE_REPLY_RECEIVED_BY_TARGET);
+}
+
 TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
 {
     const uint16_t expected_transaction_id = 0x00;
@@ -1436,4 +1522,95 @@ TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
             test_pattern5_reply_address_length);
 
     EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
+}
+
+TEST_F(MockedInitiatorNode, TestPattern0IncomingCommandToInitiator)
+{
+    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
+    EXPECT_CALL(mock_callbacks, WriteRequest).Times(0);
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern0_unverified_incrementing_write_with_reply,
+        sizeof(test_pattern0_unverified_incrementing_write_with_reply));
+    EXPECT_EQ(
+        node_context.initiator.error_information,
+        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
+}
+
+TEST_F(MockedInitiatorNode, TestPattern1IncomingCommandToInitiator)
+{
+    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
+    EXPECT_CALL(mock_callbacks, ReadRequest).Times(0);
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern1_incrementing_read,
+        sizeof(test_pattern1_incrementing_read));
+    EXPECT_EQ(
+        node_context.initiator.error_information,
+        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
+}
+
+TEST_F(MockedInitiatorNode, TestPattern2IncomingCommandToInitiator)
+{
+    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
+    EXPECT_CALL(mock_callbacks, WriteRequest).Times(0);
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+            test_pattern2_target_address_length,
+        sizeof(
+            test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) -
+            test_pattern2_target_address_length);
+    EXPECT_EQ(
+        node_context.initiator.error_information,
+        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
+}
+
+TEST_F(MockedInitiatorNode, TestPattern3IncomingCommandToInitiator)
+{
+    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
+    EXPECT_CALL(mock_callbacks, ReadRequest).Times(0);
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern3_incrementing_read_with_spacewire_addresses +
+            test_pattern3_target_address_length,
+        sizeof(test_pattern3_incrementing_read_with_spacewire_addresses) -
+            test_pattern3_target_address_length);
+    EXPECT_EQ(
+        node_context.initiator.error_information,
+        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
+}
+
+TEST_F(MockedInitiatorNode, TestPattern4IncomingCommandToInitiator)
+{
+    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
+    EXPECT_CALL(mock_callbacks, RmwRequest).Times(0);
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern4_rmw,
+        sizeof(test_pattern4_rmw));
+    EXPECT_EQ(
+        node_context.initiator.error_information,
+        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
+}
+
+TEST_F(MockedInitiatorNode, TestPattern5IncomingCommandToInitiator)
+{
+    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
+    EXPECT_CALL(mock_callbacks, RmwRequest).Times(0);
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern5_rmw_with_spacewire_addresses +
+            test_pattern5_target_address_length,
+        sizeof(test_pattern5_rmw_with_spacewire_addresses) -
+            test_pattern5_target_address_length);
+    EXPECT_EQ(
+        node_context.initiator.error_information,
+        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
 }
