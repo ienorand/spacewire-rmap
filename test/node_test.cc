@@ -1,0 +1,882 @@
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+extern "C" {
+#include "node.h"
+}
+
+/* RMAP test patterns from ECSS‐E‐ST‐50‐52C, 5 February 2010. */
+
+static const uint8_t test_pattern0_unverified_incrementing_write_with_reply[] =
+    {
+        /* Target Logical Address */
+        0xFE,
+        /* Protocol Identifier */
+        0x01,
+        /* Instruction */
+        0x6C,
+        /* Key */
+        0x00,
+        /* Initiator Logical Address */
+        0x67,
+        /* Transaction Identifier MS */
+        0x00,
+        /* Transaction Identifier LS */
+        0x00,
+        /* Extended Address */
+        0x00,
+        /* Address MS */
+        0xA0,
+        /* Address */
+        0x00,
+        /* Address */
+        0x00,
+        /* Address LS */
+        0x00,
+        /* Data Length MS */
+        0x00,
+        /* Data Length */
+        0x00,
+        /* Data Length LS */
+        0x10,
+        /* Header CRC */
+        0x9F,
+        /* Data */
+        0x01,
+        0x23,
+        0x45,
+        0x67,
+        0x89,
+        0xAB,
+        0xCD,
+        0xEF,
+        0x10,
+        0x11,
+        0x12,
+        0x13,
+        0x14,
+        0x15,
+        0x16,
+        0x17,
+        /* Data CRC */
+        0x56};
+
+static const uint8_t test_pattern0_expected_write_reply[] = {
+    /* Initiator Logical Address */
+    0x67,
+    /* Protocol Identifier */
+    0x01,
+    /* Instruction */
+    0x2C,
+    /* Status */
+    0x00,
+    /* Target Logical Address */
+    0xFE,
+    /* Transaction Identifier MS */
+    0x00,
+    /* Transaction Identifier MS */
+    0x00,
+    /* Header CRC */
+    0xED};
+
+static const uint8_t test_pattern1_incrementing_read[] = {
+    /* Target Logical Address */
+    0xFE,
+    /* Protocol Identifier */
+    0x01,
+    /* Instruction */
+    0x4C,
+    /* Key */
+    0x00,
+    /* Initiator Logical Address */
+    0x67,
+    /* Transaction Identifier MS */
+    0x00,
+    /* Transaction Identifier LS */
+    0x01,
+    /* Extended Address */
+    0x00,
+    /* Address MS */
+    0xA0,
+    /* Address */
+    0x00,
+    /* Address */
+    0x00,
+    /* Address LS */
+    0x00,
+    /* Data Length MS */
+    0x00,
+    /* Data Length */
+    0x00,
+    /* Data Length LS */
+    0x10,
+    /* Header CRC */
+    0xC9};
+
+static const uint8_t test_pattern1_expected_read_reply[] = {
+    /* Initiator Logical Address */
+    0x67,
+    /* Protocol Identifier */
+    0x01,
+    /* Instruction */
+    0x0C,
+    /* Status */
+    0x00,
+    /* Target Logical Address */
+    0xFE,
+    /* Transaction Identifier MS */
+    0x00,
+    /* Transaction Identifier LS */
+    0x01,
+    /* Reserved */
+    0x00,
+    /* Data Length MS */
+    0x00,
+    /* Data Length */
+    0x00,
+    /* Data Length LS */
+    0x10,
+    /* Header CRC */
+    0x6D,
+    /* Data */
+    0x01,
+    0x23,
+    0x45,
+    0x67,
+    0x89,
+    0xAB,
+    0xCD,
+    0xEF,
+    0x10,
+    0x11,
+    0x12,
+    0x13,
+    0x14,
+    0x15,
+    0x16,
+    0x17,
+    /* Data CRC */
+    0x56};
+
+static const size_t test_pattern2_target_address_length = 7;
+static const size_t test_pattern2_reply_address_length_padded = 8;
+static const uint8_t
+    test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses
+        [] = {
+            /* Target SpaceWire Address */
+            0x11,
+            0x22,
+            0x33,
+            0x44,
+            0x55,
+            0x66,
+            0x77,
+            /* Target Logical Address */
+            0xFE,
+            /* Protocol Identifier */
+            0x01,
+            /* Instruction */
+            0x6E,
+            /* Key */
+            0x00,
+            /* Reply SpaceWire Address */
+            0x00,
+            0x99,
+            0xAA,
+            0xBB,
+            0xCC,
+            0xDD,
+            0xEE,
+            0x00,
+            /* Initiator Logical Address */
+            0x67,
+            /* Transaction Identifier MS */
+            0x00,
+            /* Transaction Identifier LS */
+            0x02,
+            /* Extended Address */
+            0x00,
+            /* Address MS */
+            0xA0,
+            /* Address */
+            0x00,
+            /* Address */
+            0x00,
+            /* Address LS */
+            0x10,
+            /* Data Length MS */
+            0x00,
+            /* Data Length */
+            0x00,
+            /* Data Length LS */
+            0x10,
+            /* Header CRC */
+            0x7F,
+            /* Data */
+            0xA0,
+            0xA1,
+            0xA2,
+            0xA3,
+            0xA4,
+            0xA5,
+            0xA6,
+            0xA7,
+            0xA8,
+            0xA9,
+            0xAA,
+            0xAB,
+            0xAC,
+            0xAD,
+            0xAE,
+            0xAF,
+            /* Data CRC */
+            0xB4};
+
+static const size_t test_pattern2_reply_address_length = 7;
+static const uint8_t
+    test_pattern2_expected_write_reply_with_spacewire_addresses[] = {
+        /* Reply SpaceWire Address */
+        0x99,
+        0xAA,
+        0xBB,
+        0xCC,
+        0xDD,
+        0xEE,
+        0x00,
+        /* Initiator Logical Address */
+        0x67,
+        /* Protocol Identifier */
+        0x01,
+        /* Instruction */
+        0x2E,
+        /* Status */
+        0x00,
+        /* Target Logical Address */
+        0xFE,
+        /* Transaction Identifier MS */
+        0x00,
+        /* Transaction Identifier LS */
+        0x02,
+        /* Header CRC */
+        0x1D};
+
+static const size_t test_pattern3_target_address_length = 4;
+static const uint8_t
+    test_pattern3_incrementing_read_with_spacewire_addresses[] = {
+        /* Target SpaceWire Address */
+        0x11,
+        0x22,
+        0x33,
+        0x44,
+        /* Target Logical Address */
+        0xFE,
+        /* Protocol Identifier */
+        0x01,
+        /* Instruction */
+        0x4D,
+        /* Key */
+        0x00,
+        /* Reply SpaceWire Address */
+        0x99,
+        0xAA,
+        0xBB,
+        0xCC,
+        /* Initiator Logical Address */
+        0x67,
+        /* Transaction Identifier MS */
+        0x00,
+        /* Transaction Identifier LS */
+        0x03,
+        /* Extended Address */
+        0x00,
+        /* Address MS */
+        0xA0,
+        /* Address */
+        0x00,
+        /* Address */
+        0x00,
+        /* Address LS */
+        0x10,
+        /* Data Length MS */
+        0x00,
+        /* Data Length */
+        0x00,
+        /* Data Length LS */
+        0x10,
+        /* Header CRC */
+        0xF7};
+
+static const size_t test_pattern3_reply_address_length = 4;
+static const uint8_t
+    test_pattern3_expected_read_reply_with_spacewire_addresses[] = {
+        /* Reply SpaceWire Address */
+        0x99,
+        0xAA,
+        0xBB,
+        0xCC,
+        /* Initiator Logical Address */
+        0x67,
+        /* Protocol Identifier */
+        0x01,
+        /* Instruction */
+        0x0D,
+        /* Status */
+        0x00,
+        /* Target Logical Address */
+        0xFE,
+        /* Transaction Identifier MS */
+        0x00,
+        /* Transaction Identifier LS */
+        0x03,
+        /* Reserved */
+        0x00,
+        /* Data Length MS */
+        0x00,
+        /* Data Length */
+        0x00,
+        /* Data Length LS */
+        0x10,
+        /* Header CRC */
+        0x52,
+        /* Data */
+        0xA0,
+        0xA1,
+        0xA2,
+        0xA3,
+        0xA4,
+        0xA5,
+        0xA6,
+        0xA7,
+        0xA8,
+        0xA9,
+        0xAA,
+        0xAB,
+        0xAC,
+        0xAD,
+        0xAE,
+        0xAF,
+        /* Data CRC */
+        0xB4};
+
+/* Custom test patterns for read-modify-write. */
+
+static const uint8_t test_pattern4_rmw[] = {
+    /* Target Logical Address */
+    0xFE,
+    /* Protocol Identifier */
+    0x01,
+    /* Instruction */
+    0x5C,
+    /* Key */
+    0x00,
+    /* Initiator Logical Address */
+    0x67,
+    /* Transaction Identifier MS */
+    0x00,
+    /* Transaction Identifier LS */
+    0x04,
+    /* Extended Address */
+    0x00,
+    /* Address MS */
+    0xA0,
+    /* Address */
+    0x00,
+    /* Address */
+    0x00,
+    /* Address LS */
+    0x10,
+    /* Data Length MS */
+    0x00,
+    /* Data Length */
+    0x00,
+    /* Data Length LS */
+    0x06,
+    /* Header CRC */
+    0x9D,
+    /* Data */
+    0xC0,
+    0x18,
+    0x02,
+    /* Mask */
+    0xF0,
+    0x3C,
+    0x03,
+    /* Data CRC */
+    0xE3};
+
+static const uint8_t test_pattern4_expected_rmw_reply[] = {
+    /* Initiator Logical Address */
+    0x67,
+    /* Protocol Identifier */
+    0x01,
+    /* Instruction */
+    0x1C,
+    /* Status */
+    0x00,
+    /* Target Logical Address */
+    0xFE,
+    /* Transaction Identifier MS */
+    0x00,
+    /* Transaction Identifier LS */
+    0x04,
+    /* Reserved */
+    0x00,
+    /* Data Length MS */
+    0x00,
+    /* Data Length */
+    0x00,
+    /* Data Length LS */
+    0x03,
+    /* Header CRC */
+    0x4F,
+    /* Data */
+    0xA0,
+    0xA1,
+    0xA2,
+    /* Data CRC */
+    0xD7};
+
+static const size_t test_pattern5_target_address_length = 1;
+static const size_t test_pattern5_reply_address_length_padded = 4;
+static const uint8_t test_pattern5_rmw_with_spacewire_addresses[] = {
+    /* Target SpaceWire Address */
+    0x11,
+    /* Target Logical Address */
+    0xFE,
+    /* Protocol Identifier */
+    0x01,
+    /* Instruction */
+    0x5D,
+    /* Key */
+    0x00,
+    /* Reply SpaceWire Address */
+    0x00,
+    0x00,
+    0x00,
+    0x88,
+    /* Initiator Logical Address */
+    0x67,
+    /* Transaction Identifier MS */
+    0x00,
+    /* Transaction Identifier LS */
+    0x05,
+    /* Extended Address */
+    0x00,
+    /* Address MS */
+    0xA0,
+    /* Address */
+    0x00,
+    /* Address */
+    0x00,
+    /* Address LS */
+    0x10,
+    /* Data Length MS */
+    0x00,
+    /* Data Length */
+    0x00,
+    /* Data Length LS */
+    0x08,
+    /* Header CRC */
+    0xC6,
+    /* Data */
+    0x07,
+    0x02,
+    0xA0,
+    0x00,
+    /* Mask */
+    0x0F,
+    0x83,
+    0xE0,
+    0xFF,
+    /* Data CRC */
+    0x1D};
+
+static const size_t test_pattern5_reply_address_length = 1;
+static const uint8_t
+    test_pattern5_expected_rmw_reply_with_spacewire_addresses[] = {
+        /* Reply SpaceWire Address */
+        0x88,
+        /* Initiator Logical Address */
+        0x67,
+        /* Protocol Identifier */
+        0x01,
+        /* Instruction */
+        0x1D,
+        /* Status */
+        0x00,
+        /* Target Logical Address */
+        0xFE,
+        /* Transaction Identifier MS */
+        0x00,
+        /* Transaction Identifier LS */
+        0x05,
+        /* Reserved */
+        0x00,
+        /* Data Length MS */
+        0x00,
+        /* Data Length */
+        0x00,
+        /* Data Length LS */
+        0x04,
+        /* Header CRC */
+        0xFF,
+        /* Data */
+        0xE0,
+        0x99,
+        0xA2,
+        0xA3,
+        /* Data CRC */
+        0x7D};
+
+class MockCallbacks
+{
+  public:
+    MOCK_METHOD(
+        void *,
+        Allocate,
+        (struct rmap_node_context * context, size_t size));
+    MOCK_METHOD(
+        void,
+        SendReply,
+        (struct rmap_node_context * context, void *packet, size_t size));
+    MOCK_METHOD(
+        enum rmap_status_field_code,
+        WriteRequest,
+        (struct rmap_node_context * context,
+         const struct rmap_node_target_request *request,
+         const void *data));
+    MOCK_METHOD(
+        enum rmap_status_field_code,
+        ReadRequest,
+        (struct rmap_node_context * context,
+         void *data,
+         size_t *data_size,
+         const struct rmap_node_target_request *request));
+    MOCK_METHOD(
+        enum rmap_status_field_code,
+        RmwRequest,
+        (struct rmap_node_context * context,
+         void *read_data,
+         size_t *read_data_size,
+         const struct rmap_node_target_request *request,
+         const void *data));
+};
+
+struct mocked_callbacks_custom_context {
+    class MockCallbacks *mock_callbacks;
+};
+
+static void *allocate_mock_wrapper(
+    struct rmap_node_context *const context,
+    const size_t size)
+{
+    struct mocked_callbacks_custom_context *const custom_context =
+        reinterpret_cast<struct mocked_callbacks_custom_context *>(
+            context->custom_context);
+    return custom_context->mock_callbacks->Allocate(context, size);
+}
+
+static void send_reply_mock_wrapper(
+    struct rmap_node_context *const context,
+    void *const packet,
+    const size_t size)
+{
+    struct mocked_callbacks_custom_context *const custom_context =
+        reinterpret_cast<struct mocked_callbacks_custom_context *>(
+            context->custom_context);
+    custom_context->mock_callbacks->SendReply(context, packet, size);
+}
+
+static enum rmap_status_field_code write_request_mock_wrapper(
+    struct rmap_node_context *const context,
+    const struct rmap_node_target_request *const request,
+    const void *const data)
+{
+    struct mocked_callbacks_custom_context *const custom_context =
+        reinterpret_cast<struct mocked_callbacks_custom_context *>(
+            context->custom_context);
+    return custom_context->mock_callbacks->WriteRequest(context, request, data);
+}
+
+static enum rmap_status_field_code read_request_mock_wrapper(
+    struct rmap_node_context *const context,
+    void *const data,
+    size_t *const data_size,
+    const struct rmap_node_target_request *const request)
+{
+    struct mocked_callbacks_custom_context *const custom_context =
+        reinterpret_cast<struct mocked_callbacks_custom_context *>(
+            context->custom_context);
+    return custom_context->mock_callbacks
+        ->ReadRequest(context, data, data_size, request);
+}
+
+static enum rmap_status_field_code rmw_request_mock_wrapper(
+    struct rmap_node_context *const context,
+    void *const read_data,
+    size_t *const read_data_size,
+    const struct rmap_node_target_request *const request,
+    const void *const data)
+{
+    struct mocked_callbacks_custom_context *const custom_context =
+        reinterpret_cast<struct mocked_callbacks_custom_context *>(
+            context->custom_context);
+    return custom_context->mock_callbacks
+        ->RmwRequest(context, read_data, read_data_size, request, data);
+}
+
+class MockedTargetNode : public testing::Test
+{
+  protected:
+    MockedTargetNode()
+        : callbacks({allocate_mock_wrapper}), target_callbacks({
+                                                  send_reply_mock_wrapper,
+                                                  write_request_mock_wrapper,
+                                                  read_request_mock_wrapper,
+                                                  rmw_request_mock_wrapper,
+                                              }),
+          initiator_callbacks({nullptr, nullptr, nullptr})
+    {
+        const struct mocked_callbacks_custom_context custom_context_init = {
+            .mock_callbacks = &mock_callbacks,
+        };
+        custom_context = custom_context_init;
+        const struct rmap_node_initialize_flags flags = {
+            .is_target = 1,
+            .is_initiator = 0,
+            .is_reply_for_unused_packet_type_enabled = 1,
+        };
+        rmap_node_initialize(
+            &node_context,
+            &custom_context,
+            &callbacks,
+            flags,
+            &target_callbacks,
+            &initiator_callbacks);
+    }
+
+    struct rmap_node_context node_context;
+    MockCallbacks mock_callbacks;
+
+  private:
+    struct mocked_callbacks_custom_context custom_context;
+    const struct rmap_node_callbacks callbacks;
+    const struct rmap_node_target_callbacks target_callbacks;
+    const struct rmap_node_initiator_callbacks initiator_callbacks;
+};
+
+TEST_F(MockedTargetNode, TestPattern0Incoming)
+{
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce(
+            [&allocation](struct rmap_node_context *node_context, size_t size) {
+                (void)node_context;
+                allocation.resize(size);
+                return allocation.data();
+            });
+
+    struct rmap_node_target_request request;
+    EXPECT_CALL(mock_callbacks, WriteRequest)
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<1>(&request),
+            testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS)));
+
+    const std::vector<uint8_t> expected_reply(
+        test_pattern0_expected_write_reply,
+        test_pattern0_expected_write_reply +
+            sizeof(test_pattern0_expected_write_reply));
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern0_unverified_incrementing_write_with_reply,
+        sizeof(test_pattern0_unverified_incrementing_write_with_reply));
+
+    EXPECT_EQ(request.target_logical_address, 0xFE);
+    EXPECT_EQ(request.key, 0x00);
+    EXPECT_EQ(request.initiator_logical_address, 0x67);
+    EXPECT_EQ(request.transaction_identifier, 0x00);
+    EXPECT_EQ(request.extended_address, 0x00);
+    EXPECT_EQ(request.address, 0xA0000000);
+    EXPECT_EQ(request.data_length, 0x10);
+    EXPECT_EQ(reply_allocation_ptr, allocation.data());
+
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+TEST_F(MockedTargetNode, TestPattern1Incoming)
+{
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce(
+            [&allocation](struct rmap_node_context *node_context, size_t size) {
+                (void)node_context;
+                allocation.resize(size);
+                return allocation.data();
+            });
+
+    struct rmap_node_target_request request;
+    EXPECT_CALL(mock_callbacks, ReadRequest)
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<3>(&request),
+            [](struct rmap_node_context *node_context,
+               void *data,
+               size_t *data_size,
+               const struct rmap_node_target_request *request) {
+                (void)node_context;
+                const std::vector<uint8_t> source_data = {
+                    0x01,
+                    0x23,
+                    0x45,
+                    0x67,
+                    0x89,
+                    0xAB,
+                    0xCD,
+                    0xEF,
+                    0x10,
+                    0x11,
+                    0x12,
+                    0x13,
+                    0x14,
+                    0x15,
+                    0x16,
+                    0x17,
+                };
+                assert(request->data_length == source_data.size());
+                memcpy(data, source_data.data(), request->data_length);
+                *data_size = request->data_length;
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            }));
+
+    const std::vector<uint8_t> expected_reply(
+        test_pattern1_expected_read_reply,
+        test_pattern1_expected_read_reply +
+            sizeof(test_pattern1_expected_read_reply));
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        test_pattern1_incrementing_read,
+        sizeof(test_pattern1_incrementing_read));
+
+    EXPECT_EQ(request.target_logical_address, 0xFE);
+    EXPECT_EQ(request.key, 0x00);
+    EXPECT_EQ(request.initiator_logical_address, 0x67);
+    EXPECT_EQ(request.transaction_identifier, 0x01);
+    EXPECT_EQ(request.extended_address, 0x00);
+    EXPECT_EQ(request.address, 0xA0000000);
+    EXPECT_EQ(request.data_length, 0x10);
+    EXPECT_EQ(reply_allocation_ptr, allocation.data());
+
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+TEST_F(MockedTargetNode, ValidIncomingRead)
+{
+    std::vector<uint8_t> incoming_packet(RMAP_COMMAND_HEADER_STATIC_SIZE + 32);
+    const std::vector<uint8_t> reply_address = {0x01, 0x02, 0x03};
+
+    /* Incoming read command. */
+    ASSERT_EQ(
+        rmap_initialize_header(
+            incoming_packet.data(),
+            incoming_packet.size(),
+            RMAP_PACKET_TYPE_COMMAND,
+            RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
+            reply_address.size()),
+        RMAP_OK);
+    rmap_set_target_logical_address(incoming_packet.data(), 0xFE);
+    rmap_set_key(incoming_packet.data(), 0x7E);
+    rmap_set_reply_address(
+        incoming_packet.data(),
+        reply_address.data(),
+        reply_address.size());
+    rmap_set_initiator_logical_address(incoming_packet.data(), 0x67);
+    rmap_set_transaction_identifier(incoming_packet.data(), 123);
+    rmap_set_extended_address(incoming_packet.data(), 0x12);
+    rmap_set_address(incoming_packet.data(), 0x3456789A);
+    rmap_set_data_length(incoming_packet.data(), 234);
+    rmap_calculate_and_set_header_crc(incoming_packet.data());
+    incoming_packet.resize(rmap_calculate_header_size(incoming_packet.data()));
+
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce(
+            [&allocation](struct rmap_node_context *node_context, size_t size) {
+                (void)node_context;
+                allocation.resize(size);
+                return allocation.data();
+            });
+
+    struct rmap_node_target_request read_request;
+    EXPECT_CALL(mock_callbacks, ReadRequest)
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<3>(&read_request),
+            [](struct rmap_node_context *node_context,
+               void *data,
+               size_t *data_size,
+               const struct rmap_node_target_request *request) {
+                (void)node_context;
+                memset(data, 0xDA, request->data_length);
+                *data_size = request->data_length;
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            }));
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(
+            testing::_,
+            testing::_,
+            reply_address.size() + RMAP_READ_REPLY_HEADER_STATIC_SIZE + 234 +
+                1))
+        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+
+    rmap_node_target_handle_incoming(
+        &node_context,
+        incoming_packet.data(),
+        incoming_packet.size());
+
+    EXPECT_EQ(read_request.target_logical_address, 0xFE);
+    EXPECT_EQ(read_request.key, 0x7E);
+    EXPECT_EQ(read_request.initiator_logical_address, 0x67);
+    EXPECT_EQ(read_request.transaction_identifier, 123);
+    EXPECT_EQ(read_request.extended_address, 0x12);
+    EXPECT_EQ(read_request.address, 0x3456789A);
+    EXPECT_EQ(read_request.data_length, 234);
+    EXPECT_EQ(reply_allocation_ptr, allocation.data());
+
+    std::vector<uint8_t> expected_reply(
+        reply_address.size() + RMAP_READ_REPLY_HEADER_STATIC_SIZE + 234 + 1,
+        0xDA);
+    size_t reply_header_offset;
+    ASSERT_EQ(
+        rmap_create_success_reply_from_command(
+            expected_reply.data(),
+            &reply_header_offset,
+            expected_reply.size(),
+            incoming_packet.data()),
+        RMAP_OK);
+    ASSERT_EQ(reply_header_offset, reply_address.size());
+    const size_t reply_header_size =
+        rmap_calculate_header_size(expected_reply.data() + reply_header_offset);
+    const size_t data_offset = reply_header_offset + reply_header_size;
+    ASSERT_EQ(data_offset + 234 + 1, expected_reply.size());
+    expected_reply.back() =
+        rmap_crc_calculate(expected_reply.data() + data_offset, 234);
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}

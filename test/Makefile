@@ -50,7 +50,10 @@ LDLIBS += -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = rmap_test rmap_test_with_custom_crc_implementation
+TESTS = \
+        rmap_test \
+				rmap_test_with_custom_crc_implementation \
+        node_test
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -130,8 +133,17 @@ rmap_custom_crc_implementation.o: rmap_custom_crc_implementation.c $(USER_DIR)/r
 rmap_shim.o: rmap_shim.c rmap_shim.h $(USER_DIR)/rmap.h
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 
+node_test: node_test.o node.o rmap.o gmock_main.a
+	$(LINK.cc) $(OUTPUT_OPTION) $^
+
+node_test.o: node_test.cc $(USER_DIR)/node.h
+	$(COMPILE.cc) $(OUTPUT_OPTION) $<
+
+node.o: $(USER_DIR)/node.c $(USER_DIR)/node.h $(USER_DIR)/rmap.h
+	$(COMPILE.c) $(OUTPUT_OPTION) $<
+
 test: all
-	./rmap_test
+	./rmap_test && ./node_test
 
 test-with-custom-crc: all
 	./rmap_test_with_custom_crc_implementation
