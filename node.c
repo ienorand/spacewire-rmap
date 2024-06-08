@@ -536,7 +536,7 @@ static void handle_reply(
  * handle_write_command() and handle_rmw_command() and acted upon if located in
  * data?
  */
-void rmap_node_target_handle_incoming(
+void rmap_node_handle_incoming(
     struct rmap_node_context *const context,
     const void *const packet,
     const size_t size)

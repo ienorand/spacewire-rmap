@@ -356,7 +356,7 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+    rmap_node_handle_incoming(&node_context, buf, packet_size);
 
     /* Write to a subset of target memory. */
     rmap_status = rmap_initialize_header(
@@ -386,7 +386,7 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+    rmap_node_handle_incoming(&node_context, buf, packet_size);
 
     /* Read whole target memory. */
     rmap_status = rmap_initialize_header(
@@ -411,7 +411,7 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+    rmap_node_handle_incoming(&node_context, buf, packet_size);
 
     /* Write with invalid logical address. */
     rmap_status = rmap_initialize_header(
@@ -441,7 +441,7 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+    rmap_node_handle_incoming(&node_context, buf, packet_size);
 
     /* Write with invalid address before target memory. */
     rmap_status = rmap_initialize_header(
@@ -471,7 +471,7 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+    rmap_node_handle_incoming(&node_context, buf, packet_size);
 
     /* Write with invalid address and size moving past target memory end. */
     rmap_status = rmap_initialize_header(
@@ -504,7 +504,7 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+    rmap_node_handle_incoming(&node_context, buf, packet_size);
 
     /* Write with address and size reaching target memory end. */
     rmap_status = rmap_initialize_header(
@@ -537,7 +537,7 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+    rmap_node_handle_incoming(&node_context, buf, packet_size);
 
     /* Read whole target memory. */
     rmap_status = rmap_initialize_header(
@@ -562,7 +562,7 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+    rmap_node_handle_incoming(&node_context, buf, packet_size);
 
     /* RMW. */
     rmap_status = rmap_initialize_header(
@@ -601,7 +601,7 @@ int main(void)
     buf[header_size + sizeof(rmw_data_and_mask)] =
         rmap_crc_calculate(buf + header_size, sizeof(rmw_data_and_mask));
     packet_size = header_size + sizeof(rmw_data_and_mask) + 1;
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+    rmap_node_handle_incoming(&node_context, buf, packet_size);
 
     /* Read whole target memory. */
     rmap_status = rmap_initialize_header(
@@ -626,5 +626,5 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_node_target_handle_incoming(&node_context, buf, packet_size);
+    rmap_node_handle_incoming(&node_context, buf, packet_size);
 }

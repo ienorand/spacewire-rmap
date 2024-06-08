@@ -208,7 +208,7 @@ void rmap_node_initialize(
     const struct rmap_node_target_callbacks *target_callbacks,
     const struct rmap_node_initiator_callbacks *initiator_callbacks);
 
-void rmap_node_target_handle_incoming(
+void rmap_node_handle_incoming(
     struct rmap_node_context *context,
     const void *packet,
     size_t size);

@@ -811,7 +811,7 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern0_unverified_incrementing_write_with_reply,
         sizeof(test_pattern0_unverified_incrementing_write_with_reply));
@@ -887,7 +887,7 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern1_incrementing_read,
         sizeof(test_pattern1_incrementing_read));
@@ -944,7 +944,7 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
             test_pattern2_target_address_length,
@@ -1023,7 +1023,7 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern3_incrementing_read_with_spacewire_addresses +
             test_pattern3_target_address_length,
@@ -1096,7 +1096,7 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern4_rmw,
         sizeof(test_pattern4_rmw));
@@ -1174,7 +1174,7 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern5_rmw_with_spacewire_addresses +
             test_pattern5_target_address_length,
@@ -1258,7 +1258,7 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
                 1))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         incoming_packet.data(),
         incoming_packet.size());
@@ -1318,7 +1318,7 @@ TEST_P(IncomingToTargetRejectParams, Check)
     testing::StrictMock<MockCallbacks> strict_mock_callbacks;
     custom_context->mock_callbacks = &strict_mock_callbacks;
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         incoming_packet.data(),
         incoming_packet.size());
@@ -1486,7 +1486,7 @@ TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern0_expected_write_reply,
         sizeof(test_pattern0_expected_write_reply));
@@ -1510,7 +1510,7 @@ TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_header)));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern1_expected_read_reply,
         sizeof(test_pattern1_expected_read_reply));
@@ -1528,7 +1528,7 @@ TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern2_expected_write_reply_with_spacewire_addresses +
             test_pattern2_reply_address_length,
@@ -1556,7 +1556,7 @@ TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_header)));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern3_expected_read_reply_with_spacewire_addresses +
             test_pattern3_reply_address_length,
@@ -1582,7 +1582,7 @@ TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_header)));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern4_expected_rmw_reply,
         sizeof(test_pattern4_expected_rmw_reply));
@@ -1608,7 +1608,7 @@ TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_header)));
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         test_pattern5_expected_rmw_reply_with_spacewire_addresses +
             test_pattern5_reply_address_length,
@@ -1640,7 +1640,7 @@ TEST_P(IncomingToInitiatorRejectParams, Check)
     testing::StrictMock<MockCallbacks> strict_mock_callbacks;
     custom_context->mock_callbacks = &strict_mock_callbacks;
 
-    rmap_node_target_handle_incoming(
+    rmap_node_handle_incoming(
         &node_context,
         incoming_packet.data(),
         incoming_packet.size());
