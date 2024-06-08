@@ -55,15 +55,14 @@ static enum rmap_status_field_code write_request(
 
     if (request->key != custom_context->target_key) {
         printf("Rejecting write request due to invalid key\n");
-        context->target.error_information = RMAP_NODE_INVALID_KEY;
+        context->error_information = RMAP_NODE_INVALID_KEY;
         return RMAP_STATUS_FIELD_CODE_INVALID_KEY;
     }
 
     if (request->target_logical_address !=
         custom_context->target_logical_address) {
         printf("Rejecting write request due to invalid logical address\n");
-        context->target.error_information =
-            RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        context->error_information = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         return RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS;
     }
 
@@ -77,14 +76,14 @@ static enum rmap_status_field_code write_request(
                 custom_context->target_memory_size - 1) {
         printf(
             "Rejecting write request due to address outside target memory\n");
-        context->target.error_information =
+        context->error_information =
             RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
 
     if (!rmap_is_instruction_increment_address(request->instruction)) {
         printf("Rejecting unsupported non-incrementing write request\n");
-        context->target.error_information =
+        context->error_information =
             RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
@@ -98,7 +97,7 @@ static enum rmap_status_field_code write_request(
     if (end_address > custom_context->target_memory_start_address +
             custom_context->target_memory_size) {
         printf("Rejecting write request due to end outside target memory\n");
-        context->target.error_information =
+        context->error_information =
             RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
@@ -127,15 +126,14 @@ static enum rmap_status_field_code read_request(
 
     if (request->key != custom_context->target_key) {
         printf("Rejecting read request due to invalid key\n");
-        context->target.error_information = RMAP_NODE_INVALID_KEY;
+        context->error_information = RMAP_NODE_INVALID_KEY;
         return RMAP_STATUS_FIELD_CODE_INVALID_KEY;
     }
 
     if (request->target_logical_address !=
         custom_context->target_logical_address) {
         printf("Rejecting read request due to invalid logical address\n");
-        context->target.error_information =
-            RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        context->error_information = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         return RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS;
     }
 
@@ -148,14 +146,14 @@ static enum rmap_status_field_code read_request(
         start_address > custom_context->target_memory_start_address +
                 custom_context->target_memory_size - 1) {
         printf("Rejecting read request due to address outside target memory\n");
-        context->target.error_information =
+        context->error_information =
             RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
 
     if (!rmap_is_instruction_increment_address(request->instruction)) {
         printf("Rejecting unsupported non-incrementing read request\n");
-        context->target.error_information =
+        context->error_information =
             RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
@@ -169,7 +167,7 @@ static enum rmap_status_field_code read_request(
     if (end_address > custom_context->target_memory_start_address +
             custom_context->target_memory_size) {
         printf("Rejecting read request due to end outside target memory\n");
-        context->target.error_information =
+        context->error_information =
             RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
@@ -194,15 +192,14 @@ static enum rmap_status_field_code rmw_request(
 
     if (request->key != custom_context->target_key) {
         printf("Rejecting RMW request due to invalid key\n");
-        context->target.error_information = RMAP_NODE_INVALID_KEY;
+        context->error_information = RMAP_NODE_INVALID_KEY;
         return RMAP_STATUS_FIELD_CODE_INVALID_KEY;
     }
 
     if (request->target_logical_address !=
         custom_context->target_logical_address) {
         printf("Rejecting RMW request due to invalid logical address\n");
-        context->target.error_information =
-            RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        context->error_information = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         return RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS;
     }
 
@@ -215,7 +212,7 @@ static enum rmap_status_field_code rmw_request(
         start_address > custom_context->target_memory_start_address +
                 custom_context->target_memory_size - 1) {
         printf("Rejecting RMW request due to address outside target memory\n");
-        context->target.error_information =
+        context->error_information =
             RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
@@ -227,7 +224,7 @@ static enum rmap_status_field_code rmw_request(
     if (end_address > custom_context->target_memory_start_address +
             custom_context->target_memory_size) {
         printf("Rejecting RMW request due to end outside target memory\n");
-        context->target.error_information =
+        context->error_information =
             RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
@@ -284,29 +281,26 @@ int main(void)
     struct rmap_node_context node_context;
     const struct rmap_node_callbacks callbacks = {
         .allocate = allocate,
+        .initiator =
+            {
+                .received_write_reply = NULL,
+                .received_read_reply = NULL,
+                .received_rmw_reply = NULL,
+            },
+        .target =
+            {
+                .send_reply = send_reply,
+                .write_request = write_request,
+                .read_request = read_request,
+                .rmw_request = rmw_request,
+            },
     };
     const struct rmap_node_initialize_flags flags = {
         .is_target = 1,
         .is_initiator = 0,
         .is_reply_for_unused_packet_type_enabled = 1,
     };
-    const struct rmap_node_target_callbacks target_callbacks = {
-        .send_reply = send_reply,
-        .write_request = write_request,
-        .read_request = read_request,
-        .rmw_request = rmw_request};
-    const struct rmap_node_initiator_callbacks initiator_callbacks = {
-        .received_write_reply = NULL,
-        .received_read_reply = NULL,
-        .received_rmw_reply = NULL,
-    };
-    rmap_node_initialize(
-        &node_context,
-        &custom_context,
-        &callbacks,
-        flags,
-        &target_callbacks,
-        &initiator_callbacks);
+    rmap_node_initialize(&node_context, &custom_context, &callbacks, flags);
 
     enum rmap_status rmap_status;
     uint8_t buf[RMAP_COMMAND_HEADER_STATIC_SIZE + 32];

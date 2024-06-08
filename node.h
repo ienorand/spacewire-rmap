@@ -163,8 +163,10 @@ typedef void (*rmap_node_initiator_received_rmw_reply_callback)(
     const void *data,
     size_t data_length);
 
-struct rmap_node_callbacks {
-    rmap_node_allocate_callback allocate;
+struct rmap_node_initiator_callbacks {
+    rmap_node_initiator_received_write_reply_callback received_write_reply;
+    rmap_node_initiator_received_read_reply_callback received_read_reply;
+    rmap_node_initiator_received_rmw_reply_callback received_rmw_reply;
 };
 
 struct rmap_node_target_callbacks {
@@ -174,10 +176,10 @@ struct rmap_node_target_callbacks {
     rmap_node_target_rmw_request_callback rmw_request;
 };
 
-struct rmap_node_initiator_callbacks {
-    rmap_node_initiator_received_write_reply_callback received_write_reply;
-    rmap_node_initiator_received_read_reply_callback received_read_reply;
-    rmap_node_initiator_received_rmw_reply_callback received_rmw_reply;
+struct rmap_node_callbacks {
+    rmap_node_allocate_callback allocate;
+    struct rmap_node_initiator_callbacks initiator;
+    struct rmap_node_target_callbacks target;
 };
 
 struct rmap_node_target_context {
@@ -187,7 +189,6 @@ struct rmap_node_target_context {
 };
 
 struct rmap_node_initiator_context {
-    enum rmap_node_status error_information;
     struct rmap_node_initiator_callbacks callbacks;
 };
 
@@ -196,17 +197,15 @@ struct rmap_node_context {
     struct rmap_node_callbacks callbacks;
     unsigned int is_target : 1;
     unsigned int is_initiator : 1;
-    struct rmap_node_target_context target;
-    struct rmap_node_initiator_context initiator;
+    unsigned int is_reply_for_unused_packet_type_enabled : 1;
+    enum rmap_node_status error_information;
 };
 
 void rmap_node_initialize(
     struct rmap_node_context *context,
     void *custom_context,
     const struct rmap_node_callbacks *callbacks,
-    struct rmap_node_initialize_flags flags,
-    const struct rmap_node_target_callbacks *target_callbacks,
-    const struct rmap_node_initiator_callbacks *initiator_callbacks);
+    struct rmap_node_initialize_flags flags);
 
 void rmap_node_handle_incoming(
     struct rmap_node_context *context,

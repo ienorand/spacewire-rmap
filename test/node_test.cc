@@ -701,13 +701,18 @@ class MockedTargetNode : public testing::Test
 {
   protected:
     MockedTargetNode()
-        : callbacks({allocate_mock_wrapper}), target_callbacks({
-                                                  send_reply_mock_wrapper,
-                                                  write_request_mock_wrapper,
-                                                  read_request_mock_wrapper,
-                                                  rmw_request_mock_wrapper,
-                                              }),
-          initiator_callbacks({nullptr, nullptr, nullptr})
+        : callbacks(
+              {.allocate = allocate_mock_wrapper,
+               .initiator =
+                   {.received_write_reply = nullptr,
+                    .received_read_reply = nullptr,
+                    .received_rmw_reply = nullptr},
+               .target = {
+                   .send_reply = send_reply_mock_wrapper,
+                   .write_request = write_request_mock_wrapper,
+                   .read_request = read_request_mock_wrapper,
+                   .rmw_request = rmw_request_mock_wrapper,
+               }})
     {
         const struct mocked_callbacks_custom_context custom_context_init = {
             .mock_callbacks = &mock_callbacks,
@@ -718,35 +723,33 @@ class MockedTargetNode : public testing::Test
             .is_initiator = 0,
             .is_reply_for_unused_packet_type_enabled = 1,
         };
-        rmap_node_initialize(
-            &node_context,
-            &custom_context,
-            &callbacks,
-            flags,
-            &target_callbacks,
-            &initiator_callbacks);
+        rmap_node_initialize(&node_context, &custom_context, &callbacks, flags);
     }
 
-    struct rmap_node_context node_context;
     MockCallbacks mock_callbacks;
+    struct rmap_node_context node_context;
 
   private:
     struct mocked_callbacks_custom_context custom_context;
     const struct rmap_node_callbacks callbacks;
-    const struct rmap_node_target_callbacks target_callbacks;
-    const struct rmap_node_initiator_callbacks initiator_callbacks;
 };
 
 class MockedInitiatorNode : public testing::Test
 {
   protected:
     MockedInitiatorNode()
-        : callbacks({allocate_mock_wrapper}),
-          target_callbacks({nullptr, nullptr, nullptr, nullptr}),
-          initiator_callbacks(
-              {received_write_reply_mock_wrapper,
-               received_read_reply_mock_wrapper,
-               received_rmw_reply_mock_wrapper})
+        : callbacks(
+              {.allocate = allocate_mock_wrapper,
+               .initiator =
+                   {.received_write_reply = received_write_reply_mock_wrapper,
+                    .received_read_reply = received_read_reply_mock_wrapper,
+                    .received_rmw_reply = received_rmw_reply_mock_wrapper},
+               .target = {
+                   .send_reply = nullptr,
+                   .write_request = nullptr,
+                   .read_request = nullptr,
+                   .rmw_request = nullptr,
+               }})
     {
         const struct mocked_callbacks_custom_context custom_context_init = {
             .mock_callbacks = &mock_callbacks,
@@ -757,23 +760,15 @@ class MockedInitiatorNode : public testing::Test
             .is_initiator = 1,
             .is_reply_for_unused_packet_type_enabled = 0,
         };
-        rmap_node_initialize(
-            &node_context,
-            &custom_context,
-            &callbacks,
-            flags,
-            &target_callbacks,
-            &initiator_callbacks);
+        rmap_node_initialize(&node_context, &custom_context, &callbacks, flags);
     }
 
-    struct rmap_node_context node_context;
     MockCallbacks mock_callbacks;
+    struct rmap_node_context node_context;
 
   private:
     struct mocked_callbacks_custom_context custom_context;
     const struct rmap_node_callbacks callbacks;
-    const struct rmap_node_target_callbacks target_callbacks;
-    const struct rmap_node_initiator_callbacks initiator_callbacks;
 };
 
 TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
@@ -828,7 +823,7 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
 
-    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
@@ -904,7 +899,7 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
 
-    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
@@ -964,7 +959,7 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
 
-    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
@@ -1042,7 +1037,7 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
 
-    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
@@ -1113,7 +1108,7 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
 
-    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
@@ -1193,7 +1188,7 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
 
-    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, ValidIncomingRead)
@@ -1293,7 +1288,7 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
 
-    EXPECT_EQ(node_context.target.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 class IncomingToTargetRejectParams :
@@ -1307,7 +1302,7 @@ class IncomingToTargetRejectParams :
 TEST_P(IncomingToTargetRejectParams, Check)
 {
     const auto incoming_packet_generator_fn = std::get<0>(GetParam());
-    const auto expected_target_error_information = std::get<1>(GetParam());
+    const auto expected_error_information = std::get<1>(GetParam());
 
     const auto incoming_packet = incoming_packet_generator_fn();
 
@@ -1322,9 +1317,7 @@ TEST_P(IncomingToTargetRejectParams, Check)
         &node_context,
         incoming_packet.data(),
         incoming_packet.size());
-    EXPECT_EQ(
-        node_context.target.error_information,
-        expected_target_error_information);
+    EXPECT_EQ(node_context.error_information, expected_error_information);
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -1491,7 +1484,7 @@ TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
         test_pattern0_expected_write_reply,
         sizeof(test_pattern0_expected_write_reply));
 
-    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
@@ -1515,7 +1508,7 @@ TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
         test_pattern1_expected_read_reply,
         sizeof(test_pattern1_expected_read_reply));
 
-    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
@@ -1535,7 +1528,7 @@ TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
         sizeof(test_pattern2_expected_write_reply_with_spacewire_addresses) -
             test_pattern2_reply_address_length);
 
-    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
@@ -1563,7 +1556,7 @@ TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
         sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
             test_pattern3_reply_address_length);
 
-    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
@@ -1587,7 +1580,7 @@ TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
         test_pattern4_expected_rmw_reply,
         sizeof(test_pattern4_expected_rmw_reply));
 
-    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
@@ -1615,7 +1608,7 @@ TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
         sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses) -
             test_pattern5_reply_address_length);
 
-    EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 class IncomingToInitiatorRejectParams :
@@ -1629,7 +1622,7 @@ class IncomingToInitiatorRejectParams :
 TEST_P(IncomingToInitiatorRejectParams, Check)
 {
     const auto incoming_packet_generator_fn = std::get<0>(GetParam());
-    const auto expected_initiator_error_information = std::get<1>(GetParam());
+    const auto expected_error_information = std::get<1>(GetParam());
 
     const auto incoming_packet = incoming_packet_generator_fn();
 
@@ -1644,9 +1637,7 @@ TEST_P(IncomingToInitiatorRejectParams, Check)
         &node_context,
         incoming_packet.data(),
         incoming_packet.size());
-    EXPECT_EQ(
-        node_context.initiator.error_information,
-        expected_initiator_error_information);
+    EXPECT_EQ(node_context.error_information, expected_error_information);
 }
 
 INSTANTIATE_TEST_CASE_P(
