@@ -61,7 +61,7 @@ static void send_error_reply(
         RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX;
 
     uint8_t *const reply_buf =
-        context->callbacks.allocate(context, reply_size_max);
+        context->callbacks.target.allocate(context, reply_size_max);
 
     status = rmap_create_success_reply_from_command(
         reply_buf,
@@ -176,7 +176,8 @@ static void handle_write_command(
 
     const size_t reply_size = calculate_success_reply_size_from_command(packet);
 
-    uint8_t *const reply_buf = context->callbacks.allocate(context, reply_size);
+    uint8_t *const reply_buf =
+        context->callbacks.target.allocate(context, reply_size);
 
     status = rmap_create_success_reply_from_command(
         reply_buf,
@@ -206,7 +207,7 @@ static void handle_read_command(
         calculate_success_reply_size_from_command(packet);
 
     uint8_t *const reply_buf =
-        context->callbacks.allocate(context, reply_maximum_size);
+        context->callbacks.target.allocate(context, reply_maximum_size);
 
     status = rmap_create_success_reply_from_command(
         reply_buf,
@@ -323,7 +324,7 @@ static void handle_rmw_command(
         calculate_success_reply_size_from_command(packet);
 
     uint8_t *const reply_buf =
-        context->callbacks.allocate(context, reply_maximum_size);
+        context->callbacks.target.allocate(context, reply_maximum_size);
 
     status = rmap_create_success_reply_from_command(
         reply_buf,

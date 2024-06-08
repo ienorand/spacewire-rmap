@@ -337,7 +337,6 @@ int main(void)
 
     struct rmap_node_context node_context;
     const struct rmap_node_callbacks callbacks = {
-        .allocate = allocate,
         .initiator =
             {
                 .received_write_reply = received_write_reply,
@@ -345,7 +344,8 @@ int main(void)
                 .received_rmw_reply = received_rmw_reply,
             },
         .target =
-            {.send_reply = send_reply,
+            {.allocate = allocate,
+             .send_reply = send_reply,
              .write_request = write_request,
              .read_request = read_request,
              .rmw_request = rmw_request},

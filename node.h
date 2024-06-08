@@ -82,7 +82,7 @@ struct rmap_node_target_request {
 };
 
 /* Callback for allocating memory for reply packets. */
-typedef void *(*rmap_node_allocate_callback)(
+typedef void *(*rmap_node_target_allocate_callback)(
     struct rmap_node_context *context,
     size_t size);
 
@@ -170,6 +170,7 @@ struct rmap_node_initiator_callbacks {
 };
 
 struct rmap_node_target_callbacks {
+    rmap_node_target_allocate_callback allocate;
     rmap_node_target_send_reply_callback send_reply;
     rmap_node_target_write_request_callback write_request;
     rmap_node_target_read_request_callback read_request;
@@ -177,7 +178,6 @@ struct rmap_node_target_callbacks {
 };
 
 struct rmap_node_callbacks {
-    rmap_node_allocate_callback allocate;
     struct rmap_node_initiator_callbacks initiator;
     struct rmap_node_target_callbacks target;
 };
