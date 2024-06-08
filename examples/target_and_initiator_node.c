@@ -44,9 +44,10 @@ static void send_reply(
     print_data(packet, size);
     /* Strip known reply address and feed reply back into current node. */
     const size_t reply_address_size = 3;
+    unsigned char *const packet_bytes = packet;
     rmap_node_handle_incoming(
         context,
-        packet + reply_address_size,
+        packet_bytes + reply_address_size,
         size - reply_address_size);
     free(packet);
 }
