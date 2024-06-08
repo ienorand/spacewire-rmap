@@ -1618,93 +1618,174 @@ TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
     EXPECT_EQ(node_context.initiator.error_information, RMAP_NODE_OK);
 }
 
-TEST_F(MockedInitiatorNode, TestPattern0IncomingCommandToInitiator)
+class IncomingToInitiatorRejectParams :
+    public MockedInitiatorNode,
+    public testing::WithParamInterface<std::tuple<
+        std::function<std::vector<uint8_t>()>,
+        enum rmap_node_status>>
 {
-    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
-    EXPECT_CALL(mock_callbacks, WriteRequest).Times(0);
+};
+
+TEST_P(IncomingToInitiatorRejectParams, Check)
+{
+    const auto incoming_packet_generator_fn = std::get<0>(GetParam());
+    const auto expected_initiator_error_information = std::get<1>(GetParam());
+
+    const auto incoming_packet = incoming_packet_generator_fn();
+
+    /* Fail test on any unexpected callback. */
+    struct mocked_callbacks_custom_context *const custom_context =
+        reinterpret_cast<struct mocked_callbacks_custom_context *>(
+            node_context.custom_context);
+    testing::StrictMock<MockCallbacks> strict_mock_callbacks;
+    custom_context->mock_callbacks = &strict_mock_callbacks;
 
     rmap_node_target_handle_incoming(
         &node_context,
-        test_pattern0_unverified_incrementing_write_with_reply,
-        sizeof(test_pattern0_unverified_incrementing_write_with_reply));
+        incoming_packet.data(),
+        incoming_packet.size());
     EXPECT_EQ(
         node_context.initiator.error_information,
-        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
+        expected_initiator_error_information);
 }
 
-TEST_F(MockedInitiatorNode, TestPattern1IncomingCommandToInitiator)
-{
-    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
-    EXPECT_CALL(mock_callbacks, ReadRequest).Times(0);
+INSTANTIATE_TEST_CASE_P(
+    CommandReceivedByInitiator,
+    IncomingToInitiatorRejectParams,
+    testing::Combine(
+        testing::Values(
+            [] {
+                return std::vector<uint8_t>(
+                    test_pattern0_unverified_incrementing_write_with_reply,
+                    test_pattern0_unverified_incrementing_write_with_reply +
+                        sizeof(
+                            test_pattern0_unverified_incrementing_write_with_reply));
+            },
+            [] {
+                return std::vector<uint8_t>(
+                    test_pattern1_incrementing_read,
+                    test_pattern1_incrementing_read +
+                        sizeof(test_pattern1_incrementing_read));
+            },
+            [] {
+                std::vector<uint8_t> incoming_packet(
+                    test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+                        test_pattern2_target_address_length,
+                    test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+                        sizeof(
+                            test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses));
+                return incoming_packet;
+            },
+            [] {
+                std::vector<uint8_t> incoming_packet(
+                    test_pattern3_incrementing_read_with_spacewire_addresses +
+                        test_pattern3_target_address_length,
+                    test_pattern3_incrementing_read_with_spacewire_addresses +
+                        sizeof(
+                            test_pattern3_incrementing_read_with_spacewire_addresses));
+                return incoming_packet;
+            },
+            [] {
+                std::vector<uint8_t> incoming_packet(
+                    test_pattern4_rmw,
+                    test_pattern4_rmw + sizeof(test_pattern4_rmw));
+                return incoming_packet;
+            },
+            [] {
+                std::vector<uint8_t> incoming_packet(
+                    test_pattern5_rmw_with_spacewire_addresses +
+                        test_pattern5_target_address_length,
+                    test_pattern5_rmw_with_spacewire_addresses +
+                        sizeof(test_pattern5_rmw_with_spacewire_addresses));
+                return incoming_packet;
+            }),
+        testing::Values(RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR)));
 
-    rmap_node_target_handle_incoming(
-        &node_context,
-        test_pattern1_incrementing_read,
-        sizeof(test_pattern1_incrementing_read));
-    EXPECT_EQ(
-        node_context.initiator.error_information,
-        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
-}
+INSTANTIATE_TEST_CASE_P(
+    IncompleteHeader,
+    IncomingToInitiatorRejectParams,
+    testing::Combine(
+        testing::Values(
+            [] {
+                std::vector<uint8_t> incoming_packet(
+                    test_pattern0_expected_write_reply,
+                    test_pattern0_expected_write_reply +
+                        sizeof(test_pattern0_expected_write_reply));
+                incoming_packet.resize(
+                    rmap_calculate_header_size(incoming_packet.data()) - 1);
+                return incoming_packet;
+            },
+            [] {
+                std::vector<uint8_t> incoming_packet(
+                    test_pattern0_expected_write_reply,
+                    test_pattern0_expected_write_reply +
+                        sizeof(test_pattern0_expected_write_reply));
+                /* Only target logical address and protocol. */
+                incoming_packet.resize(2);
+                return incoming_packet;
+            },
+            [] {
+                std::vector<uint8_t> incoming_packet(
+                    test_pattern0_expected_write_reply,
+                    test_pattern0_expected_write_reply +
+                        sizeof(test_pattern0_expected_write_reply));
+                /* Only target logical address. */
+                incoming_packet.resize(1);
+                return incoming_packet;
+            }),
+        testing::Values(RMAP_NODE_EARLY_EOP)));
 
-TEST_F(MockedInitiatorNode, TestPattern2IncomingCommandToInitiator)
-{
-    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
-    EXPECT_CALL(mock_callbacks, WriteRequest).Times(0);
+INSTANTIATE_TEST_CASE_P(
+    HeaderCrcError,
+    IncomingToInitiatorRejectParams,
+    testing::Combine(
+        testing::Values(
+            [] {
+                std::vector<uint8_t> incoming_packet(
+                    test_pattern0_expected_write_reply,
+                    test_pattern0_expected_write_reply +
+                        sizeof(test_pattern0_expected_write_reply));
+                /* Flip a bit in the status field. */
+                incoming_packet.at(3) ^= 1;
+                return incoming_packet;
+            },
+            [] {
+                std::vector<uint8_t> incoming_packet(
+                    test_pattern0_expected_write_reply,
+                    test_pattern0_expected_write_reply +
+                        sizeof(test_pattern0_expected_write_reply));
+                const size_t header_size =
+                    rmap_calculate_header_size(incoming_packet.data());
+                /* Flip a bit in the CRC field. */
+                incoming_packet.at(header_size - 1) ^= 1;
+                return incoming_packet;
+            }),
+        testing::Values(RMAP_NODE_HEADER_CRC_ERROR)));
 
-    rmap_node_target_handle_incoming(
-        &node_context,
-        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
-            test_pattern2_target_address_length,
-        sizeof(
-            test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) -
-            test_pattern2_target_address_length);
-    EXPECT_EQ(
-        node_context.initiator.error_information,
-        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
-}
-
-TEST_F(MockedInitiatorNode, TestPattern3IncomingCommandToInitiator)
-{
-    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
-    EXPECT_CALL(mock_callbacks, ReadRequest).Times(0);
-
-    rmap_node_target_handle_incoming(
-        &node_context,
-        test_pattern3_incrementing_read_with_spacewire_addresses +
-            test_pattern3_target_address_length,
-        sizeof(test_pattern3_incrementing_read_with_spacewire_addresses) -
-            test_pattern3_target_address_length);
-    EXPECT_EQ(
-        node_context.initiator.error_information,
-        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
-}
-
-TEST_F(MockedInitiatorNode, TestPattern4IncomingCommandToInitiator)
-{
-    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
-    EXPECT_CALL(mock_callbacks, RmwRequest).Times(0);
-
-    rmap_node_target_handle_incoming(
-        &node_context,
-        test_pattern4_rmw,
-        sizeof(test_pattern4_rmw));
-    EXPECT_EQ(
-        node_context.initiator.error_information,
-        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
-}
-
-TEST_F(MockedInitiatorNode, TestPattern5IncomingCommandToInitiator)
-{
-    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
-    EXPECT_CALL(mock_callbacks, RmwRequest).Times(0);
-
-    rmap_node_target_handle_incoming(
-        &node_context,
-        test_pattern5_rmw_with_spacewire_addresses +
-            test_pattern5_target_address_length,
-        sizeof(test_pattern5_rmw_with_spacewire_addresses) -
-            test_pattern5_target_address_length);
-    EXPECT_EQ(
-        node_context.initiator.error_information,
-        RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR);
-}
+/* Packet with non-RMAP protocol should be silently discarded. */
+INSTANTIATE_TEST_CASE_P(
+    InvalidProtocol,
+    IncomingToInitiatorRejectParams,
+    testing::Combine(
+        testing::Values(
+            [] {
+                std::vector<uint8_t> incoming_packet(
+                    test_pattern0_expected_write_reply,
+                    test_pattern0_expected_write_reply +
+                        sizeof(test_pattern0_expected_write_reply));
+                /* Set non-RMAP protocol. */
+                incoming_packet.at(1) = 0x00;
+                rmap_calculate_and_set_header_crc(incoming_packet.data());
+                return incoming_packet;
+            },
+            [] {
+                std::vector<uint8_t> incoming_packet(
+                    test_pattern0_expected_write_reply,
+                    test_pattern0_expected_write_reply +
+                        sizeof(test_pattern0_expected_write_reply));
+                /* Set non-RMAP protocol. */
+                incoming_packet.at(1) = 0x02;
+                rmap_calculate_and_set_header_crc(incoming_packet.data());
+                return incoming_packet;
+            }),
+        testing::Values(RMAP_NODE_OK)));
