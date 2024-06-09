@@ -52,6 +52,11 @@ enum rmap_node_status {
     RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR = 526,
     RMAP_NODE_REPLY_RECEIVED_BY_TARGET = 527,
     RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS = 528,
+    /* Node-unique.
+     *
+     * Indicates failure to allocate memory for reply.
+     */
+    RMAP_NODE_ALLOCATION_FAILURE = 529,
 };
 
 /* TODO: Figure out where to integrate these. */
@@ -82,17 +87,19 @@ struct rmap_node_target_request {
 };
 
 /* TODO:
- * Should it be possible to handle allocation failures? Should this be
- * returned as a status from the rmap_node_handle_incoming() function or
- * indicated via the error information?
+ * Should allocation failure be returned as a status from the
+ * rmap_node_handle_incoming() function instead?
  *
- * As an extension, should all error information be reported as return values
- * from rmap_node_handle_incoming() instead of being part of the node error
+ * By extension, should all error information be reported as return values from
+ * rmap_node_handle_incoming() instead of being part of the node error
  * information? In the current interface it is probably expected that the
  * caller will chack the error information after each call to
  * rmap_node_handle_incoming() anyway, so having it separated is questionable.
  */
-/* Callback for allocating memory for reply packets. */
+/* Callback for allocating memory for reply packets.
+ *
+ * Allocation failure can be indicated by returning NULL.
+ */
 typedef void *(*rmap_node_target_allocate_callback)(
     struct rmap_node_context *context,
     size_t size);

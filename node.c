@@ -62,6 +62,10 @@ static void send_error_reply(
 
     uint8_t *const reply_buf =
         context->callbacks.target.allocate(context, reply_size_max);
+    if (!reply_buf) {
+        context->error_information = RMAP_NODE_ALLOCATION_FAILURE;
+        return;
+    }
 
     status = rmap_create_success_reply_from_command(
         reply_buf,
@@ -178,6 +182,10 @@ static void handle_write_command(
 
     uint8_t *const reply_buf =
         context->callbacks.target.allocate(context, reply_size);
+    if (!reply_buf) {
+        context->error_information = RMAP_NODE_ALLOCATION_FAILURE;
+        return;
+    }
 
     status = rmap_create_success_reply_from_command(
         reply_buf,
@@ -208,6 +216,10 @@ static void handle_read_command(
 
     uint8_t *const reply_buf =
         context->callbacks.target.allocate(context, reply_maximum_size);
+    if (!reply_buf) {
+        context->error_information = RMAP_NODE_ALLOCATION_FAILURE;
+        return;
+    }
 
     status = rmap_create_success_reply_from_command(
         reply_buf,
@@ -325,6 +337,10 @@ static void handle_rmw_command(
 
     uint8_t *const reply_buf =
         context->callbacks.target.allocate(context, reply_maximum_size);
+    if (!reply_buf) {
+        context->error_information = RMAP_NODE_ALLOCATION_FAILURE;
+        return;
+    }
 
     status = rmap_create_success_reply_from_command(
         reply_buf,
