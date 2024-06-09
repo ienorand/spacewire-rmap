@@ -81,6 +81,17 @@ struct rmap_node_target_request {
     uint32_t data_length;
 };
 
+/* TODO:
+ * Should it be possible to handle allocation failures? Should this be
+ * returned as a status from the rmap_node_handle_incoming() function or
+ * indicated via the error information?
+ *
+ * As an extension, should all error information be reported as return values
+ * from rmap_node_handle_incoming() instead of being part of the node error
+ * information? In the current interface it is probably expected that the
+ * caller will chack the error information after each call to
+ * rmap_node_handle_incoming() anyway, so having it separated is questionable.
+ */
 /* Callback for allocating memory for reply packets. */
 typedef void *(*rmap_node_target_allocate_callback)(
     struct rmap_node_context *context,
