@@ -100,8 +100,8 @@ typedef void *(*rmap_node_target_allocate_callback)(
 /* Callback for sending replies.
  *
  * Data in @p packet will have been allocated via
- * rmap_node_allocate_callback(), ownership of this allocation is transferred
- * from the caller to the callee. This library will not handle its
+ * rmap_node_target_allocate_callback(), ownership of this allocation is
+ * transferred from the caller to the callee. This library will not handle its
  * deallocation.
  */
 typedef void (*rmap_node_target_send_reply_callback)(
