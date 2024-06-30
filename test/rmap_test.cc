@@ -2013,7 +2013,7 @@ INSTANTIATE_TEST_CASE_P(
         sizeof(test_pattern0_expected_write_reply)),
       std::make_tuple(
         test_pattern1_incrementing_read,
-        sizeof(test_pattern1_expected_read_reply)),
+        sizeof(test_pattern1_incrementing_read)),
       std::make_tuple(
         test_pattern1_expected_read_reply,
         sizeof(test_pattern1_expected_read_reply)),
