@@ -944,16 +944,16 @@ INSTANTIATE_TEST_CASE_P(
     AccessorByteCheckInPattern,
     testing::Values(
       std::make_tuple(
-        patterns_with_non_rmap_protocols[0],
+        patterns_with_non_rmap_protocols.at(0),
         std::make_tuple(rmap_get_protocol, 0)),
       std::make_tuple(
-        patterns_with_non_rmap_protocols[1],
+        patterns_with_non_rmap_protocols.at(1),
         std::make_tuple(rmap_get_protocol, 2)),
       std::make_tuple(
-        patterns_with_non_rmap_protocols[2],
+        patterns_with_non_rmap_protocols.at(2),
         std::make_tuple(rmap_get_protocol, 123)),
       std::make_tuple(
-        patterns_with_non_rmap_protocols[3],
+        patterns_with_non_rmap_protocols.at(3),
         std::make_tuple(rmap_get_protocol, 0xFF))));
 
 TEST(SetProtocol, GetGives1AfterSet)
@@ -1936,7 +1936,7 @@ TEST_P(TestPatterns, VerifyHeaderIntegrityNoRmapProtocol)
       /* Valid, skip. */
       continue;
     }
-    packet[1] = protocol;
+    packet.at(1) = protocol;
     rmap_calculate_and_set_header_crc(packet.data());
     EXPECT_EQ(
         rmap_verify_header_integrity(packet.data(), packet.size()),
@@ -2073,8 +2073,8 @@ TEST_P(TestPatterns, RmapInitializeHeaderPatternsShouldNotChange)
   /* Protocol identifier and instruction is corrupted first, to make sure that
    * an implementation that does nothing cannot pass the test.
    */
-  packet[1] ^= 0xFF;
-  packet[2] ^= 0xFF;
+  packet.at(1) ^= 0xFF;
+  packet.at(2) ^= 0xFF;
   const auto corrupted_packet = packet;
 
   EXPECT_EQ(
