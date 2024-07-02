@@ -3572,7 +3572,8 @@ TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern1Reply)
       0x14,
       0x15,
       0x16,
-      0x17};
+      0x17,
+  };
 
   const size_t reply_header_size =
       rmap_calculate_header_size(buf + reply_header_offset);
@@ -3660,7 +3661,8 @@ TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern3Reply)
       0xAC,
       0xAD,
       0xAE,
-      0xAF};
+      0xAF,
+  };
 
   const size_t reply_header_size =
       rmap_calculate_header_size(buf + reply_header_offset);
@@ -3893,7 +3895,8 @@ TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern1Reply)
       0x14,
       0x15,
       0x16,
-      0x17};
+      0x17,
+  };
 
   const size_t data_offset = 123;
 
@@ -3982,7 +3985,8 @@ TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern3Reply)
       0xAC,
       0xAD,
       0xAE,
-      0xAF};
+      0xAF,
+  };
 
   const size_t data_offset = 123;
 
@@ -4111,7 +4115,8 @@ TEST(RmapRecreateHeader, TestPattern0Command)
       0x14,
       0x15,
       0x16,
-      0x17};
+      0x17,
+  };
 
   const size_t data_offset = 123;
 
@@ -4234,7 +4239,8 @@ TEST(RmapRecreateHeader, TestPattern1Reply)
       0x14,
       0x15,
       0x16,
-      0x17};
+      0x17,
+  };
 
   const size_t data_offset = 123;
 
@@ -4297,7 +4303,8 @@ TEST(RmapRecreateHeader, TestPattern2Command)
       0xAC,
       0xAD,
       0xAE,
-      0xAF};
+      0xAF,
+  };
 
   const size_t data_offset = 123;
 
@@ -4453,7 +4460,8 @@ TEST(RmapRecreateHeader, TestPattern3Reply)
       0xAC,
       0xAD,
       0xAE,
-      0xAF};
+      0xAF,
+  };
 
   const size_t data_offset = 123;
 
