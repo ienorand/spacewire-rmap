@@ -2909,7 +2909,8 @@ TEST_P(CreateSuccessReplyFromCommand, RmapCreateSuccessReplyFromCommand)
         0x99,
         0xAA,
         0xBB,
-        0xCC};
+        0xCC,
+    };
 
     rmap_set_reply_address(
         command_header,
@@ -3010,7 +3011,8 @@ TEST_P(CreateSuccessReplyFromCommand, RmapCreateSuccessReplyFromCommandBefore)
         0x99,
         0xAA,
         0xBB,
-        0xCC};
+        0xCC,
+    };
 
     rmap_set_reply_address(
         command_header,
@@ -3138,7 +3140,8 @@ TEST_P(
         0x99,
         0xAA,
         0xBB,
-        0xCC};
+        0xCC,
+    };
 
     rmap_set_reply_address(
         command_header,
@@ -3207,7 +3210,8 @@ TEST_P(
         0x99,
         0xAA,
         0xBB,
-        0xCC};
+        0xCC,
+    };
 
     rmap_set_reply_address(
         command_header,
@@ -3275,7 +3279,8 @@ TEST_P(
         0x99,
         0xAA,
         0xBB,
-        0xCC};
+        0xCC,
+    };
 
     rmap_set_reply_address(
         command_header,
@@ -3344,7 +3349,8 @@ TEST_P(
         0x99,
         0xAA,
         0xBB,
-        0xCC};
+        0xCC,
+    };
 
     rmap_set_reply_address(
         command_header,
@@ -3416,7 +3422,8 @@ TEST_P(
         0x99,
         0xAA,
         0xBB,
-        0xCC};
+        0xCC,
+    };
 
     rmap_set_reply_address(
         command_header,
@@ -3488,7 +3495,8 @@ TEST_P(
         0x99,
         0xAA,
         0xBB,
-        0xCC};
+        0xCC,
+    };
 
     rmap_set_reply_address(
         command_header,
