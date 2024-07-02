@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "rmap.h"
+#include "rmap_shim.h"
 
 #include "test_patterns.h"
 
@@ -2393,6 +2394,44 @@ INSTANTIATE_TEST_SUITE_P(
             RMAP_COMMAND_CODE_RMW,
             RMAP_REPLY_ADDRESS_LENGTH_MAX,
             RMAP_OK)));
+
+/* Use shims since assigning an undefined value to an enum object is undefined
+ * behaviour in C++ but not in C.
+ */
+TEST(InitializeHeader, InvalidPacketTypesViaShim)
+{
+    std::vector<uint8_t> buf(RMAP_HEADER_SIZE_MAX + RMAP_DATA_LENGTH_MAX + 1);
+    size_t header_offset;
+
+    for (const int packet_type :
+         {RMAP_PACKET_TYPE_COMMAND_RESERVED + 1, 0xFF}) {
+        const size_t max_size = 64;
+        const int command_code =
+            RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY;
+        const size_t reply_address_unpadded_size = 0;
+
+        EXPECT_EQ(
+            rmap_shim_initialize_header(
+                buf.data(),
+                max_size,
+                packet_type,
+                command_code,
+                reply_address_unpadded_size),
+            RMAP_INVALID_PACKET_TYPE);
+
+        memset(buf.data(), 0, buf.size());
+        const size_t data_offset = max_size;
+        EXPECT_EQ(
+            rmap_shim_initialize_header_before(
+                &header_offset,
+                buf.data(),
+                data_offset,
+                packet_type,
+                command_code,
+                reply_address_unpadded_size),
+            RMAP_INVALID_PACKET_TYPE);
+    }
+}
 
 typedef std::tuple<
     enum rmap_packet_type,
