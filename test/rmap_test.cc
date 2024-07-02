@@ -1,9 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-extern "C" {
 #include "rmap.h"
-}
 
 struct test_pattern {
   std::vector<uint8_t> data;
