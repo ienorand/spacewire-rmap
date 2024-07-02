@@ -1,9 +1,9 @@
 #ifndef RMAP_H
 #define RMAP_H
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,10 +35,8 @@ enum {
   RMAP_COMMAND_CODE_VERIFY = 1 << 2,
   RMAP_COMMAND_CODE_REPLY = 1 << 1,
   RMAP_COMMAND_CODE_INCREMENT = 1 << 0,
-  RMAP_COMMAND_CODE_RMW =
-	  RMAP_COMMAND_CODE_VERIFY |
-	  RMAP_COMMAND_CODE_REPLY |
-	  RMAP_COMMAND_CODE_INCREMENT,
+  RMAP_COMMAND_CODE_RMW = RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY |
+      RMAP_COMMAND_CODE_INCREMENT,
 };
 
 /** Standardised RMAP status and error codes.
@@ -151,7 +149,8 @@ enum rmap_status_field_code {
    */
   RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR = 11,
 
-  /** Standardized RMAP status field code for "invalid target logical address".
+  /** Standardized RMAP status field code for "invalid target logical
+   * address".
    *
    * Error description according to the RMAP standard:
    *
@@ -175,7 +174,8 @@ enum rmap_status {
   /** Success. */
   RMAP_OK = 0,
 
-  /** The provided data is not large enough to contain the full RMAP header. */
+  /** The provided data is not large enough to contain the full RMAP header.
+   */
   RMAP_INCOMPLETE_HEADER = 256,
 
   /** The protocol field indicates that this is not an RMAP packet. */
@@ -193,7 +193,8 @@ enum rmap_status {
   /** A reply packet type was combined with a without-reply command code. */
   RMAP_NO_REPLY = 261,
 
-  /** The provided packet does not contain a data field based on its header. */
+  /** The provided packet does not contain a data field based on its header.
+   */
   RMAP_NO_DATA = 262,
 
   /** There is less data in the data field than indicated in the header data
@@ -251,8 +252,7 @@ enum {
 
   RMAP_REPLY_ADDRESS_LENGTH_MAX = 12,
   RMAP_HEADER_SIZE_MAX =
-    RMAP_COMMAND_HEADER_STATIC_SIZE +
-    RMAP_REPLY_ADDRESS_LENGTH_MAX,
+      RMAP_COMMAND_HEADER_STATIC_SIZE + RMAP_REPLY_ADDRESS_LENGTH_MAX,
 };
 
 /** Maximum value in RMAP data length field and maximum size of RMAP data
@@ -981,11 +981,11 @@ enum rmap_status rmap_create_success_reply_from_command_before(
 
 /** Get string representation of a status or error constant.
  *
- * Both standardised RMAP status field codes (enum rmap_status_field_code) and library status
- * constants are valid for the @p status parameter.
+ * Both standardised RMAP status field codes (enum rmap_status_field_code) and
+ * library status constants are valid for the @p status parameter.
  *
- * If @p status is neither a standardised RMAP status field code nor a library status
- * constant the string "INVALID_STATUS" will be returned.
+ * If @p status is neither a standardised RMAP status field code nor a library
+ * status constant the string "INVALID_STATUS" will be returned.
  *
  * @param status status or error constant.
  *

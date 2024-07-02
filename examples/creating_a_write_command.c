@@ -24,21 +24,18 @@ void create_a_write_command(void)
   uint8_t buf[64];
   enum rmap_status status;
 
-  const uint8_t target_address[] = {
-    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77
-  };
+  const uint8_t target_address[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
   memcpy(buf, target_address, sizeof(target_address));
 
-  const uint8_t reply_address[] = { 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x00 };
+  const uint8_t reply_address[] = {0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x00};
 
   uint8_t *const header = buf + sizeof(target_address);
   status = rmap_initialize_header(
       header,
       sizeof(buf) - sizeof(target_address),
       RMAP_PACKET_TYPE_COMMAND,
-      RMAP_COMMAND_CODE_WRITE |
-      RMAP_COMMAND_CODE_REPLY |
-      RMAP_COMMAND_CODE_INCREMENT,
+      RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
       sizeof(reply_address));
   if (status != RMAP_OK) {
     printf("Failed to create write command: %s\n", rmap_status_text(status));
@@ -58,19 +55,33 @@ void create_a_write_command(void)
   const size_t header_size = rmap_calculate_header_size(header);
 
   const uint8_t data[] = {
-    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB,
-    0xAC, 0xAD, 0xAE, 0xAF,
+      0xA0,
+      0xA1,
+      0xA2,
+      0xA3,
+      0xA4,
+      0xA5,
+      0xA6,
+      0xA7,
+      0xA8,
+      0xA9,
+      0xAA,
+      0xAB,
+      0xAC,
+      0xAD,
+      0xAE,
+      0xAF,
   };
   memcpy(header + header_size, data, sizeof(data));
   header[header_size + sizeof(data)] =
-    rmap_crc_calculate(header + header_size, sizeof(data));
+      rmap_crc_calculate(header + header_size, sizeof(data));
 
   const size_t packet_size =
-    sizeof(target_address) + header_size + sizeof(data) + 1;
+      sizeof(target_address) + header_size + sizeof(data) + 1;
 
   printf("RMAP write command packet with size %zu:\n", packet_size);
   for (size_t i = 0; i < packet_size; ++i) {
-      printf("%02X", buf[i]);
+    printf("%02X", buf[i]);
     if (i < packet_size) {
       printf(" ");
     }
@@ -84,29 +95,40 @@ void create_a_write_command_with_data_added_before(void)
   enum rmap_status status;
   size_t header_offset;
 
-  const uint8_t target_address[] = {
-    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77
-  };
+  const uint8_t target_address[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
 
   const size_t data_offset = sizeof(target_address) + RMAP_HEADER_SIZE_MAX;
   const uint8_t data[] = {
-    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB,
-    0xAC, 0xAD, 0xAE, 0xAF,
+      0xA0,
+      0xA1,
+      0xA2,
+      0xA3,
+      0xA4,
+      0xA5,
+      0xA6,
+      0xA7,
+      0xA8,
+      0xA9,
+      0xAA,
+      0xAB,
+      0xAC,
+      0xAD,
+      0xAE,
+      0xAF,
   };
   memcpy(buf + data_offset, data, sizeof(data));
   buf[data_offset + sizeof(data)] =
-    rmap_crc_calculate(buf + data_offset, sizeof(data));
+      rmap_crc_calculate(buf + data_offset, sizeof(data));
 
-  const uint8_t reply_address[] = { 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x00 };
+  const uint8_t reply_address[] = {0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x00};
 
   status = rmap_initialize_header_before(
       &header_offset,
       buf,
       data_offset,
       RMAP_PACKET_TYPE_COMMAND,
-      RMAP_COMMAND_CODE_WRITE |
-      RMAP_COMMAND_CODE_REPLY |
-      RMAP_COMMAND_CODE_INCREMENT,
+      RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY |
+          RMAP_COMMAND_CODE_INCREMENT,
       sizeof(reply_address));
   if (status != RMAP_OK) {
     printf("Failed to create write command: %s\n", rmap_status_text(status));
@@ -131,11 +153,11 @@ void create_a_write_command_with_data_added_before(void)
       sizeof(target_address));
 
   const size_t packet_size =
-    data_offset + sizeof(data) + 1 + sizeof(target_address) - header_offset;
+      data_offset + sizeof(data) + 1 + sizeof(target_address) - header_offset;
 
   printf("RMAP write command packet with size %zu:\n", packet_size);
   for (size_t i = 0; i < packet_size; ++i) {
-      printf("%02X", buf[header_offset - sizeof(target_address) + i]);
+    printf("%02X", buf[header_offset - sizeof(target_address) + i]);
     if (i < packet_size) {
       printf(" ");
     }

@@ -1,0 +1,13 @@
+BasedOnStyle: LLVM
+
+AlignAfterOpenBracket: AlwaysBreak
+AlignEscapedNewlines: DontAlign
+AlignOperands: DontAlign
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortIfStatementsOnASingleLine: false
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBraces: Linux
+BreakInheritanceList: AfterColon
+IndentWidth: 2
