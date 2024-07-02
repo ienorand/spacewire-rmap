@@ -11,32 +11,32 @@ extern "C" {
 
 #define RMAP_INSTRUCTION_PACKET_TYPE_SHIFT 6
 #define RMAP_INSTRUCTION_PACKET_TYPE_MASK \
-  (0x3 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT)
+    (0x3 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT)
 
 #define RMAP_INSTRUCTION_COMMAND_CODE_SHIFT 2
 #define RMAP_INSTRUCTION_COMMAND_CODE_MASK \
-  (0xF << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT)
+    (0xF << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT)
 
 #define RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT 0
 #define RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK \
-  (0x3 << RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT)
+    (0x3 << RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT)
 
 /** Representation of RMAP packet type. */
 enum rmap_packet_type {
-  RMAP_PACKET_TYPE_REPLY = 0x0,
-  RMAP_PACKET_TYPE_COMMAND = 0x1,
-  RMAP_PACKET_TYPE_REPLY_RESERVED = 0x2,
-  RMAP_PACKET_TYPE_COMMAND_RESERVED = 0x3
+    RMAP_PACKET_TYPE_REPLY = 0x0,
+    RMAP_PACKET_TYPE_COMMAND = 0x1,
+    RMAP_PACKET_TYPE_REPLY_RESERVED = 0x2,
+    RMAP_PACKET_TYPE_COMMAND_RESERVED = 0x3
 };
 
 /** Representation of RMAP command codes. */
 enum {
-  RMAP_COMMAND_CODE_WRITE = 1 << 3,
-  RMAP_COMMAND_CODE_VERIFY = 1 << 2,
-  RMAP_COMMAND_CODE_REPLY = 1 << 1,
-  RMAP_COMMAND_CODE_INCREMENT = 1 << 0,
-  RMAP_COMMAND_CODE_RMW = RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY |
-      RMAP_COMMAND_CODE_INCREMENT,
+    RMAP_COMMAND_CODE_WRITE = 1 << 3,
+    RMAP_COMMAND_CODE_VERIFY = 1 << 2,
+    RMAP_COMMAND_CODE_REPLY = 1 << 1,
+    RMAP_COMMAND_CODE_INCREMENT = 1 << 0,
+    RMAP_COMMAND_CODE_RMW = RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY |
+        RMAP_COMMAND_CODE_INCREMENT,
 };
 
 /** Standardised RMAP status and error codes.
@@ -45,119 +45,119 @@ enum {
  * RMAP write or read replies.
  */
 enum rmap_status_field_code {
-  /** Standardized RMAP status field code for "command executed successfully".
-   */
-  RMAP_STATUS_FIELD_CODE_SUCCESS = 0,
+    /** Standardized RMAP status field code for "command executed successfully".
+     */
+    RMAP_STATUS_FIELD_CODE_SUCCESS = 0,
 
-  /** Standardized RMAP status field code for "general error code".
-   *
-   * Error description according to the RMAP standard:
-   *
-   * > The detected error does not fit into the other error cases or the node
-   * > does not support further distinction between the errors.
-   */
-  RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE = 1,
+    /** Standardized RMAP status field code for "general error code".
+     *
+     * Error description according to the RMAP standard:
+     *
+     * > The detected error does not fit into the other error cases or the node
+     * > does not support further distinction between the errors.
+     */
+    RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE = 1,
 
-  /** Standardized RMAP status field code for "unused RMAP packet type or
-   *  command code".
-   *
-   * Error description according to the RMAP standard:
-   *
-   * > The Header CRC was decoded correctly but the packet type is reserved or
-   * > the command is not used by the RMAP protocol.
-   */
-  RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE = 2,
+    /** Standardized RMAP status field code for "unused RMAP packet type or
+     *  command code".
+     *
+     * Error description according to the RMAP standard:
+     *
+     * > The Header CRC was decoded correctly but the packet type is reserved or
+     * > the command is not used by the RMAP protocol.
+     */
+    RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE = 2,
 
-  /** Standardized RMAP status field code for "invalid key".
-   *
-   * Error description according to the RMAP standard:
-   *
-   * > The Header CRC was decoded correctly but the device key did not match
-   * > that expected by the target user application.
-   */
-  RMAP_STATUS_FIELD_CODE_INVALID_KEY = 3,
+    /** Standardized RMAP status field code for "invalid key".
+     *
+     * Error description according to the RMAP standard:
+     *
+     * > The Header CRC was decoded correctly but the device key did not match
+     * > that expected by the target user application.
+     */
+    RMAP_STATUS_FIELD_CODE_INVALID_KEY = 3,
 
-  /** Standardized RMAP status field code for "invalid data CRC".
-   *
-   * Error description according to the RMAP standard:
-   *
-   * > Error in the CRC of the data field.
-   */
-  RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC = 4,
+    /** Standardized RMAP status field code for "invalid data CRC".
+     *
+     * Error description according to the RMAP standard:
+     *
+     * > Error in the CRC of the data field.
+     */
+    RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC = 4,
 
-  /** Standardized RMAP status field code for "early EOP".
-   *
-   * Error description according to the RMAP standard:
-   *
-   * > EOP marker detected before the end of the data.
-   *
-   * This error can also be reported as error information to the target node
-   * according to the RMAP standard.
-   */
-  RMAP_STATUS_FIELD_CODE_EARLY_EOP = 5,
+    /** Standardized RMAP status field code for "early EOP".
+     *
+     * Error description according to the RMAP standard:
+     *
+     * > EOP marker detected before the end of the data.
+     *
+     * This error can also be reported as error information to the target node
+     * according to the RMAP standard.
+     */
+    RMAP_STATUS_FIELD_CODE_EARLY_EOP = 5,
 
-  /** Standardized RMAP status field code for "too much data".
-   *
-   * Error description according to the RMAP standard:
-   *
-   * > More than the expected amount of data in a command has been received.
-   */
-  RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA = 6,
+    /** Standardized RMAP status field code for "too much data".
+     *
+     * Error description according to the RMAP standard:
+     *
+     * > More than the expected amount of data in a command has been received.
+     */
+    RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA = 6,
 
-  /** Standardized RMAP status field code for "EEP".
-   *
-   * Error description according to the RMAP standard:
-   *
-   * > EEP marker detected immediately after the header CRC or during the
-   * > transfer of data and Data CRC or immediately thereafter. Indicates that
-   * > there was a communication failure of some sort on the network.
-   *
-   * This error can also be reported as error information to the target node
-   * according to the RMAP standard.
-   */
-  RMAP_STATUS_FIELD_CODE_EEP = 7,
+    /** Standardized RMAP status field code for "EEP".
+     *
+     * Error description according to the RMAP standard:
+     *
+     * > EEP marker detected immediately after the header CRC or during the
+     * > transfer of data and Data CRC or immediately thereafter. Indicates that
+     * > there was a communication failure of some sort on the network.
+     *
+     * This error can also be reported as error information to the target node
+     * according to the RMAP standard.
+     */
+    RMAP_STATUS_FIELD_CODE_EEP = 7,
 
-  /** Standardized RMAP status field code for "verify buffer overrun".
-   *
-   * Error description according to the RMAP standard:
-   *
-   * > The verify before write bit of the command was set so that the data
-   * > field was buffered in order to verify the Data CRC before transferring
-   * > the data to target memory. The data field was longer than able to fit
-   * > inside the verify buffer resulting in a buffer overrun.
-   * >
-   * > Note that the command is not executed in this case.
-   */
-  RMAP_STATUS_FIELD_CODE_VERIFY_BUFFER_OVERRUN = 9,
+    /** Standardized RMAP status field code for "verify buffer overrun".
+     *
+     * Error description according to the RMAP standard:
+     *
+     * > The verify before write bit of the command was set so that the data
+     * > field was buffered in order to verify the Data CRC before transferring
+     * > the data to target memory. The data field was longer than able to fit
+     * > inside the verify buffer resulting in a buffer overrun.
+     * >
+     * > Note that the command is not executed in this case.
+     */
+    RMAP_STATUS_FIELD_CODE_VERIFY_BUFFER_OVERRUN = 9,
 
-  /** Standardized RMAP status field code for "RMAP command not implemented or
-   *  not authorised".
-   *
-   * Error description according to the RMAP standard:
-   *
-   * > The target user application did not authorise the requested operation.
-   * > This may be because the command requested has not been implemented.
-   */
-  RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED = 10,
+    /** Standardized RMAP status field code for "RMAP command not implemented or
+     *  not authorised".
+     *
+     * Error description according to the RMAP standard:
+     *
+     * > The target user application did not authorise the requested operation.
+     * > This may be because the command requested has not been implemented.
+     */
+    RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED = 10,
 
-  /** Standardized RMAP status field code for "RMW data length error".
-   *
-   * Error description according to the RMAP standard:
-   *
-   * > The amount of data in a RMW command is invalid (0x01, 0x03, 0x05, 0x07
-   * > or greater than 0x08).
-   */
-  RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR = 11,
+    /** Standardized RMAP status field code for "RMW data length error".
+     *
+     * Error description according to the RMAP standard:
+     *
+     * > The amount of data in a RMW command is invalid (0x01, 0x03, 0x05, 0x07
+     * > or greater than 0x08).
+     */
+    RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR = 11,
 
-  /** Standardized RMAP status field code for "invalid target logical
-   * address".
-   *
-   * Error description according to the RMAP standard:
-   *
-   * > The Header CRC was decoded correctly but the Target Logical Address was
-   * > not the value expected by the target.
-   */
-  RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS = 12
+    /** Standardized RMAP status field code for "invalid target logical
+     * address".
+     *
+     * Error description according to the RMAP standard:
+     *
+     * > The Header CRC was decoded correctly but the Target Logical Address was
+     * > not the value expected by the target.
+     */
+    RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS = 12
 };
 
 /** Non-standard library-specific status constants.
@@ -171,88 +171,88 @@ enum rmap_status_field_code {
  * standardized RMAP status field error and status codes.
  */
 enum rmap_status {
-  /** Success. */
-  RMAP_OK = 0,
+    /** Success. */
+    RMAP_OK = 0,
 
-  /** The provided data is not large enough to contain the full RMAP header.
-   */
-  RMAP_INCOMPLETE_HEADER = 256,
+    /** The provided data is not large enough to contain the full RMAP header.
+     */
+    RMAP_INCOMPLETE_HEADER = 256,
 
-  /** The protocol field indicates that this is not an RMAP packet. */
-  RMAP_NO_RMAP_PROTOCOL = 257,
+    /** The protocol field indicates that this is not an RMAP packet. */
+    RMAP_NO_RMAP_PROTOCOL = 257,
 
-  /** The header CRC indicates that errors are present in the header. */
-  RMAP_HEADER_CRC_ERROR = 258,
+    /** The header CRC indicates that errors are present in the header. */
+    RMAP_HEADER_CRC_ERROR = 258,
 
-  /** The packet type field has the reserved bit set. */
-  RMAP_UNUSED_PACKET_TYPE = 259,
+    /** The packet type field has the reserved bit set. */
+    RMAP_UNUSED_PACKET_TYPE = 259,
 
-  /** The command field contains a reserved command code. */
-  RMAP_UNUSED_COMMAND_CODE = 260,
+    /** The command field contains a reserved command code. */
+    RMAP_UNUSED_COMMAND_CODE = 260,
 
-  /** A reply packet type was combined with a without-reply command code. */
-  RMAP_NO_REPLY = 261,
+    /** A reply packet type was combined with a without-reply command code. */
+    RMAP_NO_REPLY = 261,
 
-  /** The provided packet does not contain a data field based on its header.
-   */
-  RMAP_NO_DATA = 262,
+    /** The provided packet does not contain a data field based on its header.
+     */
+    RMAP_NO_DATA = 262,
 
-  /** There is less data in the data field than indicated in the header data
-   *  length field.
-   */
-  RMAP_INSUFFICIENT_DATA = 263,
+    /** There is less data in the data field than indicated in the header data
+     *  length field.
+     */
+    RMAP_INSUFFICIENT_DATA = 263,
 
-  /** There is more data than expected from the packet type and/or data field
-   *  length.
-   */
-  RMAP_TOO_MUCH_DATA = 264,
+    /** There is more data than expected from the packet type and/or data field
+     *  length.
+     */
+    RMAP_TOO_MUCH_DATA = 264,
 
-  /** The data CRC indicates that errors are present in the data. */
-  RMAP_INVALID_DATA_CRC = 265,
+    /** The data CRC indicates that errors are present in the data. */
+    RMAP_INVALID_DATA_CRC = 265,
 
-  /** The data length field of a RMW command or RMW reply has an invalid
-   *  value.
-   */
-  RMAP_RMW_DATA_LENGTH_ERROR = 266,
+    /** The data length field of a RMW command or RMW reply has an invalid
+     *  value.
+     */
+    RMAP_RMW_DATA_LENGTH_ERROR = 266,
 
-  /** The provided packet type value cannot be represented in an RMAP header
-   *  packet type field.
-   *
-   * This error indicates that an attempt was made to initialize/serialize a
-   * header with a packet type value that is not one of:
-   * - RMAP_PACKET_TYPE_COMMAND.
-   * - RMAP_PACKET_TYPE_REPLY.
-   * - RMAP_PACKET_TYPE_COMMAND_RESERVED.
-   * - RMAP_PACKET_TYPE_REPLY_RESERVED.
-   */
-  RMAP_INVALID_PACKET_TYPE = 267,
+    /** The provided packet type value cannot be represented in an RMAP header
+     *  packet type field.
+     *
+     * This error indicates that an attempt was made to initialize/serialize a
+     * header with a packet type value that is not one of:
+     * - RMAP_PACKET_TYPE_COMMAND.
+     * - RMAP_PACKET_TYPE_REPLY.
+     * - RMAP_PACKET_TYPE_COMMAND_RESERVED.
+     * - RMAP_PACKET_TYPE_REPLY_RESERVED.
+     */
+    RMAP_INVALID_PACKET_TYPE = 267,
 
-  /** The provided command code value cannot be represented in an RMAP header
-   *  command code field.
-   *
-   * This error indicates that an attempt was made to initialize/serialize a
-   * header with a command code value that is less than 0 or greater than the
-   * combination of all available command code flags (0xF).
-   */
-  RMAP_INVALID_COMMAND_CODE = 268,
+    /** The provided command code value cannot be represented in an RMAP header
+     *  command code field.
+     *
+     * This error indicates that an attempt was made to initialize/serialize a
+     * header with a command code value that is less than 0 or greater than the
+     * combination of all available command code flags (0xF).
+     */
+    RMAP_INVALID_COMMAND_CODE = 268,
 
-  /** The provided reply address is longer than 12 bytes. */
-  RMAP_REPLY_ADDRESS_TOO_LONG = 269,
+    /** The provided reply address is longer than 12 bytes. */
+    RMAP_REPLY_ADDRESS_TOO_LONG = 269,
 
-  /** Not enough space to initialize header. */
-  RMAP_NOT_ENOUGH_SPACE = 270
+    /** Not enough space to initialize header. */
+    RMAP_NOT_ENOUGH_SPACE = 270
 };
 
 /** Size constants for RMAP packets. */
 enum {
-  RMAP_COMMAND_HEADER_STATIC_SIZE = 16,
-  RMAP_WRITE_REPLY_HEADER_STATIC_SIZE = 8,
-  RMAP_READ_REPLY_HEADER_STATIC_SIZE = 12,
-  RMAP_HEADER_MINIMUM_SIZE = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE,
+    RMAP_COMMAND_HEADER_STATIC_SIZE = 16,
+    RMAP_WRITE_REPLY_HEADER_STATIC_SIZE = 8,
+    RMAP_READ_REPLY_HEADER_STATIC_SIZE = 12,
+    RMAP_HEADER_MINIMUM_SIZE = RMAP_WRITE_REPLY_HEADER_STATIC_SIZE,
 
-  RMAP_REPLY_ADDRESS_LENGTH_MAX = 12,
-  RMAP_HEADER_SIZE_MAX =
-      RMAP_COMMAND_HEADER_STATIC_SIZE + RMAP_REPLY_ADDRESS_LENGTH_MAX,
+    RMAP_REPLY_ADDRESS_LENGTH_MAX = 12,
+    RMAP_HEADER_SIZE_MAX =
+        RMAP_COMMAND_HEADER_STATIC_SIZE + RMAP_REPLY_ADDRESS_LENGTH_MAX,
 };
 
 /** Maximum value in RMAP data length field and maximum size of RMAP data
