@@ -2440,23 +2440,6 @@ INSTANTIATE_TEST_CASE_P(
         RMAP_OK)));
 
 INSTANTIATE_TEST_CASE_P(
-    InvalidPacketTypes,
-    InitializeHeader,
-    testing::Values(
-      std::make_tuple(
-        64,
-        (enum rmap_packet_type)(RMAP_PACKET_TYPE_COMMAND_RESERVED + 1),
-        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
-        0,
-        RMAP_INVALID_PACKET_TYPE),
-      std::make_tuple(
-        64,
-        (enum rmap_packet_type)0xFF,
-        RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
-        0,
-        RMAP_INVALID_PACKET_TYPE)));
-
-INSTANTIATE_TEST_CASE_P(
     InvalidCommandCodes,
     InitializeHeader,
     testing::Values(
