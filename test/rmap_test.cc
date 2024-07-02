@@ -1906,7 +1906,8 @@ TEST_P(TestPatterns, VerifyHeaderIntegrityNoRmapProtocol)
       pattern.data.end());
 
   /* Set all non-RMAP protocol values. */
-  for (protocol = 0; protocol < 0xFF; ++protocol) {
+  protocol = 0;
+  do {
     if (protocol == 1) {
       /* Valid, skip. */
       continue;
@@ -1916,7 +1917,7 @@ TEST_P(TestPatterns, VerifyHeaderIntegrityNoRmapProtocol)
     EXPECT_EQ(
         rmap_verify_header_integrity(packet.data(), packet.size()),
         RMAP_NO_RMAP_PROTOCOL);
-  }
+  } while (++protocol);
 }
 
 TEST_P(TestPatterns, VerifyHeaderIntegrityCrcErrorFromCorruptKeyOrStatus)
