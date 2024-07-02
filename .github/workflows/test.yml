@@ -14,7 +14,7 @@ jobs:
     steps:
     - name: install googletest
       run: sudo apt-get -y install googletest
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: build and run tests
       run: make test
     - name: build and run tests with custom crc implementation
