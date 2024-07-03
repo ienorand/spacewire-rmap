@@ -167,8 +167,8 @@ enum rmap_status_field_code {
  * - Standardized RMAP error information.
  *
  * All of these status constants, except for RMAP_OK, use numeric values
- * starting from 255 + 1 in order to avoid numeric numeric overlap with
- * standardized RMAP status field error and status codes.
+ * starting from 255 + 1 in order to avoid numeric overlap with standardized
+ * RMAP status field error and status codes.
  */
 enum rmap_status {
     /** Success. */
