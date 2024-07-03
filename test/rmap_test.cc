@@ -683,7 +683,7 @@ TEST_P(AccessorByteCheckInPattern, Check)
     EXPECT_EQ(accessor(pattern.data.data() + pattern.header_offset), expected);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern0AccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -704,7 +704,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_get_initiator_logical_address, 0x67),
             std::make_tuple(rmap_get_extended_address, 0x00))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern0ReplyAccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -724,7 +724,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_get_target_logical_address, 0xFE),
             std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern1AccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -743,7 +743,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_get_initiator_logical_address, 0x67),
             std::make_tuple(rmap_get_extended_address, 0x00))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern1ReplyAccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -761,7 +761,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_get_target_logical_address, 0xFE),
             std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern2AccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -786,7 +786,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_get_initiator_logical_address, 0x67),
             std::make_tuple(rmap_get_extended_address, 0x00))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern2ReplyAccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -810,7 +810,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_get_target_logical_address, 0xFE),
             std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern3AccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -833,7 +833,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_get_initiator_logical_address, 0x67),
             std::make_tuple(rmap_get_extended_address, 0x00))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern3ReplyAccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -855,7 +855,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_get_target_logical_address, 0xFE),
             std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern4AccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -872,7 +872,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_get_initiator_logical_address, 0x67),
             std::make_tuple(rmap_get_extended_address, 0x00))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern4ReplyAccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -888,7 +888,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_get_target_logical_address, 0xFE),
             std::make_tuple(rmap_get_initiator_logical_address, 0x67))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern5AccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -908,7 +908,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_get_initiator_logical_address, 0x67),
             std::make_tuple(rmap_get_extended_address, 0x00))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern5ReplyAccessorByteChecks,
     AccessorByteCheckInPattern,
     testing::Combine(
@@ -954,7 +954,7 @@ const std::vector<struct test_pattern> patterns_with_non_rmap_protocols = {
         .reply_address_length_padded = 0,
     },
 };
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     NonRmapPatterns,
     AccessorByteCheckInPattern,
     testing::Values(
@@ -1034,7 +1034,7 @@ TEST_P(AccessorByteSetGet, GetGivesMatchingAfterSet)
  * succeed anyway.
  */
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WriteWithoutReply,
     AccessorByteSetGet,
     testing::Combine(
@@ -1058,7 +1058,7 @@ INSTANTIATE_TEST_CASE_P(
                 rmap_set_extended_address,
                 rmap_get_extended_address))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     CommandsAndRepliesWithReply,
     AccessorByteSetGet,
     testing::Combine(
@@ -1114,7 +1114,7 @@ TEST_P(AccessorBoolCheckInPattern, Check)
     EXPECT_EQ(accessor(pattern.data.data() + pattern.header_offset), expected);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern0AccessorBoolChecks,
     AccessorBoolCheckInPattern,
     testing::Combine(
@@ -1129,7 +1129,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_is_rmw, false),
             std::make_tuple(rmap_is_unused_command_code, false))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern0ReplyAccessorBoolChecks,
     AccessorBoolCheckInPattern,
     testing::Combine(
@@ -1144,7 +1144,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_is_rmw, false),
             std::make_tuple(rmap_is_unused_command_code, false))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern1AccessorBoolChecks,
     AccessorBoolCheckInPattern,
     testing::Combine(
@@ -1159,7 +1159,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_is_rmw, false),
             std::make_tuple(rmap_is_unused_command_code, false))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern1ReplyAccessorBoolChecks,
     AccessorBoolCheckInPattern,
     testing::Combine(
@@ -1174,7 +1174,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_is_rmw, false),
             std::make_tuple(rmap_is_unused_command_code, false))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern4AccessorBoolChecks,
     AccessorBoolCheckInPattern,
     testing::Combine(
@@ -1189,7 +1189,7 @@ INSTANTIATE_TEST_CASE_P(
             std::make_tuple(rmap_is_rmw, true),
             std::make_tuple(rmap_is_unused_command_code, false))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPattern4ReplyAccessorBoolChecks,
     AccessorBoolCheckInPattern,
     testing::Combine(
@@ -1281,7 +1281,7 @@ TEST_P(TestPatternCommandReplyPairs, RmapGetReplyAddress)
             reply.data.data() + reply.header_offset));
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     AllCommandReplyPairs,
     TestPatternCommandReplyPairs,
     testing::ValuesIn(test_patterns_command_reply_pairs));
@@ -1347,7 +1347,7 @@ TEST_P(SetReplyAddress, SetVerifyPadded)
         expected_padded);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReplyAddressPatterns,
     SetReplyAddress,
     testing::Values(
@@ -1409,7 +1409,7 @@ TEST_P(GetTransactionIdentifier, Check)
         expected_transaction_identifier);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     AllTestPatterns,
     GetTransactionIdentifier,
     testing::Values(
@@ -1472,13 +1472,13 @@ TEST_P(SetTransactionIdentifier, GetGivesMatchingAfterSet)
     EXPECT_EQ(rmap_get_transaction_identifier(header), 0xFFFF);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WriteWithoutReply,
     SetTransactionIdentifier,
     testing::Values(
         std::make_tuple(RMAP_PACKET_TYPE_COMMAND, RMAP_COMMAND_CODE_WRITE, 0)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     CommandsAndRepliesWithReply,
     SetTransactionIdentifier,
     testing::Combine(
@@ -1505,7 +1505,7 @@ TEST_P(GetAddress, Check)
     EXPECT_EQ(rmap_get_address(header), expected_address);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPatternsCommands,
     GetAddress,
     testing::Values(
@@ -1556,13 +1556,13 @@ TEST_P(SetAddress, GetGivesMatchingAfterSet)
     EXPECT_EQ(rmap_get_address(header), 0xFFFFFFFF);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WriteWithoutReply,
     SetAddress,
     testing::Values(
         std::make_tuple(RMAP_PACKET_TYPE_COMMAND, RMAP_COMMAND_CODE_WRITE, 0)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     CommandsWithReply,
     SetAddress,
     testing::Combine(
@@ -1589,7 +1589,7 @@ TEST_P(GetDataLength, Check)
     EXPECT_EQ(rmap_get_data_length(header), expected_data_length);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     TestPatternsWithDataLength,
     GetDataLength,
     testing::Values(
@@ -1642,13 +1642,13 @@ TEST_P(SetDataLength, GetGivesMatchingAfterSet)
     EXPECT_EQ(rmap_get_data_length(header), 0xFFFFFF);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WriteWithoutReply,
     SetDataLength,
     testing::Values(
         std::make_tuple(RMAP_PACKET_TYPE_COMMAND, RMAP_COMMAND_CODE_WRITE, 0)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WriteWithReply,
     SetDataLength,
     testing::Combine(
@@ -1658,7 +1658,7 @@ INSTANTIATE_TEST_CASE_P(
             (size_t)0,
             (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Read,
     SetDataLength,
     testing::Combine(
@@ -1668,7 +1668,7 @@ INSTANTIATE_TEST_CASE_P(
             (size_t)0,
             (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReadReply,
     SetDataLength,
     testing::Combine(
@@ -1678,7 +1678,7 @@ INSTANTIATE_TEST_CASE_P(
             (size_t)0,
             (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Rmw,
     SetDataLength,
     testing::Combine(
@@ -1688,7 +1688,7 @@ INSTANTIATE_TEST_CASE_P(
             (size_t)0,
             (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     RmwReply,
     SetDataLength,
     testing::Combine(
@@ -1714,7 +1714,7 @@ TEST_P(TestPatternCalculateHeaderSize, Check)
     EXPECT_EQ(rmap_calculate_header_size(header), expected_header_size);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     AllTestPatterns,
     TestPatternCalculateHeaderSize,
     testing::Values(
@@ -1794,7 +1794,7 @@ TEST_P(CalculateHeaderSize, GetGivesMatchingAfterInitalizing)
     EXPECT_EQ(rmap_calculate_header_size(header), expected);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Command,
     CalculateHeaderSize,
     testing::Combine(
@@ -1843,7 +1843,7 @@ INSTANTIATE_TEST_CASE_P(
                 (size_t)12,
                 (size_t)RMAP_COMMAND_HEADER_STATIC_SIZE + 12))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WriteReply,
     CalculateHeaderSize,
     testing::Combine(
@@ -1855,7 +1855,7 @@ INSTANTIATE_TEST_CASE_P(
                 (size_t)RMAP_REPLY_ADDRESS_LENGTH_MAX + 1),
             testing::Values(RMAP_WRITE_REPLY_HEADER_STATIC_SIZE))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReadReply,
     CalculateHeaderSize,
     testing::Combine(
@@ -1867,7 +1867,7 @@ INSTANTIATE_TEST_CASE_P(
                 (size_t)RMAP_REPLY_ADDRESS_LENGTH_MAX + 1),
             testing::Values(RMAP_READ_REPLY_HEADER_STATIC_SIZE))));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     RmwReply,
     CalculateHeaderSize,
     testing::Combine(
@@ -2096,7 +2096,7 @@ TEST_P(TestPatterns, RmapInitializeHeaderPatternsShouldNotChange)
     EXPECT_EQ(header_offset, 0);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     AllTestPatterns,
     TestPatterns,
     testing::ValuesIn(test_patterns));
@@ -2233,7 +2233,7 @@ TEST_P(TestPatternsWithData, VerifyDataOk)
     EXPECT_EQ(rmap_verify_data(packet.data(), packet.size()), RMAP_OK);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PatternsWithData,
     TestPatternsWithData,
     testing::ValuesIn(test_patterns_with_data));
@@ -2254,7 +2254,7 @@ TEST_P(TestPatternsWithoutData, VerifyDataNoData)
     EXPECT_EQ(rmap_verify_data(packet.data(), packet.size()), RMAP_NO_DATA);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PatternsWithoutData,
     TestPatternsWithoutData,
     testing::ValuesIn(test_patterns_without_data));
@@ -2288,7 +2288,7 @@ TEST_P(VerifyHeaderInstruction, VerifyAfterInitializing)
     EXPECT_EQ(rmap_verify_header_instruction(header), expected_status);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReservedPacketTypes,
     VerifyHeaderInstruction,
     testing::Combine(
@@ -2303,7 +2303,7 @@ INSTANTIATE_TEST_CASE_P(
         testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
         testing::Values(RMAP_UNUSED_PACKET_TYPE)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     CommandWithUnusedCommandCodes,
     VerifyHeaderInstruction,
     testing::Combine(
@@ -2317,7 +2317,7 @@ INSTANTIATE_TEST_CASE_P(
         testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
         testing::Values(RMAP_UNUSED_COMMAND_CODE)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReplyWithoutReplyBit,
     VerifyHeaderInstruction,
     testing::Combine(
@@ -2335,7 +2335,7 @@ INSTANTIATE_TEST_CASE_P(
         testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
         testing::Values(RMAP_NO_REPLY)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReplyWithUnusedCommandCodes,
     VerifyHeaderInstruction,
     testing::Combine(
@@ -2344,7 +2344,7 @@ INSTANTIATE_TEST_CASE_P(
         testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
         testing::Values(RMAP_UNUSED_COMMAND_CODE)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ValidCommands,
     VerifyHeaderInstruction,
     testing::Combine(
@@ -2368,7 +2368,7 @@ INSTANTIATE_TEST_CASE_P(
         testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)),
         testing::Values(RMAP_OK)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ValidReplies,
     VerifyHeaderInstruction,
     testing::Combine(
@@ -2428,7 +2428,7 @@ TEST_P(InitializeHeader, ParameterChecks)
         expected_status);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReservedPacketTypes,
     InitializeHeader,
     testing::Values(
@@ -2445,7 +2445,7 @@ INSTANTIATE_TEST_CASE_P(
             0,
             RMAP_OK)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     InvalidCommandCodes,
     InitializeHeader,
     testing::Values(
@@ -2470,7 +2470,7 @@ INSTANTIATE_TEST_CASE_P(
             0,
             RMAP_INVALID_COMMAND_CODE)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     NoReply,
     InitializeHeader,
     testing::Values(std::make_tuple(
@@ -2480,7 +2480,7 @@ INSTANTIATE_TEST_CASE_P(
         0,
         RMAP_OK)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     UnusedCommandCodes,
     InitializeHeader,
     testing::Values(
@@ -2510,7 +2510,7 @@ INSTANTIATE_TEST_CASE_P(
             0,
             RMAP_OK)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReplyAddressTooLong,
     InitializeHeader,
     testing::Values(
@@ -2587,7 +2587,7 @@ INSTANTIATE_TEST_CASE_P(
             0xFF,
             RMAP_REPLY_ADDRESS_TOO_LONG)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WriteCommandSizeLimits,
     InitializeHeader,
     testing::Values(
@@ -2646,7 +2646,7 @@ INSTANTIATE_TEST_CASE_P(
             12,
             RMAP_OK)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WriteReplySizeLimits,
     InitializeHeader,
     testing::Values(
@@ -2675,7 +2675,7 @@ INSTANTIATE_TEST_CASE_P(
             RMAP_REPLY_ADDRESS_LENGTH_MAX,
             RMAP_OK)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReadCommandSizeLimits,
     InitializeHeader,
     testing::Values(
@@ -2734,7 +2734,7 @@ INSTANTIATE_TEST_CASE_P(
             12,
             RMAP_OK)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReadReplySizeLimits,
     InitializeHeader,
     testing::Values(
@@ -2763,7 +2763,7 @@ INSTANTIATE_TEST_CASE_P(
             RMAP_REPLY_ADDRESS_LENGTH_MAX,
             RMAP_OK)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     RmwCommandSizeLimits,
     InitializeHeader,
     testing::Values(
@@ -2822,7 +2822,7 @@ INSTANTIATE_TEST_CASE_P(
             12,
             RMAP_OK)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     RmwReplySizeLimits,
     InitializeHeader,
     testing::Values(
@@ -3078,7 +3078,7 @@ TEST_P(CreateSuccessReplyFromCommand, RmapCreateSuccessReplyFromCommandBefore)
     }
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     CommandsWithReply,
     CreateSuccessReplyFromCommand,
     testing::Combine(
@@ -3531,7 +3531,7 @@ TEST_P(
         RMAP_OK);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReplyAddressSizes,
     CreateSuccessReplyFromCommandSizeLimits,
     testing::Range((size_t)0, (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1)));
