@@ -806,10 +806,12 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern0_unverified_incrementing_write_with_reply,
-        sizeof(test_pattern0_unverified_incrementing_write_with_reply));
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern0_unverified_incrementing_write_with_reply,
+            sizeof(test_pattern0_unverified_incrementing_write_with_reply)),
+        RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
     EXPECT_EQ(request.key, 0x00);
@@ -822,8 +824,6 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
@@ -882,10 +882,12 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern1_incrementing_read,
-        sizeof(test_pattern1_incrementing_read));
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern1_incrementing_read,
+            sizeof(test_pattern1_incrementing_read)),
+        RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
     EXPECT_EQ(request.key, 0x00);
@@ -898,8 +900,6 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
@@ -939,13 +939,15 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
-            test_pattern2_target_address_length,
-        sizeof(
-            test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) -
-            test_pattern2_target_address_length);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses +
+                test_pattern2_target_address_length,
+            sizeof(
+                test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses) -
+                test_pattern2_target_address_length),
+        RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
     EXPECT_EQ(request.key, 0x00);
@@ -958,8 +960,6 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
@@ -1018,12 +1018,14 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern3_incrementing_read_with_spacewire_addresses +
-            test_pattern3_target_address_length,
-        sizeof(test_pattern3_incrementing_read_with_spacewire_addresses) -
-            test_pattern3_target_address_length);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern3_incrementing_read_with_spacewire_addresses +
+                test_pattern3_target_address_length,
+            sizeof(test_pattern3_incrementing_read_with_spacewire_addresses) -
+                test_pattern3_target_address_length),
+        RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
     EXPECT_EQ(request.key, 0x00);
@@ -1036,8 +1038,6 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
@@ -1091,10 +1091,12 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern4_rmw,
-        sizeof(test_pattern4_rmw));
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern4_rmw,
+            sizeof(test_pattern4_rmw)),
+        RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
     EXPECT_EQ(request.key, 0x00);
@@ -1107,8 +1109,6 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
@@ -1169,12 +1169,14 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
         SendReply(testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern5_rmw_with_spacewire_addresses +
-            test_pattern5_target_address_length,
-        sizeof(test_pattern5_rmw_with_spacewire_addresses) -
-            test_pattern5_target_address_length);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern5_rmw_with_spacewire_addresses +
+                test_pattern5_target_address_length,
+            sizeof(test_pattern5_rmw_with_spacewire_addresses) -
+                test_pattern5_target_address_length),
+        RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
     EXPECT_EQ(request.key, 0x00);
@@ -1187,8 +1189,6 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 TEST_F(MockedTargetNode, ValidIncomingRead)
@@ -1253,10 +1253,12 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
                 1))
         .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        incoming_packet.data(),
-        incoming_packet.size());
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        RMAP_OK);
 
     EXPECT_EQ(read_request.target_logical_address, 0xFE);
     EXPECT_EQ(read_request.key, 0x7E);
@@ -1287,22 +1289,19 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
         rmap_crc_calculate(expected_reply.data() + data_offset, 234);
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
 }
 
 class IncomingToTargetRejectParams :
     public MockedTargetNode,
-    public testing::WithParamInterface<std::tuple<
-        std::function<std::vector<uint8_t>()>,
-        enum rmap_node_status>>
+    public testing::WithParamInterface<
+        std::tuple<std::function<std::vector<uint8_t>()>, enum rmap_status>>
 {
 };
 
 TEST_P(IncomingToTargetRejectParams, Check)
 {
     const auto incoming_packet_generator_fn = std::get<0>(GetParam());
-    const auto expected_error_information = std::get<1>(GetParam());
+    const auto expected_status = std::get<1>(GetParam());
 
     const auto incoming_packet = incoming_packet_generator_fn();
 
@@ -1313,11 +1312,12 @@ TEST_P(IncomingToTargetRejectParams, Check)
     testing::StrictMock<MockCallbacks> strict_mock_callbacks;
     custom_context->mock_callbacks = &strict_mock_callbacks;
 
-    rmap_node_handle_incoming(
-        &node_context,
-        incoming_packet.data(),
-        incoming_packet.size());
-    EXPECT_EQ(node_context.error_information, expected_error_information);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        expected_status);
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -1408,7 +1408,7 @@ INSTANTIATE_TEST_CASE_P(
                 incoming_packet.resize(1);
                 return incoming_packet;
             }),
-        testing::Values(RMAP_NODE_EARLY_EOP)));
+        testing::Values(RMAP_INCOMPLETE_HEADER)));
 
 INSTANTIATE_TEST_CASE_P(
     HeaderCrcError,
@@ -1437,9 +1437,8 @@ INSTANTIATE_TEST_CASE_P(
                 incoming_packet.at(header_size - 1) ^= 1;
                 return incoming_packet;
             }),
-        testing::Values(RMAP_NODE_HEADER_CRC_ERROR)));
+        testing::Values(RMAP_HEADER_CRC_ERROR)));
 
-/* Packet with non-RMAP protocol should be silently discarded. */
 INSTANTIATE_TEST_CASE_P(
     InvalidProtocol,
     IncomingToTargetRejectParams,
@@ -1467,7 +1466,7 @@ INSTANTIATE_TEST_CASE_P(
                 rmap_calculate_and_set_header_crc(incoming_packet.data());
                 return incoming_packet;
             }),
-        testing::Values(RMAP_NODE_OK)));
+        testing::Values(RMAP_NO_RMAP_PROTOCOL)));
 
 TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
 {
@@ -1479,12 +1478,12 @@ TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern0_expected_write_reply,
-        sizeof(test_pattern0_expected_write_reply));
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern0_expected_write_reply,
+            sizeof(test_pattern0_expected_write_reply)),
+        RMAP_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
@@ -1503,12 +1502,12 @@ TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_header)));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern1_expected_read_reply,
-        sizeof(test_pattern1_expected_read_reply));
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern1_expected_read_reply,
+            sizeof(test_pattern1_expected_read_reply)),
+        RMAP_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
@@ -1521,14 +1520,15 @@ TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern2_expected_write_reply_with_spacewire_addresses +
-            test_pattern2_reply_address_length,
-        sizeof(test_pattern2_expected_write_reply_with_spacewire_addresses) -
-            test_pattern2_reply_address_length);
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern2_expected_write_reply_with_spacewire_addresses +
+                test_pattern2_reply_address_length,
+            sizeof(
+                test_pattern2_expected_write_reply_with_spacewire_addresses) -
+                test_pattern2_reply_address_length),
+        RMAP_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
@@ -1549,14 +1549,14 @@ TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_header)));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern3_expected_read_reply_with_spacewire_addresses +
-            test_pattern3_reply_address_length,
-        sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
-            test_pattern3_reply_address_length);
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern3_expected_read_reply_with_spacewire_addresses +
+                test_pattern3_reply_address_length,
+            sizeof(test_pattern3_expected_read_reply_with_spacewire_addresses) -
+                test_pattern3_reply_address_length),
+        RMAP_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
@@ -1575,12 +1575,12 @@ TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_header)));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern4_expected_rmw_reply,
-        sizeof(test_pattern4_expected_rmw_reply));
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern4_expected_rmw_reply,
+            sizeof(test_pattern4_expected_rmw_reply)),
+        RMAP_OK);
 }
 
 TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
@@ -1601,14 +1601,14 @@ TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_header)));
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern5_expected_rmw_reply_with_spacewire_addresses +
-            test_pattern5_reply_address_length,
-        sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses) -
-            test_pattern5_reply_address_length);
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_OK);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern5_expected_rmw_reply_with_spacewire_addresses +
+                test_pattern5_reply_address_length,
+            sizeof(test_pattern5_expected_rmw_reply_with_spacewire_addresses) -
+                test_pattern5_reply_address_length),
+        RMAP_OK);
 }
 
 TEST_F(MockedTargetNode, IncomingCommandReplyAllocationFailure)
@@ -1618,26 +1618,25 @@ TEST_F(MockedTargetNode, IncomingCommandReplyAllocationFailure)
     EXPECT_CALL(mock_callbacks, Allocate).WillOnce(testing::Return(nullptr));
     EXPECT_CALL(mock_callbacks, SendReply).Times(0);
 
-    rmap_node_handle_incoming(
-        &node_context,
-        test_pattern0_unverified_incrementing_write_with_reply,
-        sizeof(test_pattern0_unverified_incrementing_write_with_reply));
-
-    EXPECT_EQ(node_context.error_information, RMAP_NODE_ALLOCATION_FAILURE);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            test_pattern0_unverified_incrementing_write_with_reply,
+            sizeof(test_pattern0_unverified_incrementing_write_with_reply)),
+        RMAP_NODE_ALLOCATION_FAILURE);
 }
 
 class IncomingToInitiatorRejectParams :
     public MockedInitiatorNode,
-    public testing::WithParamInterface<std::tuple<
-        std::function<std::vector<uint8_t>()>,
-        enum rmap_node_status>>
+    public testing::WithParamInterface<
+        std::tuple<std::function<std::vector<uint8_t>()>, enum rmap_status>>
 {
 };
 
 TEST_P(IncomingToInitiatorRejectParams, Check)
 {
     const auto incoming_packet_generator_fn = std::get<0>(GetParam());
-    const auto expected_error_information = std::get<1>(GetParam());
+    const auto expected_status = std::get<1>(GetParam());
 
     const auto incoming_packet = incoming_packet_generator_fn();
 
@@ -1648,11 +1647,12 @@ TEST_P(IncomingToInitiatorRejectParams, Check)
     testing::StrictMock<MockCallbacks> strict_mock_callbacks;
     custom_context->mock_callbacks = &strict_mock_callbacks;
 
-    rmap_node_handle_incoming(
-        &node_context,
-        incoming_packet.data(),
-        incoming_packet.size());
-    EXPECT_EQ(node_context.error_information, expected_error_information);
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        expected_status);
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -1739,7 +1739,7 @@ INSTANTIATE_TEST_CASE_P(
                 incoming_packet.resize(1);
                 return incoming_packet;
             }),
-        testing::Values(RMAP_NODE_EARLY_EOP)));
+        testing::Values(RMAP_INCOMPLETE_HEADER)));
 
 INSTANTIATE_TEST_CASE_P(
     HeaderCrcError,
@@ -1766,9 +1766,8 @@ INSTANTIATE_TEST_CASE_P(
                 incoming_packet.at(header_size - 1) ^= 1;
                 return incoming_packet;
             }),
-        testing::Values(RMAP_NODE_HEADER_CRC_ERROR)));
+        testing::Values(RMAP_HEADER_CRC_ERROR)));
 
-/* Packet with non-RMAP protocol should be silently discarded. */
 INSTANTIATE_TEST_CASE_P(
     InvalidProtocol,
     IncomingToInitiatorRejectParams,
@@ -1794,4 +1793,4 @@ INSTANTIATE_TEST_CASE_P(
                 rmap_calculate_and_set_header_crc(incoming_packet.data());
                 return incoming_packet;
             }),
-        testing::Values(RMAP_NODE_OK)));
+        testing::Values(RMAP_NO_RMAP_PROTOCOL)));

@@ -251,7 +251,38 @@ enum rmap_status {
     RMAP_REPLY_ADDRESS_TOO_LONG = 269,
 
     /** Not enough space to initialize header. */
-    RMAP_NOT_ENOUGH_SPACE = 270
+    RMAP_NOT_ENOUGH_SPACE = 270,
+
+    /* Only used by node. */
+
+    RMAP_NODE_INVALID_KEY = 271,
+    RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED = 272,
+    RMAP_NODE_VERIFY_BUFFER_OVERRUN = 273,
+    RMAP_NODE_MEMORY_ACCESS_ERROR = 274,
+    /* Corresponds to reply received with:
+     * * Reserved bit set (RMAP_UNUSED_PACKET_TYPE).
+     * * With-reply bit not set (RMAP_NO_REPLY).
+     *
+     * Corresponds to a write reply that:
+     * * "Is corrupted" (?).
+     * * "Does not reach the node intact" (?).
+     *
+     */
+    RMAP_NODE_INVALID_REPLY = 275,
+    /* Corresponds to read reply received with:
+     * * Header CRC error (RMAP_HEADER_CRC_ERROR)
+     * * "Packet type error" (?).
+     * * "Other error in the header" (?).
+     * * With-reply bit not set (RMAP_NO_REPLY).
+     *
+     * Corresponds to a write reply received with:
+     */
+    RMAP_NODE_PACKET_ERROR = 276,
+    RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR = 277,
+    RMAP_NODE_REPLY_RECEIVED_BY_TARGET = 278,
+    RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS = 279,
+    /* Indicates failure to allocate memory for reply. */
+    RMAP_NODE_ALLOCATION_FAILURE = 280,
 };
 
 /** Size constants for RMAP packets. */

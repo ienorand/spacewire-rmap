@@ -11,60 +11,6 @@
 extern "C" {
 #endif
 
-enum rmap_node_status {
-    RMAP_NODE_OK = 0,
-    RMAP_NODE_EEP = 512,
-    RMAP_NODE_EARLY_EOP = 513,
-    RMAP_NODE_HEADER_CRC_ERROR = 514,
-    RMAP_NODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE = 515,
-    RMAP_NODE_INVALID_KEY = 516,
-    RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED = 517,
-    RMAP_NODE_VERIFY_BUFFER_OVERRUN = 518,
-    RMAP_NODE_INSUFFICIENT_DATA = 519,
-    RMAP_NODE_TOO_MUCH_DATA = 520,
-    RMAP_NODE_INVALID_DATA_CRC = 521,
-    /* Node-unique. */
-    RMAP_NODE_MEMORY_ACCESS_ERROR = 522,
-    /* Node-unique.
-     *
-     * Corresponds to reply received with:
-     * * Reserved bit set (RMAP_UNUSED_PACKET_TYPE).
-     * * With-reply bit not set (RMAP_NO_REPLY).
-     *
-     * Corresponds to a write reply that:
-     * * "Is corrupted" (?).
-     * * "Does not reach the node intact" (?).
-     *
-     */
-    RMAP_NODE_INVALID_REPLY = 523,
-    /* Node-unique.
-     *
-     * Corresponds to read reply received with:
-     * * Header CRC error (RMAP_HEADER_CRC_ERROR)
-     * * "Packet type error" (?).
-     * * "Other error in the header" (?).
-     * * With-reply bit not set (RMAP_NO_REPLY).
-     *
-     * Corresponds to a write reply received with:
-     */
-    RMAP_NODE_PACKET_ERROR = 524,
-    RMAP_NODE_RMW_DATA_LENGTH_ERROR = 525,
-    RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR = 526,
-    RMAP_NODE_REPLY_RECEIVED_BY_TARGET = 527,
-    RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS = 528,
-    /* Node-unique.
-     *
-     * Indicates failure to allocate memory for reply.
-     */
-    RMAP_NODE_ALLOCATION_FAILURE = 529,
-};
-
-/* TODO: Figure out where to integrate these. */
-#define RMAP_COMMAND_RECEIVED_BY_INITIATOR (12345 + 0)
-#define RMAP_REPLY_RECEIVED_BY_TARGET (12345 + 1)
-#define RMAP_INVALID_REPLY (12345 + 2)
-#define RMAP_PACKET_ERROR (12345 + 3)
-
 struct rmap_node_initialize_flags {
     unsigned int is_target : 1;
     unsigned int is_initiator : 1;
@@ -201,7 +147,6 @@ struct rmap_node_callbacks {
 };
 
 struct rmap_node_target_context {
-    enum rmap_node_status error_information;
     struct rmap_node_target_callbacks callbacks;
     unsigned int is_reply_for_unused_packet_type_enabled : 1;
 };
@@ -216,7 +161,6 @@ struct rmap_node_context {
     unsigned int is_target : 1;
     unsigned int is_initiator : 1;
     unsigned int is_reply_for_unused_packet_type_enabled : 1;
-    enum rmap_node_status error_information;
 };
 
 void rmap_node_initialize(
@@ -225,7 +169,7 @@ void rmap_node_initialize(
     const struct rmap_node_callbacks *callbacks,
     struct rmap_node_initialize_flags flags);
 
-void rmap_node_handle_incoming(
+enum rmap_status rmap_node_handle_incoming(
     struct rmap_node_context *context,
     const void *packet,
     size_t size);

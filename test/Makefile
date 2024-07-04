@@ -136,7 +136,7 @@ rmap_shim.o: rmap_shim.c rmap_shim.h $(USER_DIR)/rmap.h
 node_test: node_test.o node.o rmap.o gmock_main.a
 	$(LINK.cc) $(OUTPUT_OPTION) $^
 
-node_test.o: node_test.cc $(USER_DIR)/node.h
+node_test.o: node_test.cc $(USER_DIR)/node.h $(USER_DIR)/rmap.h
 	$(COMPILE.cc) $(OUTPUT_OPTION) $<
 
 node.o: $(USER_DIR)/node.c $(USER_DIR)/node.h $(USER_DIR)/rmap.h

@@ -41,14 +41,11 @@ void rmap_node_initialize(
     context->is_target = flags.is_target;
     context->is_initiator = flags.is_initiator;
 
-    context->error_information = RMAP_NODE_OK;
     context->is_reply_for_unused_packet_type_enabled =
         flags.is_reply_for_unused_packet_type_enabled;
-
-    context->error_information = RMAP_NODE_OK;
 }
 
-static void send_error_reply(
+static enum rmap_status send_error_reply(
     struct rmap_node_context *const context,
     const void *const command,
     const enum rmap_status_field_code error)
@@ -63,8 +60,7 @@ static void send_error_reply(
     uint8_t *const reply_buf =
         context->callbacks.target.allocate(context, reply_size_max);
     if (!reply_buf) {
-        context->error_information = RMAP_NODE_ALLOCATION_FAILURE;
-        return;
+        return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
     status = rmap_create_success_reply_from_command(
@@ -90,9 +86,11 @@ static void send_error_reply(
     rmap_calculate_and_set_header_crc(reply_buf + header_offset);
 
     context->callbacks.target.send_reply(context, reply_buf, reply_size);
+
+    return RMAP_OK;
 }
 
-static void handle_write_command(
+static enum rmap_status handle_write_command(
     struct rmap_node_context *const context,
     const uint8_t *const packet,
     const size_t size)
@@ -111,17 +109,14 @@ static void handle_write_command(
     status = rmap_verify_data(packet, size);
     switch (status) {
     case RMAP_INSUFFICIENT_DATA:
-        context->error_information = RMAP_NODE_INSUFFICIENT_DATA;
         status_field_code = RMAP_STATUS_FIELD_CODE_EARLY_EOP;
         break;
 
     case RMAP_TOO_MUCH_DATA:
-        context->error_information = RMAP_NODE_TOO_MUCH_DATA;
         status_field_code = RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA;
         break;
 
     case RMAP_INVALID_DATA_CRC:
-        context->error_information = RMAP_NODE_INVALID_DATA_CRC;
         status_field_code = RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC;
         break;
 
@@ -129,11 +124,11 @@ static void handle_write_command(
         assert(status == RMAP_OK);
         break;
     }
-    if (status_field_code != RMAP_STATUS_FIELD_CODE_SUCCESS) {
+    if (status != RMAP_OK) {
         if (rmap_is_with_reply(packet)) {
             send_error_reply(context, packet, status_field_code);
         }
-        return;
+        return status;
     }
 
     const struct rmap_node_target_request write_request = {
@@ -149,22 +144,22 @@ static void handle_write_command(
         context,
         &write_request,
         packet + rmap_calculate_header_size(packet));
+    assert(status == RMAP_OK);
     switch (status_field_code) {
     case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
-        context->error_information = RMAP_NODE_INVALID_KEY;
+        status = RMAP_NODE_INVALID_KEY;
         break;
 
     case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
-        context->error_information = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        status = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         break;
 
     case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
-        context->error_information =
-            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         break;
 
     case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
-        context->error_information = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        status = RMAP_NODE_MEMORY_ACCESS_ERROR;
         break;
 
     default:
@@ -175,7 +170,7 @@ static void handle_write_command(
         if (rmap_is_with_reply(packet)) {
             send_error_reply(context, packet, status_field_code);
         }
-        return;
+        return status;
     }
 
     const size_t reply_size = calculate_success_reply_size_from_command(packet);
@@ -183,8 +178,7 @@ static void handle_write_command(
     uint8_t *const reply_buf =
         context->callbacks.target.allocate(context, reply_size);
     if (!reply_buf) {
-        context->error_information = RMAP_NODE_ALLOCATION_FAILURE;
-        return;
+        return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
     status = rmap_create_success_reply_from_command(
@@ -200,9 +194,11 @@ static void handle_write_command(
         reply_size);
 
     context->callbacks.target.send_reply(context, reply_buf, reply_size);
+
+    return RMAP_OK;
 }
 
-static void handle_read_command(
+static enum rmap_status handle_read_command(
     struct rmap_node_context *const context,
     const uint8_t *const packet)
 {
@@ -217,8 +213,7 @@ static void handle_read_command(
     uint8_t *const reply_buf =
         context->callbacks.target.allocate(context, reply_maximum_size);
     if (!reply_buf) {
-        context->error_information = RMAP_NODE_ALLOCATION_FAILURE;
-        return;
+        return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
     status = rmap_create_success_reply_from_command(
@@ -250,25 +245,28 @@ static void handle_read_command(
         reply_buf + data_offset,
         &reply_data_size,
         &read_request);
+    assert(status == RMAP_OK);
     switch (status_field_code) {
     case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
-        context->error_information = RMAP_NODE_INVALID_KEY;
+        status = RMAP_NODE_INVALID_KEY;
         break;
 
     case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
-        context->error_information = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        status = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         break;
 
     case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
-        context->error_information =
-            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         break;
 
     case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
-        context->error_information = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        status = RMAP_NODE_MEMORY_ACCESS_ERROR;
         break;
 
     default:
+        /* TODO: Should incorrectly implemented callbacks be handled by the
+         * library of simply declared undefined behvaiour?
+         */
         assert(status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS);
         break;
     }
@@ -287,9 +285,11 @@ static void handle_read_command(
     }
 
     context->callbacks.target.send_reply(context, reply_buf, reply_size);
+
+    return RMAP_OK;
 }
 
-static void handle_rmw_command(
+static enum rmap_status handle_rmw_command(
     struct rmap_node_context *const context,
     const uint8_t *const packet,
     const size_t size)
@@ -299,37 +299,34 @@ static void handle_rmw_command(
     size_t reply_header_offset;
     size_t reply_data_size;
 
+    status_field_code = RMAP_STATUS_FIELD_CODE_SUCCESS;
     status = rmap_verify_data(packet, size);
     switch (status) {
     case RMAP_RMW_DATA_LENGTH_ERROR:
-        context->error_information = RMAP_NODE_RMW_DATA_LENGTH_ERROR;
-        send_error_reply(
-            context,
-            packet,
-            RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR);
-        return;
+        status_field_code = RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR;
+        break;
 
     case RMAP_INSUFFICIENT_DATA:
-        context->error_information = RMAP_NODE_INSUFFICIENT_DATA;
-        send_error_reply(context, packet, RMAP_STATUS_FIELD_CODE_EARLY_EOP);
-        return;
+        status_field_code = RMAP_STATUS_FIELD_CODE_EARLY_EOP;
+        break;
 
     case RMAP_TOO_MUCH_DATA:
-        context->error_information = RMAP_NODE_TOO_MUCH_DATA;
-        send_error_reply(context, packet, RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA);
-        return;
+        status_field_code = RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA;
+        break;
 
     case RMAP_INVALID_DATA_CRC:
-        context->error_information = RMAP_NODE_INVALID_DATA_CRC;
-        send_error_reply(
-            context,
-            packet,
-            RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC);
-        return;
+        status_field_code = RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC;
+        break;
 
     default:
         assert(status == RMAP_OK);
         break;
+    }
+    if (status != RMAP_OK) {
+        if (rmap_is_with_reply(packet)) {
+            send_error_reply(context, packet, status_field_code);
+        }
+        return status;
     }
 
     const size_t reply_maximum_size =
@@ -338,8 +335,7 @@ static void handle_rmw_command(
     uint8_t *const reply_buf =
         context->callbacks.target.allocate(context, reply_maximum_size);
     if (!reply_buf) {
-        context->error_information = RMAP_NODE_ALLOCATION_FAILURE;
-        return;
+        return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
     status = rmap_create_success_reply_from_command(
@@ -348,7 +344,6 @@ static void handle_rmw_command(
         reply_maximum_size,
         packet);
     assert(status == RMAP_OK);
-    (void)status;
     const size_t data_offset =
         reply_header_offset + RMAP_READ_REPLY_HEADER_STATIC_SIZE;
     assert(
@@ -363,6 +358,7 @@ static void handle_rmw_command(
         .extended_address = rmap_get_extended_address(packet),
         .address = rmap_get_address(packet),
         .data_length = rmap_get_data_length(packet)};
+    status = RMAP_OK;
     status_field_code = context->callbacks.target.rmw_request(
         context,
         reply_buf + data_offset,
@@ -371,23 +367,25 @@ static void handle_rmw_command(
         packet + rmap_calculate_header_size(packet));
     switch (status_field_code) {
     case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
-        context->error_information = RMAP_NODE_INVALID_KEY;
+        status = RMAP_NODE_INVALID_KEY;
         break;
 
     case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
-        context->error_information = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        status = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         break;
 
     case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
-        context->error_information =
-            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         break;
 
     case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
-        context->error_information = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        status = RMAP_NODE_MEMORY_ACCESS_ERROR;
         break;
 
     default:
+        /* TODO: Should incorrectly implemented callbacks be handled by the
+         * library of simply declared undefined behvaiour?
+         */
         assert(status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS);
         break;
     }
@@ -406,9 +404,11 @@ static void handle_rmw_command(
     }
 
     context->callbacks.target.send_reply(context, reply_buf, reply_size);
+
+    return status;
 }
 
-static void handle_command(
+static enum rmap_status handle_command(
     struct rmap_node_context *const context,
     const void *const packet,
     const size_t size)
@@ -417,10 +417,12 @@ static void handle_command(
 
     if (!context->is_target) {
         if (context->is_initiator) {
-            context->error_information =
-                RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR;
+            return RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR;
         }
-        return;
+        /* TODO: Enforce node being at least one of intiator / target and
+         * assert this as unreachable.
+         */
+        return RMAP_OK;
     }
 
     /* Node is target. */
@@ -428,24 +430,24 @@ static void handle_command(
     status = rmap_verify_header_instruction(packet);
     switch (status) {
     case RMAP_UNUSED_PACKET_TYPE:
-        context->error_information =
-            RMAP_NODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
         if (context->is_reply_for_unused_packet_type_enabled) {
             send_error_reply(
                 context,
                 packet,
                 RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
         }
-        return;
+        return RMAP_UNUSED_PACKET_TYPE;
 
     case RMAP_UNUSED_COMMAND_CODE:
-        context->error_information =
-            RMAP_NODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE;
-        send_error_reply(
+        status = send_error_reply(
             context,
             packet,
             RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-        return;
+        if (status != RMAP_OK) {
+            assert(status == RMAP_NODE_ALLOCATION_FAILURE);
+            return RMAP_NODE_ALLOCATION_FAILURE;
+        }
+        return RMAP_UNUSED_COMMAND_CODE;
 
     default:
         assert(status == RMAP_OK);
@@ -453,19 +455,17 @@ static void handle_command(
     }
 
     if (rmap_is_write(packet)) {
-        handle_write_command(context, packet, size);
-        return;
+        return handle_write_command(context, packet, size);
     }
 
     if (rmap_is_rmw(packet)) {
-        handle_rmw_command(context, packet, size);
-        return;
+        return handle_rmw_command(context, packet, size);
     }
 
-    handle_read_command(context, packet);
+    return handle_read_command(context, packet);
 }
 
-static void handle_reply(
+static enum rmap_status handle_reply(
     struct rmap_node_context *const context,
     const uint8_t *const packet,
     const size_t size)
@@ -474,9 +474,12 @@ static void handle_reply(
 
     if (!context->is_initiator) {
         if (context->is_target) {
-            context->error_information = RMAP_NODE_REPLY_RECEIVED_BY_TARGET;
+            return RMAP_NODE_REPLY_RECEIVED_BY_TARGET;
         }
-        return;
+        /* TODO: Enforce node being at least one of intiator / target and
+         * assert this as unreachable.
+         */
+        return RMAP_OK;
     }
 
     /* Node is initiator. */
@@ -485,12 +488,11 @@ static void handle_reply(
     switch (status) {
     case RMAP_UNUSED_PACKET_TYPE:
     case RMAP_NO_REPLY:
-        context->error_information = RMAP_NODE_INVALID_REPLY;
-        return;
-
     case RMAP_UNUSED_COMMAND_CODE:
-        context->error_information = RMAP_NODE_PACKET_ERROR;
-        return;
+        /* TODO: Is this merging really a good idea? It matches the standard,
+         * but would it make sense to provide more information?
+         */
+        return RMAP_NODE_PACKET_ERROR;
 
     default:
         assert(status == RMAP_OK);
@@ -502,7 +504,7 @@ static void handle_reply(
             context,
             rmap_get_transaction_identifier(packet),
             rmap_get_status(packet));
-        return;
+        return RMAP_OK;
     }
 
     /* Read or RMW. */
@@ -513,8 +515,10 @@ static void handle_reply(
     case RMAP_INSUFFICIENT_DATA:
     case RMAP_TOO_MUCH_DATA:
     case RMAP_INVALID_DATA_CRC:
-        context->error_information = RMAP_NODE_INVALID_REPLY;
-        return;
+        /* TODO: Is this merging really a good idea? It matches the standard,
+         * but would it make sense to provide more information?
+         */
+        return RMAP_NODE_INVALID_REPLY;
 
     default:
         assert(status == RMAP_OK);
@@ -528,7 +532,7 @@ static void handle_reply(
             rmap_get_status(packet),
             packet + rmap_calculate_header_size(packet),
             size - rmap_calculate_header_size(packet) - 1);
-        return;
+        return RMAP_OK;
     }
 
     /* Read. */
@@ -539,13 +543,15 @@ static void handle_reply(
         rmap_get_status(packet),
         packet + rmap_calculate_header_size(packet),
         size - rmap_calculate_header_size(packet) - 1);
+
+    return RMAP_OK;
 }
 
 /* TODO: How to handle EEP? Should this be passed to incoming and on to
  * handle_write_command() and handle_rmw_command() and acted upon if located in
  * data?
  */
-void rmap_node_handle_incoming(
+enum rmap_status rmap_node_handle_incoming(
     struct rmap_node_context *const context,
     const void *const packet,
     const size_t size)
@@ -555,26 +561,9 @@ void rmap_node_handle_incoming(
     status = rmap_verify_header_integrity(packet, size);
     switch (status) {
     case RMAP_NO_RMAP_PROTOCOL:
-        return;
-
     case RMAP_INCOMPLETE_HEADER:
-        /* TODO: Would need to report EEP instead if relevant. */
-        if (context->is_target) {
-            context->error_information = RMAP_NODE_EARLY_EOP;
-        }
-        if (context->is_initiator) {
-            context->error_information = RMAP_NODE_EARLY_EOP;
-        }
-        return;
-
     case RMAP_HEADER_CRC_ERROR:
-        if (context->is_target) {
-            context->error_information = RMAP_NODE_HEADER_CRC_ERROR;
-        }
-        if (context->is_initiator) {
-            context->error_information = RMAP_NODE_HEADER_CRC_ERROR;
-        }
-        return;
+        return status;
 
     default:
         assert(status == RMAP_OK);
@@ -582,9 +571,8 @@ void rmap_node_handle_incoming(
     };
 
     if (rmap_is_command(packet)) {
-        handle_command(context, packet, size);
-        return;
+        return handle_command(context, packet, size);
     }
 
-    handle_reply(context, packet, size);
+    return handle_reply(context, packet, size);
 }
