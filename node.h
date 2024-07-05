@@ -146,15 +146,6 @@ struct rmap_node_callbacks {
     struct rmap_node_initiator_callbacks initiator;
 };
 
-struct rmap_node_target_context {
-    struct rmap_node_target_callbacks callbacks;
-    unsigned int is_reply_for_unused_packet_type_enabled : 1;
-};
-
-struct rmap_node_initiator_context {
-    struct rmap_node_initiator_callbacks callbacks;
-};
-
 struct rmap_node_context {
     void *custom_context;
     struct rmap_node_callbacks callbacks;
