@@ -701,18 +701,22 @@ class MockedTargetNode : public testing::Test
 {
   protected:
     MockedTargetNode()
-        : callbacks(
-              {.initiator =
-                   {.received_write_reply = nullptr,
-                    .received_read_reply = nullptr,
-                    .received_rmw_reply = nullptr},
-               .target = {
-                   .allocate = allocate_mock_wrapper,
-                   .send_reply = send_reply_mock_wrapper,
-                   .write_request = write_request_mock_wrapper,
-                   .read_request = read_request_mock_wrapper,
-                   .rmw_request = rmw_request_mock_wrapper,
-               }})
+        : callbacks({
+              .initiator =
+                  {
+                      .received_write_reply = nullptr,
+                      .received_read_reply = nullptr,
+                      .received_rmw_reply = nullptr,
+                  },
+              .target =
+                  {
+                      .allocate = allocate_mock_wrapper,
+                      .send_reply = send_reply_mock_wrapper,
+                      .write_request = write_request_mock_wrapper,
+                      .read_request = read_request_mock_wrapper,
+                      .rmw_request = rmw_request_mock_wrapper,
+                  },
+          })
     {
         const struct mocked_callbacks_custom_context custom_context_init = {
             .mock_callbacks = &mock_callbacks,
@@ -738,18 +742,22 @@ class MockedInitiatorNode : public testing::Test
 {
   protected:
     MockedInitiatorNode()
-        : callbacks(
-              {.initiator =
-                   {.received_write_reply = received_write_reply_mock_wrapper,
-                    .received_read_reply = received_read_reply_mock_wrapper,
-                    .received_rmw_reply = received_rmw_reply_mock_wrapper},
-               .target = {
-                   .allocate = nullptr,
-                   .send_reply = nullptr,
-                   .write_request = nullptr,
-                   .read_request = nullptr,
-                   .rmw_request = nullptr,
-               }})
+        : callbacks({
+              .initiator =
+                  {
+                      .received_write_reply = received_write_reply_mock_wrapper,
+                      .received_read_reply = received_read_reply_mock_wrapper,
+                      .received_rmw_reply = received_rmw_reply_mock_wrapper,
+                  },
+              .target =
+                  {
+                      .allocate = nullptr,
+                      .send_reply = nullptr,
+                      .write_request = nullptr,
+                      .read_request = nullptr,
+                      .rmw_request = nullptr,
+                  },
+          })
     {
         const struct mocked_callbacks_custom_context custom_context_init = {
             .mock_callbacks = &mock_callbacks,
