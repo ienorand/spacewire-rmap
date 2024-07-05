@@ -717,12 +717,6 @@ class MockedTargetNode : public testing::Test
   protected:
     MockedTargetNode()
         : callbacks({
-              .initiator =
-                  {
-                      .received_write_reply = nullptr,
-                      .received_read_reply = nullptr,
-                      .received_rmw_reply = nullptr,
-                  },
               .target =
                   {
                       .allocate = allocate_mock_wrapper,
@@ -730,6 +724,12 @@ class MockedTargetNode : public testing::Test
                       .write_request = write_request_mock_wrapper,
                       .read_request = read_request_mock_wrapper,
                       .rmw_request = rmw_request_mock_wrapper,
+                  },
+              .initiator =
+                  {
+                      .received_write_reply = nullptr,
+                      .received_read_reply = nullptr,
+                      .received_rmw_reply = nullptr,
                   },
           })
     {
@@ -768,12 +768,6 @@ class MockedInitiatorNode : public testing::Test
   protected:
     MockedInitiatorNode()
         : callbacks({
-              .initiator =
-                  {
-                      .received_write_reply = received_write_reply_mock_wrapper,
-                      .received_read_reply = received_read_reply_mock_wrapper,
-                      .received_rmw_reply = received_rmw_reply_mock_wrapper,
-                  },
               .target =
                   {
                       .allocate = nullptr,
@@ -781,6 +775,12 @@ class MockedInitiatorNode : public testing::Test
                       .write_request = nullptr,
                       .read_request = nullptr,
                       .rmw_request = nullptr,
+                  },
+              .initiator =
+                  {
+                      .received_write_reply = received_write_reply_mock_wrapper,
+                      .received_read_reply = received_read_reply_mock_wrapper,
+                      .received_rmw_reply = received_rmw_reply_mock_wrapper,
                   },
           })
     {

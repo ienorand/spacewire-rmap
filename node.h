@@ -142,8 +142,8 @@ struct rmap_node_target_callbacks {
 };
 
 struct rmap_node_callbacks {
-    struct rmap_node_initiator_callbacks initiator;
     struct rmap_node_target_callbacks target;
+    struct rmap_node_initiator_callbacks initiator;
 };
 
 struct rmap_node_target_context {
