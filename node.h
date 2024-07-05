@@ -163,7 +163,7 @@ struct rmap_node_context {
     unsigned int is_reply_for_unused_packet_type_enabled : 1;
 };
 
-void rmap_node_initialize(
+enum rmap_status rmap_node_initialize(
     struct rmap_node_context *context,
     void *custom_context,
     const struct rmap_node_callbacks *callbacks,

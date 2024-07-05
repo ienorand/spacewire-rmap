@@ -283,6 +283,7 @@ enum rmap_status {
     RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS = 279,
     /* Indicates failure to allocate memory for reply. */
     RMAP_NODE_ALLOCATION_FAILURE = 280,
+    RMAP_NODE_NO_TARGET_OR_INITIATOR = 281,
 };
 
 /** Size constants for RMAP packets. */

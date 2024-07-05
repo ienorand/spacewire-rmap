@@ -30,12 +30,16 @@ calculate_success_reply_size_from_command(const void *const command_header)
         rmap_get_data_length(command_header) + 1;
 }
 
-void rmap_node_initialize(
+enum rmap_status rmap_node_initialize(
     struct rmap_node_context *const context,
     void *const custom_context,
     const struct rmap_node_callbacks *const callbacks,
     const struct rmap_node_initialize_flags flags)
 {
+    if (!flags.is_target && !flags.is_initiator) {
+        return RMAP_NODE_NO_TARGET_OR_INITIATOR;
+    }
+
     context->custom_context = custom_context;
     context->callbacks = *callbacks;
     context->is_target = flags.is_target;
@@ -43,6 +47,8 @@ void rmap_node_initialize(
 
     context->is_reply_for_unused_packet_type_enabled =
         flags.is_reply_for_unused_packet_type_enabled;
+
+    return RMAP_OK;
 }
 
 static enum rmap_status send_error_reply(
@@ -416,13 +422,7 @@ static enum rmap_status handle_command(
     enum rmap_status status;
 
     if (!context->is_target) {
-        if (context->is_initiator) {
-            return RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR;
-        }
-        /* TODO: Enforce node being at least one of intiator / target and
-         * assert this as unreachable.
-         */
-        return RMAP_OK;
+        return RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR;
     }
 
     /* Node is target. */
@@ -473,13 +473,7 @@ static enum rmap_status handle_reply(
     enum rmap_status status;
 
     if (!context->is_initiator) {
-        if (context->is_target) {
-            return RMAP_NODE_REPLY_RECEIVED_BY_TARGET;
-        }
-        /* TODO: Enforce node being at least one of intiator / target and
-         * assert this as unreachable.
-         */
-        return RMAP_OK;
+        return RMAP_NODE_REPLY_RECEIVED_BY_TARGET;
     }
 
     /* Node is initiator. */

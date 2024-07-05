@@ -528,6 +528,21 @@ static const uint8_t
         /* Data CRC */
         0x7D};
 
+TEST(NodeInitialize, NoTargetOrInitiator)
+{
+    struct rmap_node_context node_context;
+    void *const custom_context = NULL;
+    const struct rmap_node_callbacks callbacks = {};
+    const struct rmap_node_initialize_flags flags = {
+        .is_target = 0,
+        .is_initiator = 0,
+        .is_reply_for_unused_packet_type_enabled = 1,
+    };
+    EXPECT_EQ(
+        rmap_node_initialize(&node_context, custom_context, &callbacks, flags),
+        RMAP_NODE_NO_TARGET_OR_INITIATOR);
+}
+
 class MockCallbacks
 {
   public:
@@ -722,12 +737,22 @@ class MockedTargetNode : public testing::Test
             .mock_callbacks = &mock_callbacks,
         };
         custom_context = custom_context_init;
+    }
+
+    void SetUp() override
+    {
         const struct rmap_node_initialize_flags flags = {
             .is_target = 1,
             .is_initiator = 0,
             .is_reply_for_unused_packet_type_enabled = 1,
         };
-        rmap_node_initialize(&node_context, &custom_context, &callbacks, flags);
+        ASSERT_EQ(
+            rmap_node_initialize(
+                &node_context,
+                &custom_context,
+                &callbacks,
+                flags),
+            RMAP_OK);
     }
 
     MockCallbacks mock_callbacks;
@@ -763,12 +788,22 @@ class MockedInitiatorNode : public testing::Test
             .mock_callbacks = &mock_callbacks,
         };
         custom_context = custom_context_init;
+    }
+
+    void SetUp() override
+    {
         const struct rmap_node_initialize_flags flags = {
             .is_target = 0,
             .is_initiator = 1,
             .is_reply_for_unused_packet_type_enabled = 0,
         };
-        rmap_node_initialize(&node_context, &custom_context, &callbacks, flags);
+        ASSERT_EQ(
+            rmap_node_initialize(
+                &node_context,
+                &custom_context,
+                &callbacks,
+                flags),
+            RMAP_OK);
     }
 
     MockCallbacks mock_callbacks;
