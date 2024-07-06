@@ -11,16 +11,28 @@
 extern "C" {
 #endif
 
+/** Flags for configuring the persistent behaviour of a node at initialization.
+ */
 struct rmap_node_initialize_flags {
+    /** Flag indicating if the node should accept incoming commands. */
     unsigned int is_target : 1;
+    /** Flag indicating if the node should accept incoming replies. */
     unsigned int is_initiator : 1;
+    /** Flag indicating if the node should send a reply for incoming commands
+     *  with an unused (reserved) packet type.
+     *
+     * This behaviour is optional according to the RMAP standard
+     * (ECSS-E-ST-50-52C sections 5.3.3.4.6-c, 5.4.3.4.6-c, and 5.5.3.4.6-c).
+     */
     unsigned int is_reply_for_unused_packet_type_enabled : 1;
 };
 
 /* Forward declaration needed for callback signatures. */
 struct rmap_node_context;
 
-/* Information for combined authorization and memory access callbacks. */
+/** Generic request parameters for combined authorization and memory access
+ *  callbacks.
+ */
 struct rmap_node_target_request {
     uint8_t target_logical_address;
     uint8_t instruction;
@@ -32,75 +44,254 @@ struct rmap_node_target_request {
     uint32_t data_length;
 };
 
-/* TODO:
- * Should allocation failure be returned as a status from the
- * rmap_node_handle_incoming() function instead?
+/** Callback for allocating memory for a reply packet.
  *
- * By extension, should all error information be reported as return values from
- * rmap_node_handle_incoming() instead of being part of the node error
- * information? In the current interface it is probably expected that the
- * caller will chack the error information after each call to
- * rmap_node_handle_incoming() anyway, so having it separated is questionable.
- */
-/* Callback for allocating memory for reply packets.
+ * This callback will be invoked when memory is to be allocated for a reply in
+ * a target node.
  *
- * Allocation failure can be indicated by returning NULL.
+ * Access to the custom user context is available via the node context object.
+ *
+ * This callback is expected to allocate memory with a size greater than or
+ * equal to @p size, and to return a pointer to this memory.
+ *
+ * Allocation failure must be indicated by returning a NULL pointer.
+ *
+ * This callback temporarily transfers ownership of the allocation from the
+ * user to the node, it will later be returned via the send reply callback.
+ *
+ * @param[in,out] context Node context object.
+ * @param size Number of bytes to allocate.
+ *
+ * @return Pointer to allocated memory or NULL on allocation failure.
  */
 typedef void *(*rmap_node_target_allocate_callback)(
     struct rmap_node_context *context,
     size_t size);
 
-/* Callback for sending replies.
+/** Callback for sending a reply.
  *
- * Data in @p packet will have been allocated via
- * rmap_node_target_allocate_callback(), ownership of this allocation is
- * transferred from the caller to the callee. This library will not handle its
- * deallocation.
+ * This callback will be invoked when a reply is to be sent by a target node.
+ *
+ * Access to the custom user context is available via the node context object.
+ *
+ * This callback is expected to send the data given by @p packet and @p size as
+ * a spacewire packet.
+ *
+ * TODO:
+ * No specific mechanism for send failure reporting is available in this
+ * callback and must be handled by the user. This can for example be done via
+ * the custom user context, allowing the failure to be detected by accessing
+ * the node context after each call to rmap_node_handle_incoming().
+ *
+ * The data in @p packet will have been allocated via
+ * rmap_node_target_allocate_callback(); this callback transfers the ownership
+ * of this allocation to the user which must handle its deallocation.
+ *
+ * @param[in,out] context Node context object.
+ * @param[in] packet RMAP packet data to be sent.
+ * @param size Number of bytes to be sent from @p packet.
  */
 typedef void (*rmap_node_target_send_reply_callback)(
     struct rmap_node_context *context,
     void *packet,
     size_t size);
 
-/* Callback for both authorizing and performing a write.
+/** Callback for both authorizing and performing a write.
  *
- * Return value of implemented callback must be one of:
- * * RMAP_STATUS_FIELD_CODE_INVALID_KEY
- * * RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS
- * * RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED
- * * RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE
- * * RMAP_STATUS_FIELD_CODE_SUCCESS
- * */
+ * This callback will be invoked when a write command has been received by a
+ * target node.
+ *
+ * Access to the custom user context is available via the node context object.
+ *
+ * This callback is expected to first perform authorization of the generic
+ * request parameters (@p request).
+ *
+ * Authorization failure must be indicated by returning one of:
+ * * RMAP_STATUS_FIELD_CODE_INVALID_KEY.
+ * * RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS.
+ * * RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED.
+ *
+ * RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED should be
+ * used to indicate rejection for "any other reason".
+ *
+ * The callback is expected to then perform the write using the data in
+ * @p data.
+ *
+ * Write failure must be indicated by returning
+ * RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE.
+ *
+ * The callback is finally expected to notify the user that a write operation
+ * has occurred and to then return RMAP_STATUS_FIELD_CODE_SUCCESS.
+ *
+ * A write reply will be sent based on the return value and the read data.
+ *
+ * @param[in,out] context Node context object.
+ * @param[in] request Generic request parameters.
+ * @param[in] data Data to be written.
+ *
+ * @retval RMAP_STATUS_FIELD_CODE_INVALID_KEY Command rejected due to invalid
+ *         key.
+ * @retval RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS Command
+ *         rejected due to invalid target logical address.
+ * @retval RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED
+ *         Command rejected for any other reason.
+ * @retval RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE Write memory access
+ *         failure.
+ * @retval RMAP_STATUS_FIELD_CODE_SUCCESS Write operation successful.
+ */
 typedef enum rmap_status_field_code (*rmap_node_target_write_request_callback)(
     struct rmap_node_context *context,
     const struct rmap_node_target_request *request,
     const void *data);
 
-/* Callback for both authorizing and performing a read.
+/** Callback for both authorizing and performing a read.
  *
- * Return value of implemented callback must be one of:
- * * RMAP_STATUS_FIELD_CODE_INVALID_KEY
- * * RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS
- * * RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED
- * * RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE (implies short read)
- * * RMAP_STATUS_FIELD_CODE_SUCCESS
- * */
+ * This callback will be invoked when a read command has been received by an
+ * initiator node.
+ *
+ * Access to the custom user context is available via the node context object.
+ *
+ * This callback is expected to first perform authorization of the generic
+ * request parameters (@p request).
+ *
+ * Authorization failure must be indicated by returning one of:
+ * * RMAP_STATUS_FIELD_CODE_INVALID_KEY.
+ * * RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS.
+ * * RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED.
+ *
+ * RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED should be
+ * used to indicate rejection for "any other reason".
+ *
+ * The callback is expected to then perform the read, storing the read data in
+ * @p data and storing its size in @p data_size.
+ *
+ * Read failure must be indicated by setting @p data_size to a value that is
+ * less than the requested data length.
+ *
+ * The callback is finally expected to notify the user that a read operation
+ * has occurred and to then return RMAP_STATUS_FIELD_CODE_SUCCESS.
+ *
+ * A read reply will be sent based on the return value and the read data.
+ *
+ * @param[in,out] context Node context object.
+ * @param[out] data Destination for read data.
+ * @param[out] data_size Number of bytes stored into @p data.
+ * @param[in] request Generic request parameters.
+ *
+ * @retval RMAP_STATUS_FIELD_CODE_INVALID_KEY Command rejected due to invalid
+ *         key.
+ * @retval RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS Command
+ *         rejected due to invalid target logical address.
+ * @retval RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED
+ *         Command rejected for any other reason.
+ * @retval RMAP_STATUS_FIELD_CODE_SUCCESS Command accepted and read operation
+ *         was performed. Failure in read memory access is independently
+ *         indicated by setting @p data_size to a value less than the requested
+ *         data length.
+ */
 typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
     struct rmap_node_context *context,
     void *data,
     size_t *data_size,
     const struct rmap_node_target_request *request);
 
-/* Callback for both authorizing and performing a RMW.
+/** Callback for both authorizing and performing a RMW.
  *
- * Return value of implemented callback must be one of:
- * * RMAP_STATUS_FIELD_CODE_INVALID_KEY
- * * RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS
- * * RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED
- * * RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE (implies short read or failed
- *   write)
- * * RMAP_STATUS_FIELD_CODE_SUCCESS
- * */
+ * This callback will be invoked when a RMW command has been received by a
+ * target node.
+ *
+ * Access to the custom user context is available via the node context object.
+ *
+ * This callback is expected to first perform authorization of the generic
+ * request parameters (@p request).
+ *
+ * Authorization failure must be indicated by returning one of:
+ * * RMAP_STATUS_FIELD_CODE_INVALID_KEY.
+ * * RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS.
+ * * RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED.
+ *
+ * RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED should be
+ * used to indicate rejection for "any other reason".
+ *
+ * The callback is expected to then perform the read part of the RMW.
+ *
+ * The read data should be stored in @p read_data.
+ *
+ * Read failure must be indicated by setting @p read_data_size to a value that
+ * is less than the requested data length and by returning
+ * RMAP_STATUS_FIELD_CODE_SUCCESS.
+ *
+ * The callback is expected to then perform the write part of the RMW.
+ *
+ * The write data shall be calculated based on the read data, data (first half
+ * of @p data), and data mask (second half of @p data). The way in which the
+ * write data is calculated is not specified by the RMAP standard and must by
+ * defined by the user.
+ *
+ * Write failure can be indicated by returning
+ * RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE (a deviation from the RMAP
+ * standard) or can be silently ignored (according to the RMAP standard).
+ *
+ * The callback is finally expected to notify the user that a RMW operation has
+ * occurred and to then return RMAP_STATUS_FIELD_CODE_SUCCESS.
+ *
+ * A RMW reply will be sent based on the return value and the read data.
+ *
+ * @par Read and write failure details.
+ * @parblock
+ * The RMAP standard states the following about RMW write failures:
+ *
+ *   If the read or write operations to memory fails, the target shall either:
+ *   1. Append an EEP to the end of the data sent in the reply to the
+ *      initiator, or
+ *   2. Append an appropriate data CRC byte covering the data sent in the reply
+ *      to the initiator, followed by an EOP.
+ *        NOTE In this case the data length field in the reply contains the
+ *        amount of data requested which is different to the amount of data
+ *        returned in the data field of the reply.
+ *
+ * (Notes are non-normative in ECSS standards.)
+ *
+ * This indicates that:
+ * * It is expected that the sending of the read reply including the read data
+ *   will start and potentially even finish before the write operation occurs.
+ * * The status field is expected to not be possible to modify after the read
+ *   operation has started.
+ * * The only way to indicate a write failure would be to terminate the reply
+ *   with an early EOP or an EEP, but there are no guarantees that this is
+ *   possible since the reply may already have been sent by the time the write
+ *   operation finishes.
+ *
+ * Since this library does not start sending the reply before the whole RMW
+ * operation has completed, it does in practice have access to modify the
+ * status field of the reply. It allows the user setting the status field by
+ * returning RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE.
+ *
+ * This should only be used to indicate write failures; the method for
+ * indication of read failures is already well-defined and functional based on
+ * the RMAP standard.
+ * @endparblock
+ *
+ * @param[in,out] context Node context object.
+ * @param[out] read_data Destination for read data.
+ * @param[out] read_data_size Number of bytes stored into @p read_data.
+ * @param[in] request Generic request parameters.
+ * @param[in] data Data field of command with first half containing data and
+ *            the second half containing the data mask.
+ *
+ * @retval RMAP_STATUS_FIELD_CODE_INVALID_KEY Command rejected due to invalid
+ *         key.
+ * @retval RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS Command
+ *         rejected due to invalid target logical address.
+ * @retval RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED
+ *         Command rejected for any other reason.
+ * @retval RMAP_STATUS_FIELD_CODE_SUCCESS Command accepted and RMW operation
+ *         was performed. Failure in read part of RMW operation is
+ *         independently indicated by setting @p read_data_size to a value less
+ *         than the requested data length.
+ * @retval RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE Failure in write part of
+ *         RMW operation. (Deliberate deviation from RMAP standard).
+ */
 typedef enum rmap_status_field_code (*rmap_node_target_rmw_request_callback)(
     struct rmap_node_context *context,
     void *read_data,
@@ -108,11 +299,43 @@ typedef enum rmap_status_field_code (*rmap_node_target_rmw_request_callback)(
     const struct rmap_node_target_request *request,
     const void *data);
 
+/** Callback for a received write reply.
+ *
+ * This callback will be invoked when a write reply has been received by an
+ * initiator node, indicating to the user of the node that a previously
+ * initiated write action has completed.
+ *
+ * This callback is expected to forward the transaction identifier and status
+ * to the user.
+ *
+ * Access to the custom user context is available via the node context object.
+ *
+ * @param[in,out] context Node context object.
+ * @param transaction_identifier Transaction identifier of received reply.
+ * @param status Status field code of reply.
+ */
 typedef void (*rmap_node_initiator_received_write_reply_callback)(
     struct rmap_node_context *context,
     uint16_t transaction_identifier,
     enum rmap_status_field_code status);
 
+/** Callback for a received read reply.
+ *
+ * This callback will be invoked when a read reply has been received by an
+ * initiator node, indicating to the user of the node that a previously
+ * initiated read action has completed.
+ *
+ * The callback is expected to forward the transaction identifier, status, and
+ * data to the user.
+ *
+ * Access to the custom user context is available via the node context object.
+ *
+ * @param[in,out] context Node context object.
+ * @param transaction_identifier Transaction identifier of received reply.
+ * @param status Status field code of reply.
+ * @param[in] data Data field of reply.
+ * @param data_length Number of bytes in @p data.
+ */
 typedef void (*rmap_node_initiator_received_read_reply_callback)(
     struct rmap_node_context *context,
     uint16_t transaction_identifier,
@@ -120,6 +343,23 @@ typedef void (*rmap_node_initiator_received_read_reply_callback)(
     const void *data,
     size_t data_length);
 
+/** Callback for a received RMW reply.
+ *
+ * This callback will be invoked when a RMW reply has been received by an
+ * initiator node, indicating to the user of the node that a previously
+ * initiated RMW action has completed.
+ *
+ * The callback is expected to forward the transaction identifier, status, and
+ * data to the user.
+ *
+ * Access to the custom user context is available via the node context object.
+ *
+ * @param[in,out] context Node context object.
+ * @param transaction_identifier Transaction identifier of received reply.
+ * @param status Status field code of reply.
+ * @param[in] data Data field of reply.
+ * @param data_length Number of bytes in @p data.
+ */
 typedef void (*rmap_node_initiator_received_rmw_reply_callback)(
     struct rmap_node_context *context,
     uint16_t transaction_identifier,
@@ -128,16 +368,24 @@ typedef void (*rmap_node_initiator_received_rmw_reply_callback)(
     size_t data_length);
 
 struct rmap_node_initiator_callbacks {
+    /** Callback for a received write reply. */
     rmap_node_initiator_received_write_reply_callback received_write_reply;
+    /** Callback for a received read reply. */
     rmap_node_initiator_received_read_reply_callback received_read_reply;
+    /** Callback for a received RMW reply. */
     rmap_node_initiator_received_rmw_reply_callback received_rmw_reply;
 };
 
 struct rmap_node_target_callbacks {
+    /** Callback for allocating memory for reply packets. */
     rmap_node_target_allocate_callback allocate;
+    /** Callback for sending a reply. */
     rmap_node_target_send_reply_callback send_reply;
+    /** Callback for both authorizing and performing a write. */
     rmap_node_target_write_request_callback write_request;
+    /** Callback for both authorizing and performing a read. */
     rmap_node_target_read_request_callback read_request;
+    /** Callback for both authorizing and performing a RMW. */
     rmap_node_target_rmw_request_callback rmw_request;
 };
 
@@ -146,14 +394,51 @@ struct rmap_node_callbacks {
     struct rmap_node_initiator_callbacks initiator;
 };
 
+/** RMAP node context object. */
 struct rmap_node_context {
+    /** Custom user context available to callbacks. */
     void *custom_context;
+    /** Callbacks registered in node. */
     struct rmap_node_callbacks callbacks;
+    /** Flag indicating if the node accepts incoming commands. */
     unsigned int is_target : 1;
+    /** Flag indicating if the node accepts incoming replies. */
     unsigned int is_initiator : 1;
+    /** Flag indicating if the node will send a reply for incoming commands
+     *  with an unused (reserved) packet type.
+     *
+     * This behaviour is optional according to the RMAP standard
+     * (ECSS-E-ST-50-52C sections 5.3.3.4.6-c, 5.4.3.4.6-c, and 5.5.3.4.6-c).
+     */
     unsigned int is_reply_for_unused_packet_type_enabled : 1;
 };
 
+/** Intialize an RMAP node.
+ *
+ * Initialize a context object for an RMAP node, such that it can then be used
+ * to handle incoming RMAP packets via @p rmap_node_handle_incoming().
+ *
+ * The persistent behaviour of the node is configured via the @p flags
+ * parameter.
+ *
+ * The node can be configured as a target, initiator, or both.
+ *
+ * @pre If the node is configured as a target, each target callback in
+ *      @p callbacks must be a valid function pointer.
+ *
+ * @pre If the node is configured as an initiator, each initiator callback in
+ *      @p callbacks must be a valid function pointer.
+ *
+ * @param[out] context Destination for initialized node context object.
+ * @param[in] custom_context Custom user context available to callbacks of
+ *            node.
+ * @param[in] callbacks Callbacks to be registered in node.
+ * @param flags Option flags for node behaviour.
+ *
+ * @retval RMAP_NODE_NO_TARGET_OR_INITIATOR Attempt to initialize node as
+ *         neither target nor initiator.
+ * @retval RMAP_OK Node intialized successfully.
+ */
 enum rmap_status rmap_node_initialize(
     struct rmap_node_context *context,
     void *custom_context,
