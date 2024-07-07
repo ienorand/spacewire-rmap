@@ -1693,3 +1693,111 @@ INSTANTIATE_TEST_CASE_P(
                 return incoming_packet;
             }),
         testing::Values(RMAP_NO_RMAP_PROTOCOL)));
+
+INSTANTIATE_TEST_CASE_P(
+    PacketError,
+    IncomingToInitiatorRejectParams,
+    testing::Combine(
+        testing::Values(
+            [] {
+                auto pattern = test_pattern0_expected_write_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                /* Set reserved bit in packet type field. */
+                incoming_packet.at(2) |= 1 << 7;
+                rmap_calculate_and_set_header_crc(incoming_packet.data());
+                return incoming_packet;
+            },
+            [] {
+                auto pattern = test_pattern1_expected_read_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                const uint8_t instruction =
+                    rmap_get_instruction(incoming_packet.data());
+                /* Set verify bit and clear increment bit to create an invalid
+                 * command code (read, verified, non-incrementing, with reply).
+                 */
+                rmap_set_instruction(
+                    incoming_packet.data(),
+                    (instruction | RMAP_COMMAND_CODE_VERIFY << 2) &
+                        ~(RMAP_COMMAND_CODE_INCREMENT << 2));
+                rmap_calculate_and_set_header_crc(incoming_packet.data());
+                return incoming_packet;
+            },
+            [] {
+                auto pattern = test_pattern0_expected_write_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                const uint8_t instruction =
+                    rmap_get_instruction(incoming_packet.data());
+                /* Clear reply bit to create a reply which should not have been
+                 * generated based on its command code.
+                 */
+                rmap_set_instruction(
+                    incoming_packet.data(),
+                    instruction & ~(RMAP_COMMAND_CODE_REPLY << 2));
+                rmap_calculate_and_set_header_crc(incoming_packet.data());
+                return incoming_packet;
+            }),
+        testing::Values(RMAP_NODE_PACKET_ERROR)));
+
+INSTANTIATE_TEST_CASE_P(
+    InvalidReply,
+    IncomingToInitiatorRejectParams,
+    testing::Combine(
+        testing::Values(
+            [] {
+                auto pattern = test_pattern4_expected_rmw_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                rmap_set_data_length(incoming_packet.data(), 5);
+                rmap_calculate_and_set_header_crc(incoming_packet.data());
+                const size_t data_offset =
+                    rmap_calculate_header_size(incoming_packet.data());
+                incoming_packet.resize(data_offset + 5 + 1);
+                incoming_packet.back() =
+                    rmap_crc_calculate(incoming_packet.data() + data_offset, 5);
+                return incoming_packet;
+            },
+            [] {
+                auto pattern = test_pattern1_expected_read_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                /* One byte too small. */
+                incoming_packet.pop_back();
+                return incoming_packet;
+            },
+            [] {
+                auto pattern = test_pattern1_expected_read_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                /* One byte too big. */
+                incoming_packet.push_back(0xDA);
+                return incoming_packet;
+            },
+            [] {
+                auto pattern = test_pattern1_expected_read_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                /* Flip a bit in data field. */
+                incoming_packet.at(
+                    rmap_calculate_header_size(incoming_packet.data())) ^= 1;
+                return incoming_packet;
+            },
+            [] {
+                auto pattern = test_pattern1_expected_read_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                /* Flip a bit in data CRC field. */
+                incoming_packet.back() ^= 1;
+                return incoming_packet;
+            }),
+        testing::Values(RMAP_NODE_INVALID_REPLY)));
