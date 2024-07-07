@@ -112,9 +112,9 @@ static enum rmap_status handle_write_command(
     const uint8_t *const packet,
     const size_t size)
 {
-    enum rmap_status status;
     enum rmap_status_field_code status_field_code;
     size_t reply_header_offset;
+    enum rmap_status write_status;
 
     /* Since the whole packet is available, verification is always done before
      * write regardless.
@@ -123,8 +123,8 @@ static enum rmap_status handle_write_command(
      * match the standard RMAP behaviour?
      */
     status_field_code = RMAP_STATUS_FIELD_CODE_SUCCESS;
-    status = rmap_verify_data(packet, size);
-    switch (status) {
+    const enum rmap_status verify_status = rmap_verify_data(packet, size);
+    switch (verify_status) {
     case RMAP_INSUFFICIENT_DATA:
         status_field_code = RMAP_STATUS_FIELD_CODE_EARLY_EOP;
         break;
@@ -138,14 +138,24 @@ static enum rmap_status handle_write_command(
         break;
 
     default:
-        assert(status == RMAP_OK);
+        assert(verify_status == RMAP_OK);
         break;
     }
-    if (status != RMAP_OK) {
+    if (verify_status != RMAP_OK) {
         if (rmap_is_with_reply(packet)) {
-            send_error_reply(context, packet, status_field_code);
+            const enum rmap_status send_status =
+                send_error_reply(context, packet, status_field_code);
+            switch (send_status) {
+            case RMAP_NODE_ALLOCATION_FAILURE:
+            case RMAP_NODE_SEND_REPLY_FAILURE:
+                return send_status;
+
+            default:
+                assert(send_status == RMAP_OK);
+                break;
+            }
         }
-        return status;
+        return verify_status;
     }
 
     const struct rmap_node_target_request write_request = {
@@ -161,22 +171,22 @@ static enum rmap_status handle_write_command(
         context,
         &write_request,
         packet + rmap_calculate_header_size(packet));
-    assert(status == RMAP_OK);
+    write_status = RMAP_OK;
     switch (status_field_code) {
     case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
-        status = RMAP_NODE_INVALID_KEY;
+        write_status = RMAP_NODE_INVALID_KEY;
         break;
 
     case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
-        status = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        write_status = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         break;
 
     case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
-        status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        write_status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         break;
 
     case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
-        status = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        write_status = RMAP_NODE_MEMORY_ACCESS_ERROR;
         break;
 
     default:
@@ -185,9 +195,19 @@ static enum rmap_status handle_write_command(
     }
     if (status_field_code != RMAP_STATUS_FIELD_CODE_SUCCESS) {
         if (rmap_is_with_reply(packet)) {
-            send_error_reply(context, packet, status_field_code);
+            const enum rmap_status send_status =
+                send_error_reply(context, packet, status_field_code);
+            switch (send_status) {
+            case RMAP_NODE_ALLOCATION_FAILURE:
+            case RMAP_NODE_SEND_REPLY_FAILURE:
+                return send_status;
+
+            default:
+                assert(send_status == RMAP_OK);
+                break;
+            }
         }
-        return status;
+        return write_status;
     }
 
     const size_t reply_size = calculate_success_reply_size_from_command(packet);
@@ -198,13 +218,14 @@ static enum rmap_status handle_write_command(
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
-    status = rmap_create_success_reply_from_command(
-        reply_buf,
-        &reply_header_offset,
-        reply_size,
-        packet);
-    assert(status == RMAP_OK);
-    (void)status;
+    const enum rmap_status create_reply_status =
+        rmap_create_success_reply_from_command(
+            reply_buf,
+            &reply_header_offset,
+            reply_size,
+            packet);
+    assert(create_reply_status == RMAP_OK);
+    (void)create_reply_status;
     assert(
         reply_header_offset +
             rmap_calculate_header_size(reply_buf + reply_header_offset) ==
@@ -311,14 +332,14 @@ static enum rmap_status handle_rmw_command(
     const uint8_t *const packet,
     const size_t size)
 {
-    enum rmap_status status;
     enum rmap_status_field_code status_field_code;
     size_t reply_header_offset;
     size_t reply_data_size;
+    enum rmap_status write_status;
 
     status_field_code = RMAP_STATUS_FIELD_CODE_SUCCESS;
-    status = rmap_verify_data(packet, size);
-    switch (status) {
+    const enum rmap_status verify_status = rmap_verify_data(packet, size);
+    switch (verify_status) {
     case RMAP_RMW_DATA_LENGTH_ERROR:
         status_field_code = RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR;
         break;
@@ -336,14 +357,22 @@ static enum rmap_status handle_rmw_command(
         break;
 
     default:
-        assert(status == RMAP_OK);
+        assert(verify_status == RMAP_OK);
         break;
     }
-    if (status != RMAP_OK) {
-        if (rmap_is_with_reply(packet)) {
+    if (verify_status != RMAP_OK) {
+        const enum rmap_status send_status =
             send_error_reply(context, packet, status_field_code);
+        switch (send_status) {
+        case RMAP_NODE_ALLOCATION_FAILURE:
+        case RMAP_NODE_SEND_REPLY_FAILURE:
+            return send_status;
+
+        default:
+            assert(send_status == RMAP_OK);
+            break;
         }
-        return status;
+        return verify_status;
     }
 
     const size_t reply_maximum_size =
@@ -355,12 +384,14 @@ static enum rmap_status handle_rmw_command(
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
-    status = rmap_create_success_reply_from_command(
-        reply_buf,
-        &reply_header_offset,
-        reply_maximum_size,
-        packet);
-    assert(status == RMAP_OK);
+    const enum rmap_status create_reply_status =
+        rmap_create_success_reply_from_command(
+            reply_buf,
+            &reply_header_offset,
+            reply_maximum_size,
+            packet);
+    assert(create_reply_status == RMAP_OK);
+    (void)create_reply_status;
     const size_t data_offset =
         reply_header_offset + RMAP_READ_REPLY_HEADER_STATIC_SIZE;
     assert(
@@ -375,7 +406,7 @@ static enum rmap_status handle_rmw_command(
         .extended_address = rmap_get_extended_address(packet),
         .address = rmap_get_address(packet),
         .data_length = rmap_get_data_length(packet)};
-    status = RMAP_OK;
+    write_status = RMAP_OK;
     status_field_code = context->callbacks.target.rmw_request(
         context,
         reply_buf + data_offset,
@@ -384,19 +415,19 @@ static enum rmap_status handle_rmw_command(
         packet + rmap_calculate_header_size(packet));
     switch (status_field_code) {
     case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
-        status = RMAP_NODE_INVALID_KEY;
+        write_status = RMAP_NODE_INVALID_KEY;
         break;
 
     case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
-        status = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        write_status = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         break;
 
     case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
-        status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        write_status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         break;
 
     case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
-        status = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        write_status = RMAP_NODE_MEMORY_ACCESS_ERROR;
         break;
 
     default:
@@ -422,7 +453,7 @@ static enum rmap_status handle_rmw_command(
 
     context->callbacks.target.send_reply(context, reply_buf, reply_size);
 
-    return status;
+    return write_status;
 }
 
 static enum rmap_status handle_command(
@@ -430,38 +461,54 @@ static enum rmap_status handle_command(
     const void *const packet,
     const size_t size)
 {
-    enum rmap_status status;
-
     if (!context->is_target) {
         return RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR;
     }
 
     /* Node is target. */
 
-    status = rmap_verify_header_instruction(packet);
-    switch (status) {
+    const enum rmap_status verify_status =
+        rmap_verify_header_instruction(packet);
+    switch (verify_status) {
     case RMAP_UNUSED_PACKET_TYPE:
-        if (context->is_reply_for_unused_packet_type_enabled) {
-            send_error_reply(
+        if (context->is_reply_for_unused_packet_type_enabled &&
+            rmap_is_with_reply(packet)) {
+            const enum rmap_status send_status = send_error_reply(
                 context,
                 packet,
                 RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
+            switch (send_status) {
+            case RMAP_NODE_ALLOCATION_FAILURE:
+            case RMAP_NODE_SEND_REPLY_FAILURE:
+                return send_status;
+
+            default:
+                assert(send_status == RMAP_OK);
+                break;
+            }
         }
         return RMAP_UNUSED_PACKET_TYPE;
 
     case RMAP_UNUSED_COMMAND_CODE:
-        status = send_error_reply(
-            context,
-            packet,
-            RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-        if (status != RMAP_OK) {
-            assert(status == RMAP_NODE_ALLOCATION_FAILURE);
-            return RMAP_NODE_ALLOCATION_FAILURE;
+        if (rmap_is_with_reply(packet)) {
+            const enum rmap_status send_status = send_error_reply(
+                context,
+                packet,
+                RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
+            switch (send_status) {
+            case RMAP_NODE_ALLOCATION_FAILURE:
+            case RMAP_NODE_SEND_REPLY_FAILURE:
+                return send_status;
+
+            default:
+                assert(send_status == RMAP_OK);
+                break;
+            }
         }
         return RMAP_UNUSED_COMMAND_CODE;
 
     default:
-        assert(status == RMAP_OK);
+        assert(verify_status == RMAP_OK);
         break;
     }
 
