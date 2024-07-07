@@ -231,7 +231,19 @@ static enum rmap_status handle_write_command(
             rmap_calculate_header_size(reply_buf + reply_header_offset) ==
         reply_size);
 
-    context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    const enum rmap_status send_status =
+        context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    switch (send_status) {
+    case RMAP_NODE_SEND_REPLY_FAILURE:
+        return send_status;
+
+    default:
+        /* TODO: Should invalid return value from incorrectly implemented
+         * callbacks be treated as UB?
+         */
+        assert(send_status == RMAP_OK);
+        break;
+    }
 
     return RMAP_OK;
 }
@@ -240,10 +252,10 @@ static enum rmap_status handle_read_command(
     struct rmap_node_context *const context,
     const uint8_t *const packet)
 {
-    enum rmap_status status;
     enum rmap_status_field_code status_field_code;
     size_t reply_header_offset;
     size_t reply_data_size;
+    enum rmap_status read_status;
 
     const size_t reply_maximum_size =
         calculate_success_reply_size_from_command(packet);
@@ -254,12 +266,14 @@ static enum rmap_status handle_read_command(
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
-    status = rmap_create_success_reply_from_command(
-        reply_buf,
-        &reply_header_offset,
-        reply_maximum_size,
-        packet);
-    assert(status == RMAP_OK);
+    const enum rmap_status create_reply_status =
+        rmap_create_success_reply_from_command(
+            reply_buf,
+            &reply_header_offset,
+            reply_maximum_size,
+            packet);
+    assert(create_reply_status == RMAP_OK);
+    (void)create_reply_status;
     assert(
         reply_header_offset +
             rmap_calculate_header_size(reply_buf + reply_header_offset) +
@@ -282,22 +296,22 @@ static enum rmap_status handle_read_command(
         reply_buf + data_offset,
         &reply_data_size,
         &read_request);
-    assert(status == RMAP_OK);
+    read_status = RMAP_OK;
     switch (status_field_code) {
     case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
-        status = RMAP_NODE_INVALID_KEY;
+        read_status = RMAP_NODE_INVALID_KEY;
         break;
 
     case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
-        status = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        read_status = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         break;
 
     case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
-        status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        read_status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         break;
 
     case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
-        status = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        read_status = RMAP_NODE_MEMORY_ACCESS_ERROR;
         break;
 
     default:
@@ -321,9 +335,21 @@ static enum rmap_status handle_read_command(
         reply_size = data_offset + 1;
     }
 
-    context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    const enum rmap_status send_status =
+        context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    switch (send_status) {
+    case RMAP_NODE_SEND_REPLY_FAILURE:
+        return send_status;
 
-    return status;
+    default:
+        /* TODO: Should invalid return value from incorrectly implemented
+         * callbacks be treated as UB?
+         */
+        assert(send_status == RMAP_OK);
+        break;
+    }
+
+    return read_status;
 }
 
 static enum rmap_status handle_rmw_command(
@@ -450,7 +476,19 @@ static enum rmap_status handle_rmw_command(
         reply_size = data_offset + 1;
     }
 
-    context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    const enum rmap_status send_status =
+        context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    switch (send_status) {
+    case RMAP_NODE_SEND_REPLY_FAILURE:
+        return send_status;
+
+    default:
+        /* TODO: Should invalid return value from incorrectly implemented
+         * callbacks be treated as UB?
+         */
+        assert(send_status == RMAP_OK);
+        break;
+    }
 
     return write_status;
 }
