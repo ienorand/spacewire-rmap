@@ -307,7 +307,7 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
 
     auto command_pattern =
         test_pattern0_unverified_incrementing_write_with_reply;
-    std::vector<uint8_t> command_packet(
+    const std::vector<uint8_t> command_packet(
         command_pattern.data.begin() + command_pattern.header_offset,
         command_pattern.data.end());
     const uint8_t *const incoming_data = command_packet.data() +
@@ -320,7 +320,7 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
             testing::SaveArgPointee<1>(&request),
             testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS)));
 
-    std::vector<uint8_t> expected_reply =
+    const std::vector<uint8_t> expected_reply =
         test_pattern0_expected_write_reply.data;
 
     void *reply_allocation_ptr;
@@ -364,7 +364,7 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
         });
 
     auto command_pattern = test_pattern1_incrementing_read;
-    std::vector<uint8_t> command_packet(
+    const std::vector<uint8_t> command_packet(
         command_pattern.data.begin() + command_pattern.header_offset,
         command_pattern.data.end());
     struct rmap_node_target_request request;
@@ -445,7 +445,7 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
 
     auto command_pattern =
         test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses;
-    std::vector<uint8_t> command_packet(
+    const std::vector<uint8_t> command_packet(
         command_pattern.data.begin() + command_pattern.header_offset,
         command_pattern.data.end());
     const uint8_t *const incoming_data = command_packet.data() +
@@ -503,7 +503,7 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
 
     auto command_pattern =
         test_pattern3_incrementing_read_with_spacewire_addresses;
-    std::vector<uint8_t> command_packet(
+    const std::vector<uint8_t> command_packet(
         command_pattern.data.begin() + command_pattern.header_offset,
         command_pattern.data.end());
     struct rmap_node_target_request request;
@@ -583,7 +583,7 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
         });
 
     auto command_pattern = test_pattern4_rmw;
-    std::vector<uint8_t> command_packet(
+    const std::vector<uint8_t> command_packet(
         command_pattern.data.begin() + command_pattern.header_offset,
         command_pattern.data.end());
     const uint8_t *const incoming_data = command_packet.data() +
@@ -657,7 +657,7 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
         });
 
     auto command_pattern = test_pattern5_rmw_with_spacewire_addresses;
-    std::vector<uint8_t> command_packet(
+    const std::vector<uint8_t> command_packet(
         command_pattern.data.begin() + command_pattern.header_offset,
         command_pattern.data.end());
     const uint8_t *const incoming_data = command_packet.data() +
@@ -1006,7 +1006,7 @@ TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
             RMAP_STATUS_FIELD_CODE_SUCCESS));
 
     auto pattern = test_pattern0_expected_write_reply;
-    std::vector<uint8_t> incoming_packet(
+    const std::vector<uint8_t> incoming_packet(
         pattern.data.begin() + pattern.header_offset,
         pattern.data.end());
     EXPECT_EQ(
@@ -1020,7 +1020,7 @@ TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
 TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
 {
     auto pattern = test_pattern1_expected_read_reply;
-    std::vector<uint8_t> incoming_packet(
+    const std::vector<uint8_t> incoming_packet(
         pattern.data.begin() + pattern.header_offset,
         pattern.data.end());
     const uint8_t *const incoming_data = incoming_packet.data() +
@@ -1055,7 +1055,7 @@ TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
             RMAP_STATUS_FIELD_CODE_SUCCESS));
 
     auto pattern = test_pattern2_expected_write_reply_with_spacewire_addresses;
-    std::vector<uint8_t> incoming_packet(
+    const std::vector<uint8_t> incoming_packet(
         pattern.data.begin() + pattern.header_offset,
         pattern.data.end());
     EXPECT_EQ(
@@ -1069,7 +1069,7 @@ TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
 TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
 {
     auto pattern = test_pattern3_expected_read_reply_with_spacewire_addresses;
-    std::vector<uint8_t> incoming_packet(
+    const std::vector<uint8_t> incoming_packet(
         pattern.data.begin() + pattern.header_offset,
         pattern.data.end());
     const uint8_t *const incoming_data = incoming_packet.data() +
@@ -1096,7 +1096,7 @@ TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
 TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
 {
     auto pattern = test_pattern4_expected_rmw_reply;
-    std::vector<uint8_t> incoming_packet(
+    const std::vector<uint8_t> incoming_packet(
         pattern.data.begin() + pattern.header_offset,
         pattern.data.end());
     const uint8_t *const incoming_data = incoming_packet.data() +
@@ -1123,7 +1123,7 @@ TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
 TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
 {
     auto pattern = test_pattern5_expected_rmw_reply_with_spacewire_addresses;
-    std::vector<uint8_t> incoming_packet(
+    const std::vector<uint8_t> incoming_packet(
         pattern.data.begin() + pattern.header_offset,
         pattern.data.end());
     const uint8_t *const incoming_data = incoming_packet.data() +
@@ -1156,7 +1156,7 @@ TEST_F(MockedTargetNode, IncomingCommandWithReplyAllocationFailure)
 
     auto command_pattern =
         test_pattern0_unverified_incrementing_write_with_reply;
-    std::vector<uint8_t> command_packet(
+    const std::vector<uint8_t> command_packet(
         command_pattern.data.begin() + command_pattern.header_offset,
         command_pattern.data.end());
     EXPECT_EQ(
