@@ -133,10 +133,10 @@ rmap_custom_crc_implementation.o: rmap_custom_crc_implementation.c $(USER_DIR)/r
 rmap_shim.o: rmap_shim.c rmap_shim.h $(USER_DIR)/rmap.h
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 
-node_test: node_test.o node.o rmap.o gmock_main.a
+node_test: node_test.o test_patterns.o node.o rmap.o gmock_main.a
 	$(LINK.cc) $(OUTPUT_OPTION) $^
 
-node_test.o: node_test.cc $(USER_DIR)/node.h $(USER_DIR)/rmap.h
+node_test.o: node_test.cc $(USER_DIR)/test/test_patterns.h $(USER_DIR)/node.h $(USER_DIR)/rmap.h
 	$(COMPILE.cc) $(OUTPUT_OPTION) $<
 
 node.o: $(USER_DIR)/node.c $(USER_DIR)/node.h $(USER_DIR)/rmap.h
