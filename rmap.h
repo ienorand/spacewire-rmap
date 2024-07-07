@@ -788,8 +788,7 @@ enum rmap_status rmap_verify_header_integrity(const void *header, size_t size);
  * @retval RMAP_UNUSED_PACKET_TYPE The packet type field has the reserved bit
  *         set.
  * @retval RMAP_UNUSED_COMMAND_CODE The command field contains a reserved
- *         command code or the packet type is a reply without the with-reply
- *         bit set.
+ *         command code.
  * @retval RMAP_NO_REPLY The packet type field indicates that this is a reply
  *         but the command field do not have the reply bit set.
  * @retval RMAP_OK Instruction is valid.
