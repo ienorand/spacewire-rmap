@@ -33,7 +33,7 @@ static void print_data(const void *const data, const size_t size)
     printf("\n");
 }
 
-static void send_reply(
+static enum rmap_status send_reply(
     struct rmap_node_context *const context,
     void *const packet,
     const size_t size)
@@ -43,6 +43,8 @@ static void send_reply(
     printf("Sending reply with size %zu:\n", size);
     print_data(packet, size);
     free(packet);
+
+    return RMAP_OK;
 }
 
 static enum rmap_status_field_code write_request(
@@ -55,14 +57,12 @@ static enum rmap_status_field_code write_request(
 
     if (request->key != custom_context->target_key) {
         printf("Rejecting write request due to invalid key\n");
-        context->error_information = RMAP_NODE_INVALID_KEY;
         return RMAP_STATUS_FIELD_CODE_INVALID_KEY;
     }
 
     if (request->target_logical_address !=
         custom_context->target_logical_address) {
         printf("Rejecting write request due to invalid logical address\n");
-        context->error_information = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         return RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS;
     }
 
@@ -76,15 +76,11 @@ static enum rmap_status_field_code write_request(
                 custom_context->target_memory_size - 1) {
         printf(
             "Rejecting write request due to address outside target memory\n");
-        context->error_information =
-            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
 
     if (!rmap_is_instruction_increment_address(request->instruction)) {
         printf("Rejecting unsupported non-incrementing write request\n");
-        context->error_information =
-            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
 
@@ -97,8 +93,6 @@ static enum rmap_status_field_code write_request(
     if (end_address > custom_context->target_memory_start_address +
             custom_context->target_memory_size) {
         printf("Rejecting write request due to end outside target memory\n");
-        context->error_information =
-            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
 
@@ -126,14 +120,12 @@ static enum rmap_status_field_code read_request(
 
     if (request->key != custom_context->target_key) {
         printf("Rejecting read request due to invalid key\n");
-        context->error_information = RMAP_NODE_INVALID_KEY;
         return RMAP_STATUS_FIELD_CODE_INVALID_KEY;
     }
 
     if (request->target_logical_address !=
         custom_context->target_logical_address) {
         printf("Rejecting read request due to invalid logical address\n");
-        context->error_information = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         return RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS;
     }
 
@@ -146,15 +138,11 @@ static enum rmap_status_field_code read_request(
         start_address > custom_context->target_memory_start_address +
                 custom_context->target_memory_size - 1) {
         printf("Rejecting read request due to address outside target memory\n");
-        context->error_information =
-            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
 
     if (!rmap_is_instruction_increment_address(request->instruction)) {
         printf("Rejecting unsupported non-incrementing read request\n");
-        context->error_information =
-            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
 
@@ -167,8 +155,6 @@ static enum rmap_status_field_code read_request(
     if (end_address > custom_context->target_memory_start_address +
             custom_context->target_memory_size) {
         printf("Rejecting read request due to end outside target memory\n");
-        context->error_information =
-            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
 
@@ -192,14 +178,12 @@ static enum rmap_status_field_code rmw_request(
 
     if (request->key != custom_context->target_key) {
         printf("Rejecting RMW request due to invalid key\n");
-        context->error_information = RMAP_NODE_INVALID_KEY;
         return RMAP_STATUS_FIELD_CODE_INVALID_KEY;
     }
 
     if (request->target_logical_address !=
         custom_context->target_logical_address) {
         printf("Rejecting RMW request due to invalid logical address\n");
-        context->error_information = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
         return RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS;
     }
 
@@ -212,8 +196,6 @@ static enum rmap_status_field_code rmw_request(
         start_address > custom_context->target_memory_start_address +
                 custom_context->target_memory_size - 1) {
         printf("Rejecting RMW request due to address outside target memory\n");
-        context->error_information =
-            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
 
@@ -224,8 +206,6 @@ static enum rmap_status_field_code rmw_request(
     if (end_address > custom_context->target_memory_start_address +
             custom_context->target_memory_size) {
         printf("Rejecting RMW request due to end outside target memory\n");
-        context->error_information =
-            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         return RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
     }
 
@@ -350,7 +330,8 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Write to a subset of target memory. */
     rmap_status = rmap_initialize_header(
@@ -380,7 +361,8 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Read whole target memory. */
     rmap_status = rmap_initialize_header(
@@ -405,7 +387,8 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Write with invalid logical address. */
     rmap_status = rmap_initialize_header(
@@ -435,7 +418,8 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Write with invalid address before target memory. */
     rmap_status = rmap_initialize_header(
@@ -465,7 +449,8 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Write with invalid address and size moving past target memory end. */
     rmap_status = rmap_initialize_header(
@@ -498,7 +483,8 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Write with address and size reaching target memory end. */
     rmap_status = rmap_initialize_header(
@@ -531,7 +517,8 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Read whole target memory. */
     rmap_status = rmap_initialize_header(
@@ -556,7 +543,8 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* RMW. */
     rmap_status = rmap_initialize_header(
@@ -595,7 +583,8 @@ int main(void)
     buf[header_size + sizeof(rmw_data_and_mask)] =
         rmap_crc_calculate(buf + header_size, sizeof(rmw_data_and_mask));
     packet_size = header_size + sizeof(rmw_data_and_mask) + 1;
-    rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Read whole target memory. */
     rmap_status = rmap_initialize_header(
@@ -620,5 +609,6 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    printf("Node status: %s\n", rmap_status_text(rmap_status));
 }
