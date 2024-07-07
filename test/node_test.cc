@@ -995,6 +995,370 @@ INSTANTIATE_TEST_CASE_P(
             }),
         testing::Values(RMAP_NO_RMAP_PROTOCOL)));
 
+TEST(
+    HandleIncoming,
+    CommandWithUnusedPacketTypeWitReplyForUnusedPacketTypeDisabled)
+{
+    struct rmap_node_context node_context;
+    MockCallbacks mock_callbacks;
+
+    const struct rmap_node_callbacks callbacks = {
+        .target =
+            {
+                .allocate = allocate_mock_wrapper,
+                .send_reply = send_reply_mock_wrapper,
+                .write_request = write_request_mock_wrapper,
+                .read_request = read_request_mock_wrapper,
+                .rmw_request = rmw_request_mock_wrapper,
+            },
+        .initiator =
+            {
+                .received_write_reply = NULL,
+                .received_read_reply = NULL,
+                .received_rmw_reply = NULL,
+            },
+    };
+    struct mocked_callbacks_custom_context custom_context = {
+        .mock_callbacks = &mock_callbacks,
+    };
+    const struct rmap_node_initialize_flags flags = {
+        .is_target = 1,
+        .is_initiator = 0,
+        .is_reply_for_unused_packet_type_enabled = 0,
+    };
+    ASSERT_EQ(
+        rmap_node_initialize(&node_context, &custom_context, &callbacks, flags),
+        RMAP_OK);
+
+    auto pattern = test_pattern0_unverified_incrementing_write_with_reply;
+    const std::vector<uint8_t> original_packet(
+        pattern.data.begin() + pattern.header_offset,
+        pattern.data.end());
+    std::vector<uint8_t> incoming_packet = original_packet;
+    const uint8_t instruction = rmap_get_instruction(incoming_packet.data());
+    /* Set reserved bit in packet type field. */
+    rmap_set_instruction(incoming_packet.data(), instruction | 1 << 7);
+    rmap_calculate_and_set_header_crc(incoming_packet.data());
+
+    EXPECT_CALL(mock_callbacks, Allocate).Times(0);
+    EXPECT_CALL(mock_callbacks, SendReply).Times(0);
+
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        RMAP_UNUSED_PACKET_TYPE);
+}
+
+TEST(
+    HandleIncoming,
+    CommandWithUnusedPacketTypeWithReplyForUnusedPacketTypeTargetEnabled)
+{
+    struct rmap_node_context node_context;
+    MockCallbacks mock_callbacks;
+
+    const struct rmap_node_callbacks callbacks = {
+        .target =
+            {
+                .allocate = allocate_mock_wrapper,
+                .send_reply = send_reply_mock_wrapper,
+                .write_request = write_request_mock_wrapper,
+                .read_request = read_request_mock_wrapper,
+                .rmw_request = rmw_request_mock_wrapper,
+            },
+        .initiator =
+            {
+                .received_write_reply = NULL,
+                .received_read_reply = NULL,
+                .received_rmw_reply = NULL,
+            },
+    };
+    struct mocked_callbacks_custom_context custom_context = {
+        .mock_callbacks = &mock_callbacks,
+    };
+    const struct rmap_node_initialize_flags flags = {
+        .is_target = 1,
+        .is_initiator = 0,
+        .is_reply_for_unused_packet_type_enabled = 1,
+    };
+    ASSERT_EQ(
+        rmap_node_initialize(&node_context, &custom_context, &callbacks, flags),
+        RMAP_OK);
+
+    auto pattern = test_pattern0_unverified_incrementing_write_with_reply;
+    const std::vector<uint8_t> original_packet(
+        pattern.data.begin() + pattern.header_offset,
+        pattern.data.end());
+    std::vector<uint8_t> incoming_packet = original_packet;
+    const uint8_t instruction = rmap_get_instruction(incoming_packet.data());
+    /* Set reserved bit in packet type field. */
+    rmap_set_instruction(incoming_packet.data(), instruction | 1 << 7);
+    rmap_calculate_and_set_header_crc(incoming_packet.data());
+
+    std::vector<uint8_t> expected_reply(
+        pattern.reply_address_length + RMAP_WRITE_REPLY_HEADER_STATIC_SIZE);
+    size_t reply_header_offset;
+    ASSERT_EQ(
+        rmap_create_success_reply_from_command(
+            expected_reply.data(),
+            &reply_header_offset,
+            expected_reply.size(),
+            original_packet.data()),
+        RMAP_OK);
+    ASSERT_EQ(reply_header_offset, pattern.reply_address_length);
+    rmap_set_status(
+        expected_reply.data(),
+        RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
+    rmap_calculate_and_set_header_crc(expected_reply.data());
+
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
+
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        RMAP_UNUSED_PACKET_TYPE);
+}
+
+class IncomingToTargetRejectWithReplyParams :
+    public MockedTargetNode,
+    public testing::WithParamInterface<std::tuple<
+        std::function<std::vector<uint8_t>()>,
+        std::function<std::vector<uint8_t>()>,
+        enum rmap_status>>
+{
+};
+
+TEST_P(IncomingToTargetRejectWithReplyParams, Check)
+{
+    const auto incoming_packet_generator_fn = std::get<0>(GetParam());
+    const auto expected_reply_generator_fn = std::get<1>(GetParam());
+    const auto expected_status = std::get<2>(GetParam());
+
+    const auto incoming_packet = incoming_packet_generator_fn();
+    const auto expected_reply = expected_reply_generator_fn();
+
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
+
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        expected_status);
+
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    UnusedCommandCode,
+    IncomingToTargetRejectWithReplyParams,
+    testing::Values(std::make_tuple(
+        [] {
+            auto pattern = test_pattern1_incrementing_read;
+            std::vector<uint8_t> incoming_packet(
+                pattern.data.begin() + pattern.header_offset,
+                pattern.data.end());
+            const uint8_t instruction =
+                rmap_get_instruction(incoming_packet.data());
+            /* Set verify bit and clear increment bit to create an invalid
+             * command code (read, verified, non-incrementing, with reply).
+             */
+            rmap_set_instruction(
+                incoming_packet.data(),
+                (instruction | RMAP_COMMAND_CODE_VERIFY << 2) &
+                    ~(RMAP_COMMAND_CODE_INCREMENT << 2));
+            rmap_calculate_and_set_header_crc(incoming_packet.data());
+
+            return incoming_packet;
+        },
+        [] {
+            std::vector<uint8_t> expected_reply =
+                test_pattern1_expected_read_reply.data;
+            rmap_set_status(
+                expected_reply.data(),
+                RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
+            rmap_set_instruction(
+                expected_reply.data(),
+                RMAP_PACKET_TYPE_REPLY << 6 |
+                    (RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY) << 2);
+            rmap_set_data_length(expected_reply.data(), 0);
+            rmap_calculate_and_set_header_crc(expected_reply.data());
+            expected_reply.resize(
+                rmap_calculate_header_size(expected_reply.data()) + 1);
+            expected_reply.back() = rmap_crc_calculate(
+                expected_reply.data() + expected_reply.size() - 1,
+                0);
+            return expected_reply;
+        },
+        RMAP_UNUSED_COMMAND_CODE)));
+
+INSTANTIATE_TEST_SUITE_P(
+    InsufficientData,
+    IncomingToTargetRejectWithReplyParams,
+    testing::Values(std::make_tuple(
+        [] {
+            auto pattern =
+                test_pattern0_unverified_incrementing_write_with_reply;
+            std::vector<uint8_t> incoming_packet(
+                pattern.data.begin() + pattern.header_offset,
+                pattern.data.end());
+            incoming_packet.pop_back();
+            return incoming_packet;
+        },
+        [] {
+            std::vector<uint8_t> expected_reply =
+                test_pattern0_expected_write_reply.data;
+            rmap_set_status(
+                expected_reply.data(),
+                RMAP_STATUS_FIELD_CODE_EARLY_EOP);
+            rmap_calculate_and_set_header_crc(expected_reply.data());
+            return expected_reply;
+        },
+        RMAP_INSUFFICIENT_DATA)));
+
+INSTANTIATE_TEST_SUITE_P(
+    TooMuchData,
+    IncomingToTargetRejectWithReplyParams,
+    testing::Values(std::make_tuple(
+        [] {
+            auto pattern =
+                test_pattern0_unverified_incrementing_write_with_reply;
+            std::vector<uint8_t> incoming_packet(
+                pattern.data.begin() + pattern.header_offset,
+                pattern.data.end());
+            incoming_packet.push_back(0xDA);
+            return incoming_packet;
+        },
+        [] {
+            std::vector<uint8_t> expected_reply =
+                test_pattern0_expected_write_reply.data;
+            rmap_set_status(
+                expected_reply.data(),
+                RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA);
+            rmap_calculate_and_set_header_crc(expected_reply.data());
+            return expected_reply;
+        },
+        RMAP_TOO_MUCH_DATA)));
+
+INSTANTIATE_TEST_SUITE_P(
+    RmwDataLengthError,
+    IncomingToTargetRejectWithReplyParams,
+    testing::Values(std::make_tuple(
+        [] {
+            auto pattern = test_pattern4_rmw;
+            std::vector<uint8_t> incoming_packet(
+                pattern.data.begin() + pattern.header_offset,
+                pattern.data.end());
+            rmap_set_data_length(incoming_packet.data(), 3);
+            rmap_calculate_and_set_header_crc(incoming_packet.data());
+            const size_t data_offset =
+                rmap_calculate_header_size(incoming_packet.data());
+            incoming_packet.resize(data_offset + 3 + 1);
+            incoming_packet.back() =
+                rmap_crc_calculate(incoming_packet.data() + data_offset, 3);
+            return incoming_packet;
+        },
+        [] {
+            std::vector<uint8_t> expected_reply =
+                test_pattern4_expected_rmw_reply.data;
+            rmap_set_status(
+                expected_reply.data(),
+                RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR);
+            rmap_set_data_length(expected_reply.data(), 0);
+            rmap_calculate_and_set_header_crc(expected_reply.data());
+            expected_reply.resize(
+                rmap_calculate_header_size(expected_reply.data()) + 1);
+            expected_reply.back() = rmap_crc_calculate(
+                expected_reply.data() + expected_reply.size() - 1,
+                0);
+            return expected_reply;
+        },
+        RMAP_RMW_DATA_LENGTH_ERROR)));
+
+INSTANTIATE_TEST_SUITE_P(
+    InvalidDataCrc,
+    IncomingToTargetRejectWithReplyParams,
+    testing::Values(
+        std::make_tuple(
+            [] {
+                auto pattern =
+                    test_pattern0_unverified_incrementing_write_with_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                /* Flip a bit in data field. */
+                incoming_packet.at(
+                    rmap_calculate_header_size(incoming_packet.data())) ^= 1;
+                return incoming_packet;
+            },
+            [] {
+                std::vector<uint8_t> expected_reply =
+                    test_pattern0_expected_write_reply.data;
+                rmap_set_status(
+                    expected_reply.data(),
+                    RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC);
+                rmap_calculate_and_set_header_crc(expected_reply.data());
+                return expected_reply;
+            },
+            RMAP_INVALID_DATA_CRC),
+        std::make_tuple(
+            [] {
+                auto pattern =
+                    test_pattern0_unverified_incrementing_write_with_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                /* Flip a bit in data CRC field. */
+                incoming_packet.back() ^= 1;
+                return incoming_packet;
+            },
+            [] {
+                std::vector<uint8_t> expected_reply =
+                    test_pattern0_expected_write_reply.data;
+                rmap_set_status(
+                    expected_reply.data(),
+                    RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC);
+                rmap_calculate_and_set_header_crc(expected_reply.data());
+                return expected_reply;
+            },
+            RMAP_INVALID_DATA_CRC)));
+
 TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
 {
     const uint16_t expected_transaction_id = 0x00;
