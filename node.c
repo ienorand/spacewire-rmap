@@ -508,24 +508,10 @@ static enum rmap_status handle_command(
         rmap_verify_header_instruction(packet);
     switch (verify_status) {
     case RMAP_UNUSED_PACKET_TYPE:
-        if (context->is_reply_for_unused_packet_type_enabled &&
-            rmap_is_with_reply(packet)) {
-            const enum rmap_status send_status = send_error_reply(
-                context,
-                packet,
-                RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
-            switch (send_status) {
-            case RMAP_NODE_ALLOCATION_FAILURE:
-            case RMAP_NODE_SEND_REPLY_FAILURE:
-                return send_status;
-
-            default:
-                assert(send_status == RMAP_OK);
-                break;
-            }
+        if (!context->is_reply_for_unused_packet_type_enabled) {
+            return verify_status;
         }
-        return RMAP_UNUSED_PACKET_TYPE;
-
+        /* Fall through. */
     case RMAP_UNUSED_COMMAND_CODE:
         if (rmap_is_with_reply(packet)) {
             const enum rmap_status send_status = send_error_reply(
@@ -542,7 +528,7 @@ static enum rmap_status handle_command(
                 break;
             }
         }
-        return RMAP_UNUSED_COMMAND_CODE;
+        return verify_status;
 
     default:
         assert(verify_status == RMAP_OK);
