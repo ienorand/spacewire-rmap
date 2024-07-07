@@ -260,7 +260,6 @@ static enum rmap_status handle_read_command(
         reply_maximum_size,
         packet);
     assert(status == RMAP_OK);
-    (void)status;
     assert(
         reply_header_offset +
             rmap_calculate_header_size(reply_buf + reply_header_offset) +
@@ -324,7 +323,7 @@ static enum rmap_status handle_read_command(
 
     context->callbacks.target.send_reply(context, reply_buf, reply_size);
 
-    return RMAP_OK;
+    return status;
 }
 
 static enum rmap_status handle_rmw_command(
