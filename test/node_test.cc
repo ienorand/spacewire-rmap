@@ -1359,6 +1359,179 @@ INSTANTIATE_TEST_SUITE_P(
             },
             RMAP_INVALID_DATA_CRC)));
 
+class IncomingToTargetAuthorizationRejectWithReplyParams :
+    public MockedTargetNode,
+    public testing::WithParamInterface<std::tuple<
+        std::function<std::vector<uint8_t>()>,
+        enum rmap_status_field_code,
+        std::function<std::vector<uint8_t>(enum rmap_status_field_code)>,
+        enum rmap_status>>
+{
+};
+
+TEST_P(IncomingToTargetAuthorizationRejectWithReplyParams, Check)
+{
+    const auto incoming_packet_generator_fn = std::get<0>(GetParam());
+    const auto status_field_code = std::get<1>(GetParam());
+    const auto expected_reply_generator_fn = std::get<2>(GetParam());
+    const auto expected_status = std::get<3>(GetParam());
+
+    const auto incoming_packet = incoming_packet_generator_fn();
+    const auto expected_reply = expected_reply_generator_fn(status_field_code);
+
+    ASSERT_NE(status_field_code, RMAP_STATUS_FIELD_CODE_SUCCESS);
+    EXPECT_CALL(mock_callbacks, WriteRequest)
+        .WillRepeatedly(testing::Return(status_field_code));
+    EXPECT_CALL(mock_callbacks, ReadRequest)
+        .WillRepeatedly(testing::Return(status_field_code));
+    EXPECT_CALL(mock_callbacks, RmwRequest)
+        .WillRepeatedly(testing::Return(status_field_code));
+
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
+
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        expected_status);
+
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    WriteCommand,
+    IncomingToTargetAuthorizationRejectWithReplyParams,
+    testing::Values(
+        std::make_tuple(
+            [] {
+                auto pattern =
+                    test_pattern0_unverified_incrementing_write_with_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                return incoming_packet;
+            },
+            RMAP_STATUS_FIELD_CODE_INVALID_KEY,
+            [](const enum rmap_status_field_code status_field_code) {
+                /* TODO: Move this to test case? */
+                auto pattern = test_pattern0_expected_write_reply;
+                std::vector<uint8_t> expected_reply(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                rmap_set_status(expected_reply.data(), status_field_code);
+                rmap_calculate_and_set_header_crc(expected_reply.data());
+                return expected_reply;
+            },
+            RMAP_NODE_INVALID_KEY),
+        std::make_tuple(
+            [] {
+                auto pattern =
+                    test_pattern0_unverified_incrementing_write_with_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                return incoming_packet;
+            },
+            RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS,
+            [](const enum rmap_status_field_code status_field_code) {
+                auto pattern = test_pattern0_expected_write_reply;
+                std::vector<uint8_t> expected_reply(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                rmap_set_status(expected_reply.data(), status_field_code);
+                rmap_calculate_and_set_header_crc(expected_reply.data());
+                return expected_reply;
+            },
+            RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS),
+        std::make_tuple(
+            [] {
+                auto pattern =
+                    test_pattern0_unverified_incrementing_write_with_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                return incoming_packet;
+            },
+            RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED,
+            [](const enum rmap_status_field_code status_field_code) {
+                auto pattern = test_pattern0_expected_write_reply;
+                std::vector<uint8_t> expected_reply(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                rmap_set_status(expected_reply.data(), status_field_code);
+                rmap_calculate_and_set_header_crc(expected_reply.data());
+                return expected_reply;
+            },
+            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED),
+        std::make_tuple(
+            [] {
+                auto pattern =
+                    test_pattern0_unverified_incrementing_write_with_reply;
+                std::vector<uint8_t> incoming_packet(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                return incoming_packet;
+            },
+            RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE,
+            [](const enum rmap_status_field_code status_field_code) {
+                auto pattern = test_pattern0_expected_write_reply;
+                std::vector<uint8_t> expected_reply(
+                    pattern.data.begin() + pattern.header_offset,
+                    pattern.data.end());
+                rmap_set_status(expected_reply.data(), status_field_code);
+                rmap_calculate_and_set_header_crc(expected_reply.data());
+                return expected_reply;
+            },
+            RMAP_NODE_MEMORY_ACCESS_ERROR)));
+
+INSTANTIATE_TEST_SUITE_P(
+    ReadCommand,
+    IncomingToTargetAuthorizationRejectWithReplyParams,
+    testing::Values(std::make_tuple(
+        [] {
+            auto pattern = test_pattern1_incrementing_read;
+            std::vector<uint8_t> incoming_packet(
+                pattern.data.begin() + pattern.header_offset,
+                pattern.data.end());
+            return incoming_packet;
+        },
+        RMAP_STATUS_FIELD_CODE_INVALID_KEY,
+        [](const enum rmap_status_field_code status_field_code) {
+            /* TODO: Move this to test case? */
+            auto pattern = test_pattern1_expected_read_reply;
+            std::vector<uint8_t> expected_reply(
+                pattern.data.begin() + pattern.header_offset,
+                pattern.data.end());
+            rmap_set_status(expected_reply.data(), status_field_code);
+            rmap_set_data_length(expected_reply.data(), 0);
+            rmap_calculate_and_set_header_crc(expected_reply.data());
+            expected_reply.resize(
+                rmap_calculate_header_size(expected_reply.data()) + 1);
+            expected_reply.back() = rmap_crc_calculate(
+                expected_reply.data() + expected_reply.size() - 1,
+                0);
+            return expected_reply;
+        },
+        RMAP_NODE_INVALID_KEY)));
+
 TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
 {
     const uint16_t expected_transaction_id = 0x00;
