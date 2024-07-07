@@ -97,13 +97,16 @@ gmock.a : gmock-all.o gtest-all.o
 gmock_main.a : gmock-all.o gtest-all.o gmock_main.o
 	$(AR) $(ARFLAGS) $@ $^
 
-rmap_test: rmap_test.o rmap.o gmock_main.a
+test_patterns.o: test_patterns.cc test_patterns.h $(USER_DIR)/rmap.h
+	$(COMPILE.cc) $(OUTPUT_OPTION) $<
+
+rmap_test: rmap_test.o test_patterns.o rmap.o gmock_main.a
 	$(LINK.cc) $(OUTPUT_OPTION) $^
 
-rmap_test_with_custom_crc_implementation: rmap_test.o rmap_without_crc_calculate.o rmap_custom_crc_implementation.o gmock_main.a
+rmap_test_with_custom_crc_implementation: rmap_test.o test_patterns.o rmap_without_crc_calculate.o rmap_custom_crc_implementation.o gmock_main.a
 	$(LINK.cc) $(OUTPUT_OPTION) $^
 
-rmap_test.o: rmap_test.cc $(USER_DIR)/rmap.h
+rmap_test.o: rmap_test.cc $(USER_DIR)/test/test_patterns.h $(USER_DIR)/rmap.h
 	$(COMPILE.cc) $(OUTPUT_OPTION) $<
 
 rmap.o: $(USER_DIR)/rmap.c $(USER_DIR)/rmap.h
