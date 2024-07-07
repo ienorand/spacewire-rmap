@@ -474,6 +474,8 @@ enum rmap_status rmap_node_initialize(
  *         indicating that errors are present in the header.
  * @retval RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR Incoming command packet
  *         discarded due to node being configured to reject incoming commands.
+ * @retval RMAP_NODE_REPLY_RECEIVED_BY_TARGET Incoming reply packet
+ *         discarded due to node being configured to reject incoming replies.
  * @retval RMAP_NODE_ALLOCATION_FAILURE Incoming packet and intended reply
  *         discarded due to allocation failure.
  * @retval RMAP_NODE_SEND_REPLY_FAILURE Incoming packet and intended reply
