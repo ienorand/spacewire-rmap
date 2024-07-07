@@ -1531,6 +1531,37 @@ TEST_F(MockedTargetNode, IncomingCommandWithReplyAllocationFailure)
         RMAP_NODE_ALLOCATION_FAILURE);
 }
 
+TEST_F(MockedTargetNode, IncomingCommandWithReplySendFailure)
+{
+    EXPECT_CALL(mock_callbacks, WriteRequest)
+        .WillOnce(testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS));
+
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    EXPECT_CALL(mock_callbacks, SendReply)
+        .WillOnce(testing::Return(RMAP_NODE_SEND_REPLY_FAILURE));
+
+    auto command_pattern =
+        test_pattern0_unverified_incrementing_write_with_reply;
+    const std::vector<uint8_t> command_packet(
+        command_pattern.data.begin() + command_pattern.header_offset,
+        command_pattern.data.end());
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            command_packet.data(),
+            command_packet.size()),
+        RMAP_NODE_SEND_REPLY_FAILURE);
+}
+
 class IncomingToInitiatorRejectParams :
     public MockedInitiatorNode,
     public testing::WithParamInterface<
