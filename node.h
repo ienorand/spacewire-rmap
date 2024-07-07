@@ -77,11 +77,12 @@ typedef void *(*rmap_node_target_allocate_callback)(
  * This callback is expected to send the data given by @p packet and @p size as
  * a spacewire packet.
  *
- * TODO:
- * No specific mechanism for send failure reporting is available in this
- * callback and must be handled by the user. This can for example be done via
- * the custom user context, allowing the failure to be detected by accessing
- * the node context after each call to rmap_node_handle_incoming().
+ * Send failure can be indicated by returning RMAP_NODE_SEND_FAILURE, this
+ * value will then be returned by the rmap_node_handle_incoming() which
+ * triggered this callback.
+ *
+ * The callback is expected to return RMAP_OK on success or if send failure is
+ * not indicated.
  *
  * The data in @p packet will have been allocated via
  * rmap_node_target_allocate_callback(); this callback transfers the ownership
@@ -90,8 +91,11 @@ typedef void *(*rmap_node_target_allocate_callback)(
  * @param[in,out] context Node context object.
  * @param[in] packet RMAP packet data to be sent.
  * @param size Number of bytes to be sent from @p packet.
+ *
+ * @retval RMAP_NODE_SEND_FAILURE Send failure.
+ * @retval RMAP_OK Send success.
  */
-typedef void (*rmap_node_target_send_reply_callback)(
+typedef enum rmap_status (*rmap_node_target_send_reply_callback)(
     struct rmap_node_context *context,
     void *packet,
     size_t size);

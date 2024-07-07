@@ -284,6 +284,8 @@ enum rmap_status {
     /* Indicates failure to allocate memory for reply. */
     RMAP_NODE_ALLOCATION_FAILURE = 280,
     RMAP_NODE_NO_TARGET_OR_INITIATOR = 281,
+    /* Optionally indicates failure in user-implemented send reply callback. */
+    RMAP_NODE_SEND_REPLY_FAILURE = 282,
 };
 
 /** Size constants for RMAP packets. */

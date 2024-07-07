@@ -75,7 +75,6 @@ static enum rmap_status send_error_reply(
         reply_size_max,
         command);
     assert(status == RMAP_OK);
-    (void)status;
 
     uint8_t *const reply_header = reply_buf + header_offset;
 
@@ -91,7 +90,19 @@ static enum rmap_status send_error_reply(
     }
     rmap_calculate_and_set_header_crc(reply_buf + header_offset);
 
-    context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    status =
+        context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    switch (status) {
+    case RMAP_NODE_SEND_REPLY_FAILURE:
+        return status;
+
+    default:
+        /* TODO: Should invalid return value from incorrectly implemented
+         * callbacks be treated as UB?
+         */
+        assert(status == RMAP_OK);
+        break;
+    }
 
     return RMAP_OK;
 }

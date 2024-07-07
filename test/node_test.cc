@@ -551,7 +551,7 @@ class MockCallbacks
         Allocate,
         (struct rmap_node_context * context, size_t size));
     MOCK_METHOD(
-        void,
+        enum rmap_status,
         SendReply,
         (struct rmap_node_context * context, void *packet, size_t size));
     MOCK_METHOD(
@@ -613,7 +613,7 @@ static void *allocate_mock_wrapper(
     return custom_context->mock_callbacks->Allocate(context, size);
 }
 
-static void send_reply_mock_wrapper(
+static enum rmap_status send_reply_mock_wrapper(
     struct rmap_node_context *const context,
     void *const packet,
     const size_t size)
@@ -621,7 +621,7 @@ static void send_reply_mock_wrapper(
     struct mocked_callbacks_custom_context *const custom_context =
         reinterpret_cast<struct mocked_callbacks_custom_context *>(
             context->custom_context);
-    custom_context->mock_callbacks->SendReply(context, packet, size);
+    return custom_context->mock_callbacks->SendReply(context, packet, size);
 }
 
 static enum rmap_status_field_code write_request_mock_wrapper(
@@ -847,7 +847,9 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
     EXPECT_CALL(
         mock_callbacks,
         SendReply(testing::_, testing::_, expected_reply.size()))
-        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
 
     EXPECT_EQ(
         rmap_node_handle_incoming(
@@ -923,7 +925,9 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
     EXPECT_CALL(
         mock_callbacks,
         SendReply(testing::_, testing::_, expected_reply.size()))
-        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
 
     EXPECT_EQ(
         rmap_node_handle_incoming(
@@ -980,7 +984,9 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
     EXPECT_CALL(
         mock_callbacks,
         SendReply(testing::_, testing::_, expected_reply.size()))
-        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
 
     EXPECT_EQ(
         rmap_node_handle_incoming(
@@ -1059,7 +1065,9 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
     EXPECT_CALL(
         mock_callbacks,
         SendReply(testing::_, testing::_, expected_reply.size()))
-        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
 
     EXPECT_EQ(
         rmap_node_handle_incoming(
@@ -1132,7 +1140,9 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
     EXPECT_CALL(
         mock_callbacks,
         SendReply(testing::_, testing::_, expected_reply.size()))
-        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
 
     EXPECT_EQ(
         rmap_node_handle_incoming(
@@ -1210,7 +1220,9 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
     EXPECT_CALL(
         mock_callbacks,
         SendReply(testing::_, testing::_, expected_reply.size()))
-        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
 
     EXPECT_EQ(
         rmap_node_handle_incoming(
@@ -1294,7 +1306,9 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
             testing::_,
             reply_address.size() + RMAP_READ_REPLY_HEADER_STATIC_SIZE + 234 +
                 1))
-        .WillOnce(testing::SaveArg<1>(&reply_allocation_ptr));
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
 
     EXPECT_EQ(
         rmap_node_handle_incoming(
