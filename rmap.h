@@ -228,7 +228,7 @@ enum rmap_status {
     RMAP_INVALID_PACKET_TYPE = 267,
 
     /** The provided command code value cannot be represented in an RMAP header
-     *  command code field.
+     *  command field.
      *
      * This error indicates that an attempt was made to initialize/serialize a
      * header with a command code value that is less than 0 or greater than the
@@ -791,7 +791,7 @@ enum rmap_status rmap_verify_header_integrity(const void *header, size_t size);
  *         command code or the packet type is a reply without the with-reply
  *         bit set.
  * @retval RMAP_NO_REPLY The packet type field indicates that this is a reply
- *         but the command code field do not have the reply bit set.
+ *         but the command field do not have the reply bit set.
  * @retval RMAP_OK Instruction is valid.
  */
 enum rmap_status rmap_verify_header_instruction(const void *header);
