@@ -854,7 +854,7 @@ TEST_P(IncomingToTargetRejectParams, Check)
         expected_status);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ReplyReceivedByTarget,
     IncomingToTargetRejectParams,
     testing::Combine(
@@ -900,7 +900,7 @@ INSTANTIATE_TEST_CASE_P(
             }),
         testing::Values(RMAP_NODE_REPLY_RECEIVED_BY_TARGET)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     IncompleteHeader,
     IncomingToTargetRejectParams,
     testing::Combine(
@@ -937,7 +937,7 @@ INSTANTIATE_TEST_CASE_P(
             }),
         testing::Values(RMAP_INCOMPLETE_HEADER)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     HeaderCrcError,
     IncomingToTargetRejectParams,
     testing::Combine(
@@ -966,7 +966,7 @@ INSTANTIATE_TEST_CASE_P(
             }),
         testing::Values(RMAP_HEADER_CRC_ERROR)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     InvalidProtocol,
     IncomingToTargetRejectParams,
     testing::Combine(
@@ -1560,7 +1560,7 @@ TEST_P(IncomingToInitiatorRejectParams, Check)
         expected_status);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     CommandReceivedByInitiator,
     IncomingToInitiatorRejectParams,
     testing::Combine(
@@ -1606,7 +1606,7 @@ INSTANTIATE_TEST_CASE_P(
             }),
         testing::Values(RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     IncompleteHeader,
     IncomingToInitiatorRejectParams,
     testing::Combine(
@@ -1640,7 +1640,7 @@ INSTANTIATE_TEST_CASE_P(
             }),
         testing::Values(RMAP_INCOMPLETE_HEADER)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     HeaderCrcError,
     IncomingToInitiatorRejectParams,
     testing::Combine(
@@ -1667,7 +1667,7 @@ INSTANTIATE_TEST_CASE_P(
             }),
         testing::Values(RMAP_HEADER_CRC_ERROR)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     InvalidProtocol,
     IncomingToInitiatorRejectParams,
     testing::Combine(
@@ -1694,7 +1694,7 @@ INSTANTIATE_TEST_CASE_P(
             }),
         testing::Values(RMAP_NO_RMAP_PROTOCOL)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PacketError,
     IncomingToInitiatorRejectParams,
     testing::Combine(
@@ -1744,7 +1744,7 @@ INSTANTIATE_TEST_CASE_P(
             }),
         testing::Values(RMAP_NODE_PACKET_ERROR)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     InvalidReply,
     IncomingToInitiatorRejectParams,
     testing::Combine(
