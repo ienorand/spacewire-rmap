@@ -52,7 +52,7 @@ LDLIBS += -pthread
 # created to the list.
 TESTS = \
         rmap_test \
-				rmap_test_with_custom_crc_implementation \
+        rmap_test_with_custom_crc_implementation \
         node_test
 
 # All Google Test headers.  Usually you shouldn't change this
