@@ -310,10 +310,6 @@ static enum rmap_status handle_read_command(
         read_status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
         break;
 
-    case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
-        read_status = RMAP_NODE_MEMORY_ACCESS_ERROR;
-        break;
-
     default:
         /* TODO: Should incorrectly implemented callbacks be handled by the
          * library of simply declared undefined behvaiour?
