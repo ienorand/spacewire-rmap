@@ -1532,6 +1532,99 @@ INSTANTIATE_TEST_SUITE_P(
         },
         RMAP_NODE_INVALID_KEY)));
 
+class IncomingToTargetAuthorizationRejectWithReplyParams2 :
+    public MockedTargetNode,
+    public testing::WithParamInterface<std::tuple<
+        std::pair<struct test_pattern, struct test_pattern>,
+        std::pair<enum rmap_status_field_code, enum rmap_status>>>
+{
+};
+
+TEST_P(IncomingToTargetAuthorizationRejectWithReplyParams2, Check)
+{
+    const auto command_reply_pair = std::get<0>(GetParam());
+    const auto status_field_code = std::get<0>(std::get<1>(GetParam()));
+    const auto expected_status = std::get<1>(std::get<1>(GetParam()));
+
+    const auto incoming_pattern = std::get<0>(command_reply_pair);
+    const std::vector<uint8_t> incoming_packet(
+        incoming_pattern.data.begin() + incoming_pattern.header_offset,
+        incoming_pattern.data.end());
+
+    const auto expected_reply_pattern = std::get<1>(command_reply_pair);
+    std::vector<uint8_t> expected_reply = expected_reply_pattern.data;
+    /* TODO: Reply address accounting needs to be done in other tests as well.
+     */
+    uint8_t *const expected_reply_header =
+        expected_reply.data() + expected_reply_pattern.reply_address_length;
+    rmap_set_status(expected_reply_header, status_field_code);
+    if (!rmap_is_write(expected_reply_header)) {
+        /* RMW or read reply, contains data field, set data length to zero for
+         * error reply.
+         */
+        rmap_set_data_length(expected_reply_header, 0);
+        expected_reply.resize(
+            expected_reply_pattern.reply_address_length +
+            rmap_calculate_header_size(expected_reply_header) + 1);
+        expected_reply.back() = rmap_crc_calculate(
+            expected_reply_header + expected_reply.size() - 1,
+            0);
+    }
+    rmap_calculate_and_set_header_crc(expected_reply_header);
+
+    ASSERT_NE(status_field_code, RMAP_STATUS_FIELD_CODE_SUCCESS);
+    EXPECT_CALL(mock_callbacks, WriteRequest)
+        .WillRepeatedly(testing::Return(status_field_code));
+    EXPECT_CALL(mock_callbacks, ReadRequest)
+        .WillRepeatedly(testing::Return(status_field_code));
+    EXPECT_CALL(mock_callbacks, RmwRequest)
+        .WillRepeatedly(testing::Return(status_field_code));
+
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
+
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        expected_status);
+
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    WriteCommand,
+    IncomingToTargetAuthorizationRejectWithReplyParams2,
+    testing::Combine(
+        testing::ValuesIn(test_patterns_command_reply_pairs),
+        testing::Values(
+            std::make_pair(
+                RMAP_STATUS_FIELD_CODE_INVALID_KEY,
+                RMAP_NODE_INVALID_KEY),
+            std::make_pair(
+                RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS,
+                RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS),
+            std::make_pair(
+                RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED,
+                RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED))));
+
 TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
 {
     const uint16_t expected_transaction_id = 0x00;
