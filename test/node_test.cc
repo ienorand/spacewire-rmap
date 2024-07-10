@@ -1471,6 +1471,7 @@ class IncomingToTargetAuthorizationRejectWithReplyAndCallbackSetupParams :
     public MockedTargetNode,
     public testing::WithParamInterface<std::tuple<
         std::function<std::vector<uint8_t>()>,
+        /* TODO: Remove (?). */
         enum rmap_status_field_code,
         std::function<void(MockCallbacks &, enum rmap_status_field_code)>,
         std::function<std::vector<uint8_t>(enum rmap_status_field_code)>,
@@ -1585,6 +1586,8 @@ INSTANTIATE_TEST_SUITE_P(
             return expected_reply;
         },
         RMAP_NODE_MEMORY_ACCESS_ERROR)));
+
+/* TODO: Instantiate for RMW errors. */
 
 TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
 {
