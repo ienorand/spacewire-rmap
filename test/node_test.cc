@@ -1208,22 +1208,22 @@ INSTANTIATE_TEST_SUITE_P(
             return incoming_packet;
         },
         [] {
-            std::vector<uint8_t> expected_reply =
-                test_pattern1_expected_read_reply.data;
+            auto pattern = test_pattern1_expected_read_reply;
+            std::vector<uint8_t> expected_reply = pattern.data;
+            uint8_t *const header =
+                expected_reply.data() + pattern.reply_address_length;
             rmap_set_status(
-                expected_reply.data(),
+                header,
                 RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
             rmap_set_instruction(
-                expected_reply.data(),
+                header,
                 RMAP_PACKET_TYPE_REPLY << 6 |
                     (RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY) << 2);
-            rmap_set_data_length(expected_reply.data(), 0);
-            rmap_calculate_and_set_header_crc(expected_reply.data());
-            expected_reply.resize(
-                rmap_calculate_header_size(expected_reply.data()) + 1);
-            expected_reply.back() = rmap_crc_calculate(
-                expected_reply.data() + expected_reply.size() - 1,
-                0);
+            rmap_set_data_length(header, 0);
+            rmap_calculate_and_set_header_crc(header);
+            expected_reply.resize(rmap_calculate_header_size(header) + 1);
+            expected_reply.back() =
+                rmap_crc_calculate(&expected_reply.back(), 0);
             return expected_reply;
         },
         RMAP_UNUSED_COMMAND_CODE)));
@@ -1242,12 +1242,12 @@ INSTANTIATE_TEST_SUITE_P(
             return incoming_packet;
         },
         [] {
-            std::vector<uint8_t> expected_reply =
-                test_pattern0_expected_write_reply.data;
-            rmap_set_status(
-                expected_reply.data(),
-                RMAP_STATUS_FIELD_CODE_EARLY_EOP);
-            rmap_calculate_and_set_header_crc(expected_reply.data());
+            auto pattern = test_pattern0_expected_write_reply;
+            std::vector<uint8_t> expected_reply = pattern.data;
+            uint8_t *const header =
+                expected_reply.data() + pattern.reply_address_length;
+            rmap_set_status(header, RMAP_STATUS_FIELD_CODE_EARLY_EOP);
+            rmap_calculate_and_set_header_crc(header);
             return expected_reply;
         },
         RMAP_INSUFFICIENT_DATA)));
@@ -1266,12 +1266,12 @@ INSTANTIATE_TEST_SUITE_P(
             return incoming_packet;
         },
         [] {
-            std::vector<uint8_t> expected_reply =
-                test_pattern0_expected_write_reply.data;
-            rmap_set_status(
-                expected_reply.data(),
-                RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA);
-            rmap_calculate_and_set_header_crc(expected_reply.data());
+            auto pattern = test_pattern0_expected_write_reply;
+            std::vector<uint8_t> expected_reply = pattern.data;
+            uint8_t *const header =
+                expected_reply.data() + pattern.reply_address_length;
+            rmap_set_status(header, RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA);
+            rmap_calculate_and_set_header_crc(header);
             return expected_reply;
         },
         RMAP_TOO_MUCH_DATA)));
@@ -1295,18 +1295,18 @@ INSTANTIATE_TEST_SUITE_P(
             return incoming_packet;
         },
         [] {
-            std::vector<uint8_t> expected_reply =
-                test_pattern4_expected_rmw_reply.data;
+            auto pattern = test_pattern4_expected_rmw_reply;
+            std::vector<uint8_t> expected_reply = pattern.data;
+            uint8_t *const header =
+                expected_reply.data() + pattern.reply_address_length;
             rmap_set_status(
-                expected_reply.data(),
+                header,
                 RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR);
-            rmap_set_data_length(expected_reply.data(), 0);
-            rmap_calculate_and_set_header_crc(expected_reply.data());
-            expected_reply.resize(
-                rmap_calculate_header_size(expected_reply.data()) + 1);
-            expected_reply.back() = rmap_crc_calculate(
-                expected_reply.data() + expected_reply.size() - 1,
-                0);
+            rmap_set_data_length(header, 0);
+            rmap_calculate_and_set_header_crc(header);
+            expected_reply.resize(rmap_calculate_header_size(header) + 1);
+            expected_reply.back() =
+                rmap_crc_calculate(&expected_reply.back(), 0);
             return expected_reply;
         },
         RMAP_RMW_DATA_LENGTH_ERROR)));
@@ -1328,12 +1328,14 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                std::vector<uint8_t> expected_reply =
-                    test_pattern0_expected_write_reply.data;
+                auto pattern = test_pattern0_expected_write_reply;
+                std::vector<uint8_t> expected_reply = pattern.data;
+                uint8_t *const header =
+                    expected_reply.data() + pattern.reply_address_length;
                 rmap_set_status(
-                    expected_reply.data(),
+                    header,
                     RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC);
-                rmap_calculate_and_set_header_crc(expected_reply.data());
+                rmap_calculate_and_set_header_crc(header);
                 return expected_reply;
             },
             RMAP_INVALID_DATA_CRC),
@@ -1349,12 +1351,14 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                std::vector<uint8_t> expected_reply =
-                    test_pattern0_expected_write_reply.data;
+                auto pattern = test_pattern0_expected_write_reply;
+                std::vector<uint8_t> expected_reply = pattern.data;
+                uint8_t *const header =
+                    expected_reply.data() + pattern.reply_address_length;
                 rmap_set_status(
-                    expected_reply.data(),
+                    header,
                     RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC);
-                rmap_calculate_and_set_header_crc(expected_reply.data());
+                rmap_calculate_and_set_header_crc(header);
                 return expected_reply;
             },
             RMAP_INVALID_DATA_CRC)));
@@ -1525,9 +1529,8 @@ INSTANTIATE_TEST_SUITE_P(
             rmap_calculate_and_set_header_crc(expected_reply.data());
             expected_reply.resize(
                 rmap_calculate_header_size(expected_reply.data()) + 1);
-            expected_reply.back() = rmap_crc_calculate(
-                expected_reply.data() + expected_reply.size() - 1,
-                0);
+            expected_reply.back() =
+                rmap_crc_calculate(&expected_reply.back(), 0);
             return expected_reply;
         },
         RMAP_NODE_INVALID_KEY)));
@@ -1566,9 +1569,7 @@ TEST_P(IncomingToTargetAuthorizationRejectWithReplyParams2, Check)
         expected_reply.resize(
             expected_reply_pattern.reply_address_length +
             rmap_calculate_header_size(expected_reply_header) + 1);
-        expected_reply.back() = rmap_crc_calculate(
-            expected_reply_header + expected_reply.size() - 1,
-            0);
+        expected_reply.back() = rmap_crc_calculate(&expected_reply.back(), 0);
     }
     rmap_calculate_and_set_header_crc(expected_reply_header);
 
