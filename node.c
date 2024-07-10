@@ -315,6 +315,9 @@ static enum rmap_status handle_read_command(
          * library of simply declared undefined behvaiour?
          */
         assert(status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS);
+        if (reply_data_size != read_request.data_length) {
+            read_status = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        }
         break;
     }
 
