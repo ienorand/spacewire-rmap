@@ -312,7 +312,7 @@ static enum rmap_status handle_read_command(
 
     default:
         /* TODO: Should incorrectly implemented callbacks be handled by the
-         * library of simply declared undefined behvaiour?
+         * library or simply declared undefined behvaiour?
          */
         assert(status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS);
         if (reply_data_size != read_request.data_length) {
@@ -359,7 +359,7 @@ static enum rmap_status handle_rmw_command(
     enum rmap_status_field_code status_field_code;
     size_t reply_header_offset;
     size_t reply_data_size;
-    enum rmap_status write_status;
+    enum rmap_status rmw_status;
 
     status_field_code = RMAP_STATUS_FIELD_CODE_SUCCESS;
     const enum rmap_status verify_status = rmap_verify_data(packet, size);
@@ -430,7 +430,7 @@ static enum rmap_status handle_rmw_command(
         .extended_address = rmap_get_extended_address(packet),
         .address = rmap_get_address(packet),
         .data_length = rmap_get_data_length(packet)};
-    write_status = RMAP_OK;
+    rmw_status = RMAP_OK;
     status_field_code = context->callbacks.target.rmw_request(
         context,
         reply_buf + data_offset,
@@ -439,41 +439,43 @@ static enum rmap_status handle_rmw_command(
         packet + rmap_calculate_header_size(packet));
     switch (status_field_code) {
     case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
-        write_status = RMAP_NODE_INVALID_KEY;
+        rmw_status = RMAP_NODE_INVALID_KEY;
+        reply_data_size = 0;
+        rmap_set_data_length(reply_buf + reply_header_offset, 0);
         break;
 
     case RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS:
-        write_status = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        rmw_status = RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS;
+        reply_data_size = 0;
+        rmap_set_data_length(reply_buf + reply_header_offset, 0);
         break;
 
     case RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED:
-        write_status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        rmw_status = RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED;
+        reply_data_size = 0;
+        rmap_set_data_length(reply_buf + reply_header_offset, 0);
         break;
 
     case RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE:
-        write_status = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        rmw_status = RMAP_NODE_MEMORY_ACCESS_ERROR;
         break;
 
     default:
         /* TODO: Should incorrectly implemented callbacks be handled by the
-         * library of simply declared undefined behvaiour?
+         * library or simply declared undefined behvaiour?
          */
         assert(status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS);
+        if (reply_data_size != rmw_request.data_length / 2) {
+            rmw_status = RMAP_NODE_MEMORY_ACCESS_ERROR;
+        }
         break;
     }
 
-    size_t reply_size;
-    if (status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS) {
-        reply_buf[data_offset + reply_data_size] =
-            rmap_crc_calculate(reply_buf + data_offset, reply_data_size);
-        reply_size = data_offset + reply_data_size + 1;
-    } else {
-        rmap_set_status(reply_buf + reply_header_offset, status_field_code);
-        rmap_set_data_length(reply_buf + reply_header_offset, 0);
-        rmap_calculate_and_set_header_crc(reply_buf + reply_header_offset);
-        reply_buf[data_offset] = rmap_crc_calculate(reply_buf + data_offset, 0);
-        reply_size = data_offset + 1;
-    }
+    rmap_set_status(reply_buf + reply_header_offset, status_field_code);
+    rmap_calculate_and_set_header_crc(reply_buf + reply_header_offset);
+    reply_buf[data_offset + reply_data_size] =
+        rmap_crc_calculate(reply_buf + data_offset, reply_data_size);
+    const size_t reply_size = data_offset + reply_data_size + 1;
 
     const enum rmap_status send_status =
         context->callbacks.target.send_reply(context, reply_buf, reply_size);
@@ -489,7 +491,7 @@ static enum rmap_status handle_rmw_command(
         break;
     }
 
-    return write_status;
+    return rmw_status;
 }
 
 static enum rmap_status handle_command(
