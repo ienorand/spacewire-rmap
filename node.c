@@ -218,6 +218,9 @@ static enum rmap_status handle_write_command(
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
+    /* TODO: Might make sense to avoid calculating header CRC here and then
+     * recalculate it later?
+     */
     const enum rmap_status create_reply_status =
         rmap_create_success_reply_from_command(
             reply_buf,
@@ -266,6 +269,9 @@ static enum rmap_status handle_read_command(
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
+    /* TODO: Might make sense to avoid calculating header CRC here and then
+     * recalculate it later?
+     */
     const enum rmap_status create_reply_status =
         rmap_create_success_reply_from_command(
             reply_buf,
@@ -408,6 +414,9 @@ static enum rmap_status handle_rmw_command(
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
+    /* TODO: Might make sense to avoid calculating header CRC here and then
+     * recalculate it later?
+     */
     const enum rmap_status create_reply_status =
         rmap_create_success_reply_from_command(
             reply_buf,
