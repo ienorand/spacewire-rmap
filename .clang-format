@@ -5,6 +5,7 @@ AlignEscapedNewlines: DontAlign
 AlignOperands: DontAlign
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: false
 BinPackArguments: false
 BinPackParameters: false
