@@ -1541,7 +1541,160 @@ TEST_F(MockedTargetNode, ReadError)
     EXPECT_EQ(allocation, expected_reply);
 }
 
-/* TODO: Instantiate for RMW errors. */
+TEST_F(MockedTargetNode, RmwReadError)
+{
+    auto incoming_pattern = test_pattern4_rmw;
+    const std::vector<uint8_t> incoming_packet(
+        incoming_pattern.data.begin() + incoming_pattern.header_offset,
+        incoming_pattern.data.end());
+    const size_t requested_data_size =
+        rmap_get_data_length(incoming_packet.data());
+
+    /* Expect reply with one less data byte than requested. */
+    auto reply_pattern = test_pattern4_expected_rmw_reply;
+    std::vector<uint8_t> expected_reply = reply_pattern.data;
+    expected_reply.pop_back();
+    const size_t expected_reply_data_size = requested_data_size / 2 - 1;
+    expected_reply.back() = rmap_crc_calculate(
+        &(*expected_reply.end()) - 1 - expected_reply_data_size,
+        expected_reply_data_size);
+
+    const std::vector<uint8_t> source_data(
+        reply_pattern.data.end() - 1 - requested_data_size / 2,
+        reply_pattern.data.end() - 1);
+    ASSERT_EQ(source_data.size(), requested_data_size / 2);
+    EXPECT_CALL(
+        mock_callbacks,
+        RmwRequest(
+            testing::_,
+            testing::_,
+            testing::_,
+            testing::Field(
+                &rmap_node_target_request::data_length,
+                requested_data_size),
+            testing::_))
+        .WillOnce([&source_data](
+                      struct rmap_node_context *const context,
+                      void *const read_data,
+                      size_t *const read_data_size,
+                      const struct rmap_node_target_request *const request,
+                      const void *const data) {
+            (void)context;
+            (void)request;
+            (void)data;
+            /* Provide one less byte than requested. */
+            memcpy(read_data, source_data.data(), source_data.size() - 1);
+            *read_data_size = source_data.size() - 1;
+            return RMAP_STATUS_FIELD_CODE_SUCCESS;
+        });
+
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
+
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        RMAP_NODE_MEMORY_ACCESS_ERROR);
+
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+TEST_F(MockedTargetNode, RmwWriteError)
+{
+    auto incoming_pattern = test_pattern4_rmw;
+    const std::vector<uint8_t> incoming_packet(
+        incoming_pattern.data.begin() + incoming_pattern.header_offset,
+        incoming_pattern.data.end());
+    const size_t requested_data_size =
+        rmap_get_data_length(incoming_packet.data());
+
+    /* Expect reply with all requested data and error status. */
+    auto reply_pattern = test_pattern4_expected_rmw_reply;
+    std::vector<uint8_t> expected_reply = reply_pattern.data;
+    uint8_t *const expected_reply_header =
+        expected_reply.data() + reply_pattern.header_offset;
+    rmap_set_status(
+        expected_reply_header,
+        RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE);
+    rmap_calculate_and_set_header_crc(expected_reply_header);
+
+    const std::vector<uint8_t> source_data(
+        reply_pattern.data.end() - 1 - requested_data_size / 2,
+        reply_pattern.data.end() - 1);
+    ASSERT_EQ(source_data.size(), requested_data_size / 2);
+    EXPECT_CALL(
+        mock_callbacks,
+        RmwRequest(
+            testing::_,
+            testing::_,
+            testing::_,
+            testing::Field(
+                &rmap_node_target_request::data_length,
+                requested_data_size),
+            testing::_))
+        .WillOnce([&source_data](
+                      struct rmap_node_context *const context,
+                      void *const read_data,
+                      size_t *const read_data_size,
+                      const struct rmap_node_target_request *const request,
+                      const void *const data) {
+            (void)context;
+            (void)request;
+            (void)data;
+            /* Provide all requested data and indicate write error via return
+             * value.
+             */
+            memcpy(read_data, source_data.data(), source_data.size());
+            *read_data_size = source_data.size();
+            return RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE;
+        });
+
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
+
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        RMAP_NODE_MEMORY_ACCESS_ERROR);
+
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
 
 TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
 {
