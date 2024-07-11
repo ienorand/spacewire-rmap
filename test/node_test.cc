@@ -1467,28 +1467,50 @@ INSTANTIATE_TEST_SUITE_P(
             RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE,
             RMAP_NODE_MEMORY_ACCESS_ERROR))));
 
-class IncomingToTargetAuthorizationRejectWithReplyAndCallbackSetupParams :
-    public MockedTargetNode,
-    public testing::WithParamInterface<std::tuple<
-        std::function<std::vector<uint8_t>()>,
-        std::function<void(MockCallbacks &)>,
-        std::function<std::vector<uint8_t>()>,
-        enum rmap_status>>
+TEST_F(MockedTargetNode, ReadError)
 {
-};
+    auto incoming_pattern = test_pattern1_incrementing_read;
+    const std::vector<uint8_t> incoming_packet(
+        incoming_pattern.data.begin() + incoming_pattern.header_offset,
+        incoming_pattern.data.end());
+    const size_t requested_data_size =
+        rmap_get_data_length(incoming_packet.data());
 
-TEST_P(
-    IncomingToTargetAuthorizationRejectWithReplyAndCallbackSetupParams,
-    Check)
-{
-    const auto incoming_packet_generator_fn = std::get<0>(GetParam());
-    const auto callback_setup_fn = std::get<1>(GetParam());
-    const auto expected_reply_generator_fn = std::get<2>(GetParam());
-    const auto expected_status = std::get<3>(GetParam());
+    /* Expect reply with one less data byte than requested. */
+    auto reply_pattern = test_pattern1_expected_read_reply;
+    std::vector<uint8_t> expected_reply = reply_pattern.data;
+    expected_reply.pop_back();
+    const size_t expected_reply_data_size = requested_data_size - 1;
+    /* TODO use &(*end()) - 1 - size pattern for other cases. */
+    expected_reply.back() = rmap_crc_calculate(
+        &(*expected_reply.end()) - 1 - expected_reply_data_size,
+        expected_reply_data_size);
 
-    const auto incoming_packet = incoming_packet_generator_fn();
-    callback_setup_fn(mock_callbacks);
-    const auto expected_reply = expected_reply_generator_fn();
+    const std::vector<uint8_t> source_data(
+        reply_pattern.data.end() - 1 - requested_data_size,
+        reply_pattern.data.end() - 1);
+    ASSERT_EQ(source_data.size(), requested_data_size);
+    EXPECT_CALL(
+        mock_callbacks,
+        ReadRequest(
+            testing::_,
+            testing::_,
+            testing::_,
+            testing::Field(
+                &rmap_node_target_request::data_length,
+                requested_data_size)))
+        .WillOnce([&source_data](
+                      struct rmap_node_context *const context,
+                      void *const data,
+                      size_t *const data_size,
+                      const struct rmap_node_target_request *const request) {
+            (void)context;
+            (void)request;
+            /* Provide one less byte than requested. */
+            memcpy(data, source_data.data(), source_data.size() - 1);
+            *data_size = source_data.size() - 1;
+            return RMAP_STATUS_FIELD_CODE_SUCCESS;
+        });
 
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
@@ -1513,74 +1535,11 @@ TEST_P(
             &node_context,
             incoming_packet.data(),
             incoming_packet.size()),
-        expected_status);
+        RMAP_NODE_MEMORY_ACCESS_ERROR);
 
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
 }
-
-INSTANTIATE_TEST_SUITE_P(
-    ReadError,
-    IncomingToTargetAuthorizationRejectWithReplyAndCallbackSetupParams,
-    testing::Values(std::make_tuple(
-        [] {
-            auto pattern = test_pattern1_incrementing_read;
-            std::vector<uint8_t> incoming_packet(
-                pattern.data.begin() + pattern.header_offset,
-                pattern.data.end());
-            return incoming_packet;
-        },
-        [](const MockCallbacks &mock_callbacks) {
-            EXPECT_CALL(mock_callbacks, ReadRequest)
-                .WillOnce(
-                    [](struct rmap_node_context *const context,
-                       void *const data,
-                       size_t *const data_size,
-                       const struct rmap_node_target_request *const request) {
-                        (void)context;
-                        std::vector<uint8_t> source_data = {
-                            0x01,
-                            0x23,
-                            0x45,
-                            0x67,
-                            0x89,
-                            0xAB,
-                            0xCD,
-                            0xEF,
-                            0x10,
-                            0x11,
-                            0x12,
-                            0x13,
-                            0x14,
-                            0x15,
-                            0x16,
-                            0x17,
-                        };
-                        assert(request->data_length == source_data.size());
-                        /* Provide one less byte than requested. */
-                        memcpy(
-                            data,
-                            source_data.data(),
-                            source_data.size() - 1);
-                        *data_size = source_data.size() - 1;
-                        return RMAP_STATUS_FIELD_CODE_SUCCESS;
-                    });
-        },
-        []() {
-            auto pattern = test_pattern1_expected_read_reply;
-            std::vector<uint8_t> expected_reply = pattern.data;
-            uint8_t *const header =
-                expected_reply.data() + pattern.header_offset;
-            rmap_calculate_and_set_header_crc(header);
-            assert(expected_reply.size() >= 1);
-            expected_reply.resize(expected_reply.size() - 1);
-            expected_reply.back() = rmap_crc_calculate(
-                header + rmap_calculate_header_size(header),
-                expected_reply.size() - pattern.header_offset -
-                    rmap_calculate_header_size(header) - 1);
-            return expected_reply;
-        },
-        RMAP_NODE_MEMORY_ACCESS_ERROR)));
 
 /* TODO: Instantiate for RMW errors. */
 
