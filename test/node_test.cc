@@ -1436,7 +1436,6 @@ TEST_F(MockedTargetNode, ReadError)
     std::vector<uint8_t> expected_reply = reply_pattern.data;
     expected_reply.pop_back();
     const size_t expected_reply_data_size = requested_data_size - 1;
-    /* TODO use &(*end()) - 1 - size pattern for other cases. */
     expected_reply.back() = rmap_crc_calculate(
         &(*expected_reply.end()) - 1 - expected_reply_data_size,
         expected_reply_data_size);
