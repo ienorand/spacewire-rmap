@@ -17,7 +17,7 @@ class AccessorByteCheckInPattern :
 
 TEST_P(AccessorByteCheckInPattern, Check)
 {
-    auto pattern = std::get<0>(GetParam());
+    const auto pattern = std::get<0>(GetParam());
     auto accessor = std::get<0>(std::get<1>(GetParam()));
     auto expected = std::get<1>(std::get<1>(GetParam()));
 
@@ -429,7 +429,7 @@ TEST(SetInstruction, GetGivesMatchingAfterSetValidValue)
 {
     uint8_t buf[RMAP_HEADER_MINIMUM_SIZE] = {};
 
-    auto pattern = test_pattern0_unverified_incrementing_write_with_reply;
+    const auto pattern = test_pattern0_unverified_incrementing_write_with_reply;
     const uint8_t instruction =
         rmap_get_instruction(pattern.data.data() + pattern.header_offset);
 
@@ -448,7 +448,7 @@ class AccessorBoolCheckInPattern :
 
 TEST_P(AccessorBoolCheckInPattern, Check)
 {
-    auto pattern = std::get<0>(GetParam());
+    const auto pattern = std::get<0>(GetParam());
     auto accessor = std::get<0>(std::get<1>(GetParam()));
     auto expected = std::get<1>(std::get<1>(GetParam()));
 
@@ -742,7 +742,7 @@ class GetTransactionIdentifier :
 
 TEST_P(GetTransactionIdentifier, Check)
 {
-    auto pattern = std::get<0>(GetParam());
+    const auto pattern = std::get<0>(GetParam());
     auto expected_transaction_identifier = std::get<1>(GetParam());
     const uint8_t *const header = pattern.data.data() + pattern.header_offset;
     EXPECT_EQ(
@@ -840,7 +840,7 @@ class GetAddress : public testing::TestWithParam<GetAddressParameters>
 
 TEST_P(GetAddress, Check)
 {
-    auto pattern = std::get<0>(GetParam());
+    const auto pattern = std::get<0>(GetParam());
     auto expected_address = std::get<1>(GetParam());
     const uint8_t *const header = pattern.data.data() + pattern.header_offset;
     EXPECT_EQ(rmap_get_address(header), expected_address);
@@ -924,7 +924,7 @@ class GetDataLength : public testing::TestWithParam<GetDataLengthParameter>
 
 TEST_P(GetDataLength, Check)
 {
-    auto pattern = std::get<0>(GetParam());
+    const auto pattern = std::get<0>(GetParam());
     auto expected_data_length = std::get<1>(GetParam());
     const uint8_t *const header = pattern.data.data() + pattern.header_offset;
     EXPECT_EQ(rmap_get_data_length(header), expected_data_length);
@@ -1049,7 +1049,7 @@ class TestPatternCalculateHeaderSize :
 
 TEST_P(TestPatternCalculateHeaderSize, Check)
 {
-    auto pattern = std::get<0>(GetParam());
+    const auto pattern = std::get<0>(GetParam());
     auto expected_header_size = std::get<1>(GetParam());
     const uint8_t *const header = pattern.data.data() + pattern.header_offset;
     EXPECT_EQ(rmap_calculate_header_size(header), expected_header_size);
@@ -1226,11 +1226,10 @@ class TestPatterns : public testing::TestWithParam<struct test_pattern>
 
 TEST_P(TestPatterns, RmapCalculateAndSetHeaderCrcPatternsShouldNotChange)
 {
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
-    std::vector<uint8_t> packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    std::vector<uint8_t> packet =
+        pattern.packet_without_spacewire_address_prefix();
     const auto expected_packet = packet;
     /* CRC is corrupted first, to make sure that an implementation that does
      * nothing cannot pass the test.
@@ -1242,12 +1241,12 @@ TEST_P(TestPatterns, RmapCalculateAndSetHeaderCrcPatternsShouldNotChange)
 
 TEST_P(TestPatterns, VerifyHeaderIntegrityOk)
 {
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
+    std::vector<uint8_t> packet =
+        pattern.packet_without_spacewire_address_prefix();
     EXPECT_EQ(
-        rmap_verify_header_integrity(
-            pattern.data.data() + pattern.header_offset,
-            pattern.data.size() - pattern.header_offset),
+        rmap_verify_header_integrity(packet.data(), packet.size()),
         RMAP_OK);
 }
 
@@ -1255,11 +1254,10 @@ TEST_P(TestPatterns, VerifyHeaderIntegrityNoRmapProtocol)
 {
     uint8_t protocol;
 
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
-    std::vector<uint8_t> packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    std::vector<uint8_t> packet =
+        pattern.packet_without_spacewire_address_prefix();
 
     /* Set all non-RMAP protocol values. */
     protocol = 0;
@@ -1280,11 +1278,10 @@ TEST_P(TestPatterns, VerifyHeaderIntegrityCrcErrorFromCorruptKeyOrStatus)
 {
     unsigned int i;
 
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
-    const std::vector<uint8_t> original_packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    const std::vector<uint8_t> original_packet =
+        pattern.packet_without_spacewire_address_prefix();
     auto packet = original_packet;
 
     /* Flip one or more bits in the key field in commands or in the status field
@@ -1303,7 +1300,7 @@ TEST_P(TestPatterns, VerifyHeaderIntegrityCrcErrorFromCorruptCrcField)
 {
     unsigned int i;
 
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
     const std::vector<uint8_t> original_packet(
         pattern.data.begin() + pattern.header_offset,
@@ -1324,7 +1321,7 @@ TEST_P(TestPatterns, VerifyHeaderIntegrityIncompleteHeader)
 {
     size_t incomplete_header_size;
 
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
     const uint8_t *const header = pattern.data.data() + pattern.header_offset;
 
     const enum rmap_status expected_status = RMAP_INCOMPLETE_HEADER;
@@ -1352,7 +1349,7 @@ TEST_P(TestPatterns, VerifyHeaderIntegrityIncompleteHeader)
 
 TEST_P(TestPatterns, VerifyHeaderIntegrityCompleteHeaderOnly)
 {
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
     const uint8_t *const header = pattern.data.data() + pattern.header_offset;
 
     EXPECT_EQ(
@@ -1364,7 +1361,7 @@ TEST_P(TestPatterns, VerifyHeaderIntegrityCompleteHeaderOnly)
 
 TEST_P(TestPatterns, VerifyHeaderInstructionOk)
 {
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
     const uint8_t *const header = pattern.data.data() + pattern.header_offset;
 
     EXPECT_EQ(rmap_verify_header_instruction(header), RMAP_OK);
@@ -1376,11 +1373,10 @@ TEST_P(TestPatterns, RmapInitializeHeaderPatternsShouldNotChange)
     int command_code;
     size_t header_offset;
 
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
-    std::vector<uint8_t> packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    std::vector<uint8_t> packet =
+        pattern.packet_without_spacewire_address_prefix();
 
     packet_type = RMAP_PACKET_TYPE_COMMAND;
     if (!rmap_is_command(packet.data())) {
@@ -1450,11 +1446,10 @@ TEST_P(TestPatternsWithData, VerifyDataCrcErrorFromCorruptData)
 {
     unsigned int i;
 
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
-    const std::vector<uint8_t> original_packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    const std::vector<uint8_t> original_packet =
+        pattern.packet_without_spacewire_address_prefix();
     auto packet = original_packet;
 
     /* Flip one or more bits in the data byte immediately following the header.
@@ -1472,11 +1467,10 @@ TEST_P(TestPatternsWithData, VerifyDataCrcErrorFromCorruptCrcField)
 {
     unsigned int i;
 
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
-    const std::vector<uint8_t> original_packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    const std::vector<uint8_t> original_packet =
+        pattern.packet_without_spacewire_address_prefix();
     auto packet = original_packet;
 
     /* Flip one or more bits in the CRC field. */
@@ -1494,10 +1488,10 @@ TEST_P(TestPatternsWithData, VerifyDataIncompleteData)
 {
     size_t incomplete_packet_size;
 
-    auto pattern = GetParam();
-    const std::vector<uint8_t> packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    const auto pattern = GetParam();
+
+    const std::vector<uint8_t> packet =
+        pattern.packet_without_spacewire_address_prefix();
 
     const enum rmap_status expected_status = RMAP_INSUFFICIENT_DATA;
 
@@ -1526,11 +1520,10 @@ TEST_P(TestPatternsWithData, VerifyDataTooMuchData)
 {
     size_t too_long_packet_size;
 
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
-    const std::vector<uint8_t> original_packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    const std::vector<uint8_t> original_packet =
+        pattern.packet_without_spacewire_address_prefix();
     auto packet = original_packet;
 
     packet.resize(RMAP_HEADER_SIZE_MAX + RMAP_DATA_LENGTH_MAX + 1);
@@ -1565,11 +1558,10 @@ TEST_P(TestPatternsWithData, VerifyDataTooMuchData)
 
 TEST_P(TestPatternsWithData, VerifyDataOk)
 {
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
-    std::vector<uint8_t> packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    const std::vector<uint8_t> packet =
+        pattern.packet_without_spacewire_address_prefix();
 
     EXPECT_EQ(rmap_verify_data(packet.data(), packet.size()), RMAP_OK);
 }
@@ -1586,11 +1578,10 @@ class TestPatternsWithoutData :
 
 TEST_P(TestPatternsWithoutData, VerifyDataNoData)
 {
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
-    std::vector<uint8_t> packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    const std::vector<uint8_t> packet =
+        pattern.packet_without_spacewire_address_prefix();
 
     EXPECT_EQ(rmap_verify_data(packet.data(), packet.size()), RMAP_NO_DATA);
 }
@@ -2944,261 +2935,85 @@ TEST(RmapCreateSuccessReplyFromCommand, ReadCommandWithoutReply)
         RMAP_NO_REPLY);
 }
 
-TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern0Reply)
+TEST_P(TestPatternCommandReplyPairs, RecreateReply)
 {
-    uint8_t buf[123];
+    std::vector<uint8_t> buf(123);
     size_t reply_header_offset;
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern0_expected_write_reply.data;
-
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern =
-        test_pattern0_unverified_incrementing_write_with_reply;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
+    const auto command_pattern = std::get<0>(GetParam());
+    const std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
 
     EXPECT_EQ(
         rmap_create_success_reply_from_command(
-            buf,
+            buf.data(),
             &reply_header_offset,
-            sizeof(buf),
+            buf.size(),
             command_packet.data()),
         RMAP_OK);
 
-    std::vector<uint8_t> reply_packet(
-        buf,
-        buf + reply_header_offset +
-            rmap_calculate_header_size(buf + reply_header_offset));
-    EXPECT_EQ(reply_packet, expected_packet);
-}
-
-TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern1Reply)
-{
-    uint8_t buf[123];
-    size_t reply_header_offset;
-
-    std::vector<uint8_t> expected_packet =
-        test_pattern1_expected_read_reply.data;
-
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern = test_pattern1_incrementing_read;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
-
-    EXPECT_EQ(
-        rmap_create_success_reply_from_command(
-            buf,
-            &reply_header_offset,
-            sizeof(buf),
-            command_packet.data()),
-        RMAP_OK);
-
-    const uint8_t data[] = {
-        0x01,
-        0x23,
-        0x45,
-        0x67,
-        0x89,
-        0xAB,
-        0xCD,
-        0xEF,
-        0x10,
-        0x11,
-        0x12,
-        0x13,
-        0x14,
-        0x15,
-        0x16,
-        0x17,
-    };
+    const auto reply_pattern = std::get<1>(GetParam());
+    const std::vector<uint8_t> data = reply_pattern.data_field();
 
     const size_t reply_header_size =
-        rmap_calculate_header_size(buf + reply_header_offset);
+        rmap_calculate_header_size(buf.data() + reply_header_offset);
+    buf.resize(reply_header_offset + reply_header_size);
+    if (data.size() > 0) {
+        buf.insert(buf.end(), data.begin(), data.end());
+        buf.push_back(rmap_crc_calculate(data.data(), data.size()));
+    }
 
-    memcpy(buf + reply_header_offset + reply_header_size, data, sizeof(data));
-    buf[reply_header_offset + reply_header_size + sizeof(data)] =
-        rmap_crc_calculate(
-            buf + reply_header_offset + reply_header_size,
-            sizeof(data));
-
-    std::vector<uint8_t> reply_packet(
-        buf,
-        buf + reply_header_offset + reply_header_size + sizeof(data) + 1);
-    EXPECT_EQ(reply_packet, expected_packet);
+    EXPECT_EQ(buf, reply_pattern.data);
 }
 
-TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern2Reply)
+TEST_P(TestPatternCommandReplyPairs, RecreateReplyBefore)
 {
-    uint8_t buf[123];
+    std::vector<uint8_t> buf(123);
+    size_t reply_offset;
     size_t reply_header_offset;
+    std::vector<uint8_t> reply;
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern2_expected_write_reply_with_spacewire_addresses.data;
+    const auto command_pattern = std::get<0>(GetParam());
+    const std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
 
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern =
-        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
+    const auto reply_pattern = std::get<1>(GetParam());
+    const size_t data_offset =
+        RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX;
+    const std::vector<uint8_t> data = reply_pattern.data_field();
+    if (!rmap_is_write(
+            reply_pattern.data.data() + reply_pattern.header_offset)) {
+        /* All packets except write replies have data field. */
+        std::copy(data.begin(), data.end(), buf.begin() + data_offset);
+        buf.at(data_offset + data.size()) =
+            rmap_crc_calculate(data.data(), data.size());
+    }
 
     EXPECT_EQ(
-        rmap_create_success_reply_from_command(
-            buf,
+        rmap_create_success_reply_from_command_before(
+            buf.data(),
+            &reply_offset,
             &reply_header_offset,
-            sizeof(buf),
+            data_offset,
             command_packet.data()),
         RMAP_OK);
-
-    std::vector<uint8_t> reply_packet(
-        buf,
-        buf + reply_header_offset +
-            rmap_calculate_header_size(buf + reply_header_offset));
-    EXPECT_EQ(reply_packet, expected_packet);
-}
-
-TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern3Reply)
-{
-    uint8_t buf[123];
-    size_t reply_header_offset;
-
-    std::vector<uint8_t> expected_packet =
-        test_pattern3_expected_read_reply_with_spacewire_addresses.data;
-
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern =
-        test_pattern3_incrementing_read_with_spacewire_addresses;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
-
-    EXPECT_EQ(
-        rmap_create_success_reply_from_command(
-            buf,
-            &reply_header_offset,
-            sizeof(buf),
-            command_packet.data()),
-        RMAP_OK);
-
-    const uint8_t data[] = {
-        0xA0,
-        0xA1,
-        0xA2,
-        0xA3,
-        0xA4,
-        0xA5,
-        0xA6,
-        0xA7,
-        0xA8,
-        0xA9,
-        0xAA,
-        0xAB,
-        0xAC,
-        0xAD,
-        0xAE,
-        0xAF,
-    };
 
     const size_t reply_header_size =
-        rmap_calculate_header_size(buf + reply_header_offset);
-
-    memcpy(buf + reply_header_offset + reply_header_size, data, sizeof(data));
-    buf[reply_header_offset + reply_header_size + sizeof(data)] =
-        rmap_crc_calculate(
-            buf + reply_header_offset + reply_header_size,
-            sizeof(data));
-
-    std::vector<uint8_t> reply_packet(
-        buf,
-        buf + reply_header_offset + reply_header_size + sizeof(data) + 1);
-    EXPECT_EQ(reply_packet, expected_packet);
-}
-
-TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern4Reply)
-{
-    uint8_t buf[123];
-    size_t reply_header_offset;
-
-    std::vector<uint8_t> expected_packet =
-        test_pattern4_expected_rmw_reply.data;
-
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern = test_pattern4_rmw;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
-
-    EXPECT_EQ(
-        rmap_create_success_reply_from_command(
-            buf,
-            &reply_header_offset,
-            sizeof(buf),
-            command_packet.data()),
-        RMAP_OK);
-
-    const uint8_t data[] = {0xA0, 0xA1, 0xA2};
-
-    const size_t reply_header_size =
-        rmap_calculate_header_size(buf + reply_header_offset);
-
-    memcpy(buf + reply_header_offset + reply_header_size, data, sizeof(data));
-    buf[reply_header_offset + reply_header_size + sizeof(data)] =
-        rmap_crc_calculate(
-            buf + reply_header_offset + reply_header_size,
-            sizeof(data));
-
-    std::vector<uint8_t> reply_packet(
-        buf,
-        buf + reply_header_offset + reply_header_size + sizeof(data) + 1);
-    EXPECT_EQ(reply_packet, expected_packet);
-}
-
-TEST(RmapCreateSuccessReplyFromCommand, RecreateTestPattern5Reply)
-{
-    uint8_t buf[123];
-    size_t reply_header_offset;
-
-    std::vector<uint8_t> expected_packet =
-        test_pattern5_expected_rmw_reply_with_spacewire_addresses.data;
-
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern = test_pattern5_rmw_with_spacewire_addresses;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
-
-    EXPECT_EQ(
-        rmap_create_success_reply_from_command(
-            buf,
-            &reply_header_offset,
-            sizeof(buf),
-            command_packet.data()),
-        RMAP_OK);
-
-    const uint8_t data[] = {0xE0, 0x99, 0xA2, 0xA3};
-
-    const size_t reply_header_size =
-        rmap_calculate_header_size(buf + reply_header_offset);
-
-    memcpy(buf + reply_header_offset + reply_header_size, data, sizeof(data));
-    buf[reply_header_offset + reply_header_size + sizeof(data)] =
-        rmap_crc_calculate(
-            buf + reply_header_offset + reply_header_size,
-            sizeof(data));
-
-    std::vector<uint8_t> reply_packet(
-        buf,
-        buf + reply_header_offset + reply_header_size + sizeof(data) + 1);
-    EXPECT_EQ(reply_packet, expected_packet);
+        rmap_calculate_header_size(buf.data() + reply_header_offset);
+    if (rmap_is_write(
+            reply_pattern.data.data() + reply_pattern.header_offset)) {
+        /* Write replies have no data field. */
+        reply = std::vector<uint8_t>(
+            buf.begin() + reply_offset,
+            buf.begin() + reply_header_offset + reply_header_size);
+    } else {
+        /* All packets except write replies have data field. */
+        reply = std::vector<uint8_t>(
+            buf.begin() + reply_offset,
+            buf.begin() + reply_header_offset + reply_header_size +
+                data.size() + 1);
+    }
+    EXPECT_EQ(reply, reply_pattern.data);
 }
 
 TEST(RmapCreateSuccessReplyFromCommandBefore, WriteCommandWithoutReply)
@@ -3276,297 +3091,22 @@ TEST(RmapCreateSuccessReplyFromCommandBefore, ReadCommandWithoutReply)
         RMAP_NO_REPLY);
 }
 
-TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern0Reply)
-{
-    uint8_t buf[1234];
-    size_t reply_offset;
-    size_t reply_header_offset;
-
-    std::vector<uint8_t> expected_packet =
-        test_pattern0_expected_write_reply.data;
-
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern =
-        test_pattern0_unverified_incrementing_write_with_reply;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
-
-    const size_t data_offset = 123;
-
-    EXPECT_EQ(
-        rmap_create_success_reply_from_command_before(
-            buf,
-            &reply_offset,
-            &reply_header_offset,
-            data_offset,
-            command_packet.data()),
-        RMAP_OK);
-
-    std::vector<uint8_t> reply_packet(buf + reply_offset, buf + data_offset);
-    EXPECT_EQ(reply_packet, expected_packet);
-}
-
-TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern1Reply)
-{
-    uint8_t buf[1234];
-    size_t reply_offset;
-    size_t reply_header_offset;
-
-    std::vector<uint8_t> expected_packet =
-        test_pattern1_expected_read_reply.data;
-
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern = test_pattern1_incrementing_read;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
-
-    const uint8_t data[] = {
-        0x01,
-        0x23,
-        0x45,
-        0x67,
-        0x89,
-        0xAB,
-        0xCD,
-        0xEF,
-        0x10,
-        0x11,
-        0x12,
-        0x13,
-        0x14,
-        0x15,
-        0x16,
-        0x17,
-    };
-
-    const size_t data_offset = 123;
-
-    memcpy(buf + data_offset, data, sizeof(data));
-
-    buf[data_offset + sizeof(data)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data));
-
-    EXPECT_EQ(
-        rmap_create_success_reply_from_command_before(
-            buf,
-            &reply_offset,
-            &reply_header_offset,
-            data_offset,
-            command_packet.data()),
-        RMAP_OK);
-
-    std::vector<uint8_t> reply_packet(
-        buf + reply_offset,
-        buf + data_offset + sizeof(data) + 1);
-    EXPECT_EQ(reply_packet, expected_packet);
-}
-
-TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern2Reply)
-{
-    uint8_t buf[1234];
-    size_t reply_offset;
-    size_t reply_header_offset;
-
-    std::vector<uint8_t> expected_packet =
-        test_pattern2_expected_write_reply_with_spacewire_addresses.data;
-
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern =
-        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
-
-    const size_t data_offset = 123;
-
-    EXPECT_EQ(
-        rmap_create_success_reply_from_command_before(
-            buf,
-            &reply_offset,
-            &reply_header_offset,
-            data_offset,
-            command_packet.data()),
-        RMAP_OK);
-
-    std::vector<uint8_t> reply_packet(buf + reply_offset, buf + data_offset);
-    EXPECT_EQ(reply_packet, expected_packet);
-}
-
-TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern3Reply)
-{
-    uint8_t buf[1234];
-    size_t reply_offset;
-    size_t reply_header_offset;
-
-    std::vector<uint8_t> expected_packet =
-        test_pattern3_expected_read_reply_with_spacewire_addresses.data;
-
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern =
-        test_pattern3_incrementing_read_with_spacewire_addresses;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
-
-    const uint8_t data[] = {
-        0xA0,
-        0xA1,
-        0xA2,
-        0xA3,
-        0xA4,
-        0xA5,
-        0xA6,
-        0xA7,
-        0xA8,
-        0xA9,
-        0xAA,
-        0xAB,
-        0xAC,
-        0xAD,
-        0xAE,
-        0xAF,
-    };
-
-    const size_t data_offset = 123;
-
-    memcpy(buf + data_offset, data, sizeof(data));
-
-    buf[data_offset + sizeof(data)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data));
-
-    EXPECT_EQ(
-        rmap_create_success_reply_from_command_before(
-            buf,
-            &reply_offset,
-            &reply_header_offset,
-            data_offset,
-            command_packet.data()),
-        RMAP_OK);
-
-    std::vector<uint8_t> reply_packet(
-        buf + reply_offset,
-        buf + data_offset + sizeof(data) + 1);
-    EXPECT_EQ(reply_packet, expected_packet);
-}
-
-TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern4Reply)
-{
-    uint8_t buf[1234];
-    size_t reply_offset;
-    size_t reply_header_offset;
-
-    std::vector<uint8_t> expected_packet =
-        test_pattern4_expected_rmw_reply.data;
-
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern = test_pattern4_rmw;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
-
-    const uint8_t data[] = {0xA0, 0xA1, 0xA2};
-
-    const size_t data_offset = 123;
-
-    memcpy(buf + data_offset, data, sizeof(data));
-
-    buf[data_offset + sizeof(data)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data));
-
-    EXPECT_EQ(
-        rmap_create_success_reply_from_command_before(
-            buf,
-            &reply_offset,
-            &reply_header_offset,
-            data_offset,
-            command_packet.data()),
-        RMAP_OK);
-
-    std::vector<uint8_t> reply_packet(
-        buf + reply_offset,
-        buf + data_offset + sizeof(data) + 1);
-    EXPECT_EQ(reply_packet, expected_packet);
-}
-
-TEST(RmapCreateSuccessReplyFromCommandBefore, RecreateTestPattern5Reply)
-{
-    uint8_t buf[1234];
-    size_t reply_offset;
-    size_t reply_header_offset;
-
-    std::vector<uint8_t> expected_packet =
-        test_pattern5_expected_rmw_reply_with_spacewire_addresses.data;
-
-    memset(buf, 0, sizeof(buf));
-
-    auto command_pattern = test_pattern5_rmw_with_spacewire_addresses;
-    std::vector<uint8_t> command_packet(
-        command_pattern.data.begin() + command_pattern.header_offset,
-        command_pattern.data.end());
-
-    const uint8_t data[] = {0xE0, 0x99, 0xA2, 0xA3};
-
-    const size_t data_offset = 123;
-
-    memcpy(buf + data_offset, data, sizeof(data));
-
-    buf[data_offset + sizeof(data)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data));
-
-    EXPECT_EQ(
-        rmap_create_success_reply_from_command_before(
-            buf,
-            &reply_offset,
-            &reply_header_offset,
-            data_offset,
-            command_packet.data()),
-        RMAP_OK);
-
-    std::vector<uint8_t> reply_packet(
-        buf + reply_offset,
-        buf + data_offset + sizeof(data) + 1);
-    EXPECT_EQ(reply_packet, expected_packet);
-}
-
 TEST(RmapRecreateHeader, TestPattern0Command)
 {
     size_t header_offset;
     uint8_t buf[1234];
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern0_unverified_incrementing_write_with_reply.data;
+    const auto pattern = test_pattern0_unverified_incrementing_write_with_reply;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
-    const uint8_t data[] = {
-        0x01,
-        0x23,
-        0x45,
-        0x67,
-        0x89,
-        0xAB,
-        0xCD,
-        0xEF,
-        0x10,
-        0x11,
-        0x12,
-        0x13,
-        0x14,
-        0x15,
-        0x16,
-        0x17,
-    };
+    const std::vector<uint8_t> data = pattern.data_field();
 
     const size_t data_offset = 123;
 
-    memcpy(buf + data_offset, data, sizeof(data));
+    memcpy(buf + data_offset, data.data(), data.size());
 
     EXPECT_EQ(
         rmap_initialize_header_before(
@@ -3587,16 +3127,16 @@ TEST(RmapRecreateHeader, TestPattern0Command)
     rmap_set_transaction_identifier(header, 0);
     rmap_set_extended_address(header, 0x00);
     rmap_set_address(header, 0xA0000000);
-    rmap_set_data_length(header, sizeof(data));
+    rmap_set_data_length(header, data.size());
 
     rmap_calculate_and_set_header_crc(header);
 
-    buf[data_offset + sizeof(data)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data));
+    buf[data_offset + data.size()] =
+        rmap_crc_calculate(buf + data_offset, data.size());
 
-    std::vector<uint8_t> packet(
+    const std::vector<uint8_t> packet(
         buf + header_offset,
-        buf + data_offset + sizeof(data) + 1);
+        buf + data_offset + data.size() + 1);
     EXPECT_EQ(packet, expected_packet);
 }
 
@@ -3604,8 +3144,9 @@ TEST(RmapRecreateHeader, TestPattern0Reply)
 {
     uint8_t buf[123];
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern0_expected_write_reply.data;
+    const auto pattern = test_pattern0_expected_write_reply;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
@@ -3625,7 +3166,9 @@ TEST(RmapRecreateHeader, TestPattern0Reply)
     rmap_set_transaction_identifier(buf, 0);
     rmap_calculate_and_set_header_crc(buf);
 
-    std::vector<uint8_t> packet(buf, buf + rmap_calculate_header_size(buf));
+    const std::vector<uint8_t> packet(
+        buf,
+        buf + rmap_calculate_header_size(buf));
     EXPECT_EQ(packet, expected_packet);
 }
 
@@ -3633,7 +3176,9 @@ TEST(RmapRecreateHeader, TestPattern1Command)
 {
     uint8_t buf[123];
 
-    std::vector<uint8_t> expected_packet = test_pattern1_incrementing_read.data;
+    const auto pattern = test_pattern1_incrementing_read;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
@@ -3665,33 +3210,17 @@ TEST(RmapRecreateHeader, TestPattern1Reply)
     size_t header_offset;
     uint8_t buf[1234];
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern1_expected_read_reply.data;
+    const auto pattern = test_pattern1_expected_read_reply;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
-    const uint8_t data[] = {
-        0x01,
-        0x23,
-        0x45,
-        0x67,
-        0x89,
-        0xAB,
-        0xCD,
-        0xEF,
-        0x10,
-        0x11,
-        0x12,
-        0x13,
-        0x14,
-        0x15,
-        0x16,
-        0x17,
-    };
+    const std::vector<uint8_t> data = pattern.data_field();
 
     const size_t data_offset = 123;
 
-    memcpy(buf + data_offset, data, sizeof(data));
+    memcpy(buf + data_offset, data.data(), data.size());
 
     EXPECT_EQ(
         rmap_initialize_header_before(
@@ -3710,16 +3239,16 @@ TEST(RmapRecreateHeader, TestPattern1Reply)
     rmap_set_target_logical_address(header, 0xFE);
     rmap_set_transaction_identifier(header, 1);
     rmap_set_reserved(header);
-    rmap_set_data_length(header, sizeof(data));
+    rmap_set_data_length(header, data.size());
 
     rmap_calculate_and_set_header_crc(header);
 
-    buf[data_offset + sizeof(data)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data));
+    buf[data_offset + data.size()] =
+        rmap_crc_calculate(buf + data_offset, data.size());
 
-    std::vector<uint8_t> packet(
+    const std::vector<uint8_t> packet(
         buf + header_offset,
-        buf + data_offset + sizeof(data) + 1);
+        buf + data_offset + data.size() + 1);
     EXPECT_EQ(packet, expected_packet);
 }
 
@@ -3728,34 +3257,18 @@ TEST(RmapRecreateHeader, TestPattern2Command)
     size_t header_offset;
     uint8_t buf[1234];
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses
-            .data;
+    const auto pattern =
+        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
-    const uint8_t data[] = {
-        0xA0,
-        0xA1,
-        0xA2,
-        0xA3,
-        0xA4,
-        0xA5,
-        0xA6,
-        0xA7,
-        0xA8,
-        0xA9,
-        0xAA,
-        0xAB,
-        0xAC,
-        0xAD,
-        0xAE,
-        0xAF,
-    };
+    const std::vector<uint8_t> data = pattern.data_field();
 
     const size_t data_offset = 123;
 
-    memcpy(buf + data_offset, data, sizeof(data));
+    memcpy(buf + data_offset, data.data(), data.size());
 
     const uint8_t reply_address[] = {0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x00};
 
@@ -3779,23 +3292,25 @@ TEST(RmapRecreateHeader, TestPattern2Command)
     rmap_set_transaction_identifier(header, 2);
     rmap_set_extended_address(header, 0x00);
     rmap_set_address(header, 0xA0000010);
-    rmap_set_data_length(header, sizeof(data));
+    rmap_set_data_length(header, data.size());
 
     rmap_calculate_and_set_header_crc(header);
 
-    buf[data_offset + sizeof(data)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data));
+    buf[data_offset + data.size()] =
+        rmap_crc_calculate(buf + data_offset, data.size());
 
-    const uint8_t target_address[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
+    const std::vector<uint8_t> target_address(
+        pattern.data.begin(),
+        pattern.data.begin() + pattern.header_offset);
 
     memcpy(
-        header - sizeof(target_address),
-        target_address,
-        sizeof(target_address));
+        header - target_address.size(),
+        target_address.data(),
+        target_address.size());
 
-    std::vector<uint8_t> packet(
-        buf + header_offset - sizeof(target_address),
-        buf + data_offset + sizeof(data) + 1);
+    const std::vector<uint8_t> packet(
+        buf + header_offset - target_address.size(),
+        buf + data_offset + data.size() + 1);
     EXPECT_EQ(packet, expected_packet);
 }
 
@@ -3803,23 +3318,27 @@ TEST(RmapRecreateHeader, TestPattern2Reply)
 {
     uint8_t buf[123];
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern2_expected_write_reply_with_spacewire_addresses.data;
+    const auto pattern =
+        test_pattern2_expected_write_reply_with_spacewire_addresses;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
-    const uint8_t reply_address[] = {0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x00};
+    const std::vector<uint8_t> reply_address(
+        pattern.data.begin(),
+        pattern.data.begin() + pattern.reply_address_length);
 
-    uint8_t *const header = buf + sizeof(reply_address);
+    uint8_t *const header = buf + reply_address.size();
 
     EXPECT_EQ(
         rmap_initialize_header(
             header,
-            sizeof(buf) - sizeof(reply_address),
+            sizeof(buf) - reply_address.size(),
             RMAP_PACKET_TYPE_REPLY,
             RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY |
                 RMAP_COMMAND_CODE_INCREMENT,
-            sizeof(reply_address)),
+            reply_address.size()),
         RMAP_OK);
 
     rmap_set_initiator_logical_address(header, 0x67);
@@ -3828,11 +3347,14 @@ TEST(RmapRecreateHeader, TestPattern2Reply)
     rmap_set_transaction_identifier(header, 2);
     rmap_calculate_and_set_header_crc(header);
 
-    memcpy(buf, reply_address, sizeof(reply_address));
+    memcpy(
+        header - reply_address.size(),
+        reply_address.data(),
+        reply_address.size());
 
-    std::vector<uint8_t> packet(
+    const std::vector<uint8_t> packet(
         buf,
-        buf + sizeof(reply_address) + rmap_calculate_header_size(header));
+        buf + reply_address.size() + rmap_calculate_header_size(header));
     EXPECT_EQ(packet, expected_packet);
 }
 
@@ -3840,21 +3362,25 @@ TEST(RmapRecreateHeader, TestPattern3Command)
 {
     uint8_t buf[123];
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern3_incrementing_read_with_spacewire_addresses.data;
+    const auto pattern =
+        test_pattern3_incrementing_read_with_spacewire_addresses;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
-    const uint8_t target_address[] = {0x11, 0x22, 0x33, 0x44};
-
     const uint8_t reply_address[] = {0x99, 0xAA, 0xBB, 0xCC};
 
-    uint8_t *const header = buf + sizeof(target_address);
+    const std::vector<uint8_t> target_address(
+        pattern.data.begin(),
+        pattern.data.begin() + pattern.header_offset);
+
+    uint8_t *const header = buf + target_address.size();
 
     EXPECT_EQ(
         rmap_initialize_header(
             header,
-            sizeof(buf) - sizeof(target_address),
+            sizeof(buf) - target_address.size(),
             RMAP_PACKET_TYPE_COMMAND,
             RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
             sizeof(reply_address)),
@@ -3871,11 +3397,14 @@ TEST(RmapRecreateHeader, TestPattern3Command)
 
     rmap_calculate_and_set_header_crc(header);
 
-    memcpy(buf, target_address, sizeof(target_address));
+    memcpy(
+        header - target_address.size(),
+        target_address.data(),
+        target_address.size());
 
-    std::vector<uint8_t> packet(
+    const std::vector<uint8_t> packet(
         buf,
-        buf + sizeof(target_address) + rmap_calculate_header_size(header));
+        buf + target_address.size() + rmap_calculate_header_size(header));
     EXPECT_EQ(packet, expected_packet);
 }
 
@@ -3884,35 +3413,22 @@ TEST(RmapRecreateHeader, TestPattern3Reply)
     size_t header_offset;
     uint8_t buf[1234];
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern3_expected_read_reply_with_spacewire_addresses.data;
+    const auto pattern =
+        test_pattern3_expected_read_reply_with_spacewire_addresses;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
-    const uint8_t reply_address[] = {0x99, 0xAA, 0xBB, 0xCC};
-
-    const uint8_t data[] = {
-        0xA0,
-        0xA1,
-        0xA2,
-        0xA3,
-        0xA4,
-        0xA5,
-        0xA6,
-        0xA7,
-        0xA8,
-        0xA9,
-        0xAA,
-        0xAB,
-        0xAC,
-        0xAD,
-        0xAE,
-        0xAF,
-    };
+    const std::vector<uint8_t> data = pattern.data_field();
 
     const size_t data_offset = 123;
 
-    memcpy(buf + data_offset, data, sizeof(data));
+    memcpy(buf + data_offset, data.data(), data.size());
+
+    const std::vector<uint8_t> reply_address(
+        pattern.data.begin(),
+        pattern.data.begin() + pattern.reply_address_length);
 
     EXPECT_EQ(
         rmap_initialize_header_before(
@@ -3921,7 +3437,7 @@ TEST(RmapRecreateHeader, TestPattern3Reply)
             data_offset,
             RMAP_PACKET_TYPE_REPLY,
             RMAP_COMMAND_CODE_REPLY | RMAP_COMMAND_CODE_INCREMENT,
-            sizeof(reply_address)),
+            reply_address.size()),
         RMAP_OK);
 
     uint8_t *const header = buf + header_offset;
@@ -3931,21 +3447,21 @@ TEST(RmapRecreateHeader, TestPattern3Reply)
     rmap_set_target_logical_address(header, 0xFE);
     rmap_set_transaction_identifier(header, 3);
     rmap_set_reserved(header);
-    rmap_set_data_length(header, sizeof(data));
+    rmap_set_data_length(header, data.size());
 
     rmap_calculate_and_set_header_crc(header);
 
     memcpy(
-        header - sizeof(reply_address),
-        reply_address,
-        sizeof(reply_address));
+        header - reply_address.size(),
+        reply_address.data(),
+        reply_address.size());
 
-    buf[data_offset + sizeof(data)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data));
+    buf[data_offset + data.size()] =
+        rmap_crc_calculate(buf + data_offset, data.size());
 
-    std::vector<uint8_t> packet(
-        buf + header_offset - sizeof(reply_address),
-        buf + data_offset + sizeof(data) + 1);
+    const std::vector<uint8_t> packet(
+        buf + header_offset - reply_address.size(),
+        buf + data_offset + data.size() + 1);
     EXPECT_EQ(packet, expected_packet);
 }
 
@@ -3954,17 +3470,17 @@ TEST(RmapRecreateHeader, TestPattern4Command)
     size_t header_offset;
     uint8_t buf[1234];
 
-    std::vector<uint8_t> expected_packet = test_pattern4_rmw.data;
+    const auto pattern = test_pattern4_rmw;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
-    const uint8_t data[] = {0xC0, 0x18, 0x02};
-    const uint8_t mask[] = {0xF0, 0x3C, 0x03};
+    const std::vector<uint8_t> data = pattern.data_field();
 
     const size_t data_offset = 123;
 
-    memcpy(buf + data_offset, data, sizeof(data));
-    memcpy(buf + data_offset + sizeof(data), mask, sizeof(mask));
+    memcpy(buf + data_offset, data.data(), data.size());
 
     EXPECT_EQ(
         rmap_initialize_header_before(
@@ -3984,16 +3500,16 @@ TEST(RmapRecreateHeader, TestPattern4Command)
     rmap_set_transaction_identifier(header, 4);
     rmap_set_extended_address(header, 0x00);
     rmap_set_address(header, 0xA0000010);
-    rmap_set_data_length(header, sizeof(data) + sizeof(mask));
+    rmap_set_data_length(header, data.size());
 
     rmap_calculate_and_set_header_crc(header);
 
-    buf[data_offset + sizeof(data) + sizeof(mask)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data) + sizeof(mask));
+    buf[data_offset + data.size()] =
+        rmap_crc_calculate(buf + data_offset, data.size());
 
-    std::vector<uint8_t> packet(
+    const std::vector<uint8_t> packet(
         buf + header_offset,
-        buf + data_offset + sizeof(data) + sizeof(mask) + 1);
+        buf + data_offset + data.size() + 1);
     EXPECT_EQ(packet, expected_packet);
 }
 
@@ -4002,16 +3518,17 @@ TEST(RmapRecreateHeader, TestPattern4Reply)
     size_t header_offset;
     uint8_t buf[1234];
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern4_expected_rmw_reply.data;
+    const auto pattern = test_pattern4_expected_rmw_reply;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
-    const uint8_t data[] = {0xA0, 0xA1, 0xA2};
+    const std::vector<uint8_t> data = pattern.data_field();
 
     const size_t data_offset = 123;
 
-    memcpy(buf + data_offset, data, sizeof(data));
+    memcpy(buf + data_offset, data.data(), data.size());
 
     EXPECT_EQ(
         rmap_initialize_header_before(
@@ -4030,16 +3547,16 @@ TEST(RmapRecreateHeader, TestPattern4Reply)
     rmap_set_target_logical_address(header, 0xFE);
     rmap_set_transaction_identifier(header, 4);
     rmap_set_reserved(header);
-    rmap_set_data_length(header, sizeof(data));
+    rmap_set_data_length(header, data.size());
 
     rmap_calculate_and_set_header_crc(header);
 
-    buf[data_offset + sizeof(data)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data));
+    buf[data_offset + data.size()] =
+        rmap_crc_calculate(buf + data_offset, data.size());
 
-    std::vector<uint8_t> packet(
+    const std::vector<uint8_t> packet(
         buf + header_offset,
-        buf + data_offset + sizeof(data) + 1);
+        buf + data_offset + data.size() + 1);
     EXPECT_EQ(packet, expected_packet);
 }
 
@@ -4048,18 +3565,17 @@ TEST(RmapRecreateHeader, TestPattern5Command)
     size_t header_offset;
     uint8_t buf[1234];
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern5_rmw_with_spacewire_addresses.data;
+    const auto pattern = test_pattern5_rmw_with_spacewire_addresses;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
-    const uint8_t data[] = {0x07, 0x02, 0xA0, 0x00};
-    const uint8_t mask[] = {0x0F, 0x83, 0xE0, 0xFF};
+    const std::vector<uint8_t> data = pattern.data_field();
 
     const size_t data_offset = 123;
 
-    memcpy(buf + data_offset, data, sizeof(data));
-    memcpy(buf + data_offset + sizeof(data), mask, sizeof(mask));
+    memcpy(buf + data_offset, data.data(), data.size());
 
     const uint8_t reply_address[] = {0x88};
 
@@ -4082,23 +3598,25 @@ TEST(RmapRecreateHeader, TestPattern5Command)
     rmap_set_transaction_identifier(header, 5);
     rmap_set_extended_address(header, 0x00);
     rmap_set_address(header, 0xA0000010);
-    rmap_set_data_length(header, sizeof(data) + sizeof(mask));
+    rmap_set_data_length(header, data.size());
 
     rmap_calculate_and_set_header_crc(header);
 
-    buf[data_offset + sizeof(data) + sizeof(mask)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data) + sizeof(mask));
+    buf[data_offset + data.size()] =
+        rmap_crc_calculate(buf + data_offset, data.size());
 
-    const uint8_t target_address[] = {0x11};
+    const std::vector<uint8_t> target_address(
+        pattern.data.begin(),
+        pattern.data.begin() + pattern.header_offset);
 
     memcpy(
-        header - sizeof(target_address),
-        target_address,
-        sizeof(target_address));
+        header - target_address.size(),
+        target_address.data(),
+        target_address.size());
 
     std::vector<uint8_t> packet(
-        buf + header_offset - sizeof(target_address),
-        buf + data_offset + sizeof(data) + sizeof(mask) + 1);
+        buf + header_offset - target_address.size(),
+        buf + data_offset + data.size() + 1);
     EXPECT_EQ(packet, expected_packet);
 }
 
@@ -4107,18 +3625,22 @@ TEST(RmapRecreateHeader, TestPattern5Reply)
     size_t header_offset;
     uint8_t buf[1234];
 
-    std::vector<uint8_t> expected_packet =
-        test_pattern5_expected_rmw_reply_with_spacewire_addresses.data;
+    const auto pattern =
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses;
+
+    const std::vector<uint8_t> expected_packet = pattern.data;
 
     memset(buf, 0, sizeof(buf));
 
-    const uint8_t reply_address[] = {0x88};
-
-    const uint8_t data[] = {0xE0, 0x99, 0xA2, 0xA3};
+    const std::vector<uint8_t> data = pattern.data_field();
 
     const size_t data_offset = 123;
 
-    memcpy(buf + data_offset, data, sizeof(data));
+    memcpy(buf + data_offset, data.data(), data.size());
+
+    const std::vector<uint8_t> reply_address(
+        pattern.data.begin(),
+        pattern.data.begin() + pattern.reply_address_length);
 
     EXPECT_EQ(
         rmap_initialize_header_before(
@@ -4127,7 +3649,7 @@ TEST(RmapRecreateHeader, TestPattern5Reply)
             data_offset,
             RMAP_PACKET_TYPE_REPLY,
             RMAP_COMMAND_CODE_RMW,
-            sizeof(reply_address)),
+            reply_address.size()),
         RMAP_OK);
 
     uint8_t *const header = buf + header_offset;
@@ -4137,21 +3659,21 @@ TEST(RmapRecreateHeader, TestPattern5Reply)
     rmap_set_target_logical_address(header, 0xFE);
     rmap_set_transaction_identifier(header, 5);
     rmap_set_reserved(header);
-    rmap_set_data_length(header, sizeof(data));
+    rmap_set_data_length(header, data.size());
 
     rmap_calculate_and_set_header_crc(header);
 
     memcpy(
-        header - sizeof(reply_address),
-        reply_address,
-        sizeof(reply_address));
+        header - reply_address.size(),
+        reply_address.data(),
+        reply_address.size());
 
-    buf[data_offset + sizeof(data)] =
-        rmap_crc_calculate(buf + data_offset, sizeof(data));
+    buf[data_offset + data.size()] =
+        rmap_crc_calculate(buf + data_offset, data.size());
 
     std::vector<uint8_t> packet(
-        buf + header_offset - sizeof(reply_address),
-        buf + data_offset + sizeof(data) + 1);
+        buf + header_offset - reply_address.size(),
+        buf + data_offset + data.size() + 1);
     EXPECT_EQ(packet, expected_packet);
 }
 
@@ -4164,11 +3686,10 @@ TEST(RmapCrcCalculate, ZeroesInDataGivesZeroCrc)
 
 TEST_P(TestPatternsWithoutData, RmapCrcCalculate)
 {
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
-    const std::vector<uint8_t> packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    const std::vector<uint8_t> packet =
+        pattern.packet_without_spacewire_address_prefix();
 
     const size_t header_size = rmap_calculate_header_size(packet.data());
     const uint8_t received_crc = packet.at(header_size - 1);
@@ -4183,11 +3704,10 @@ TEST_P(TestPatternsWithoutData, RmapCrcCalculate)
 
 TEST_P(TestPatternsWithData, RmapCrcCalculate)
 {
-    auto pattern = GetParam();
+    const auto pattern = GetParam();
 
-    const std::vector<uint8_t> packet(
-        pattern.data.begin() + pattern.header_offset,
-        pattern.data.end());
+    const std::vector<uint8_t> packet =
+        pattern.packet_without_spacewire_address_prefix();
 
     const size_t header_size = rmap_calculate_header_size(packet.data());
     const uint8_t received_header_crc = packet.at(header_size - 1);
