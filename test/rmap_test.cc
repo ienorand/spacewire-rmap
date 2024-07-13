@@ -1734,6 +1734,52 @@ INSTANTIATE_TEST_SUITE_P(
     TestPatternsWithData,
     testing::ValuesIn(test_patterns_with_data));
 
+typedef std::tuple<struct test_pattern, size_t>
+    VerifyDataRmwDataLengthErrorParameters;
+
+class VerifyDataRmwDataLengthError :
+    public testing::TestWithParam<VerifyDataRmwDataLengthErrorParameters>
+{
+};
+
+TEST_P(VerifyDataRmwDataLengthError, Check)
+{
+    const auto pattern = std::get<0>(GetParam());
+    const size_t data_size = std::get<1>(GetParam());
+
+    std::vector<uint8_t> packet =
+        pattern.packet_without_spacewire_address_prefix();
+    rmap_set_data_length(packet.data(), data_size);
+    rmap_calculate_and_set_header_crc(packet.data());
+    packet.resize(rmap_calculate_header_size(packet.data()));
+    std::vector<uint8_t> data = pattern.data_field();
+    data.resize(data_size, 0xDA);
+    packet.insert(packet.end(), data.begin(), data.end());
+    packet.back() = rmap_crc_calculate(data.data(), data.size());
+
+    EXPECT_EQ(
+        rmap_verify_data(packet.data(), packet.size()),
+        RMAP_RMW_DATA_LENGTH_ERROR);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    RmwCommands,
+    VerifyDataRmwDataLengthError,
+    testing::Combine(
+        testing::Values(
+            test_pattern4_rmw,
+            test_pattern5_rmw_with_spacewire_addresses),
+        testing::Values(1, 3, 5, 7, 9, 123)));
+
+INSTANTIATE_TEST_SUITE_P(
+    RmwReplies,
+    VerifyDataRmwDataLengthError,
+    testing::Combine(
+        testing::Values(
+            test_pattern4_expected_rmw_reply,
+            test_pattern5_expected_rmw_reply_with_spacewire_addresses),
+        testing::Values(5, 123)));
+
 class TestPatternsWithoutData :
     public testing::TestWithParam<struct test_pattern>
 {
