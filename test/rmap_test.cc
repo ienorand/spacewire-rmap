@@ -627,6 +627,136 @@ INSTANTIATE_TEST_SUITE_P(
     TestPatternCommandReplyPairs,
     testing::ValuesIn(test_patterns_command_reply_pairs));
 
+class TestPatternCommandReplyPairsWithNonZeroReplyAddressLength :
+    public testing::TestWithParam<CommandReplyPairParameters>
+{
+};
+
+TEST_P(
+    TestPatternCommandReplyPairsWithNonZeroReplyAddressLength,
+    RmapGetReplyAddressNotEnoughSpace)
+{
+    size_t reply_address_size;
+
+    const auto command = std::get<0>(GetParam());
+    const uint8_t *const command_header =
+        command.data.data() + command.header_offset;
+    const auto reply = std::get<1>(GetParam());
+    ASSERT_GE(command.reply_address_length, 1);
+    std::vector<uint8_t> reply_address(command.reply_address_length - 1);
+
+    EXPECT_EQ(
+        rmap_get_reply_address(
+            reply_address.data(),
+            &reply_address_size,
+            reply_address.size(),
+            command_header),
+        RMAP_NOT_ENOUGH_SPACE);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    CommandReplyPairs,
+    TestPatternCommandReplyPairsWithNonZeroReplyAddressLength,
+    testing::Values(
+        std::make_pair(
+            test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses,
+            test_pattern2_expected_write_reply_with_spacewire_addresses),
+        std::make_pair(
+            test_pattern3_incrementing_read_with_spacewire_addresses,
+            test_pattern3_expected_read_reply_with_spacewire_addresses),
+        std::make_pair(
+            test_pattern5_rmw_with_spacewire_addresses,
+            test_pattern5_expected_rmw_reply_with_spacewire_addresses)));
+
+typedef std::tuple<struct test_pattern, size_t>
+    GetReplyAddressWithAllZeroesParameters;
+
+class GetReplyAddressWithAllZeroes :
+    public testing::TestWithParam<GetReplyAddressWithAllZeroesParameters>
+{
+};
+
+TEST_P(GetReplyAddressWithAllZeroes, Check)
+{
+    size_t reply_address_size;
+    std::vector<uint8_t> reply_address(RMAP_REPLY_ADDRESS_LENGTH_MAX);
+
+    const auto command_pattern = std::get<0>(GetParam());
+    const size_t reply_address_padded_size = std::get<1>(GetParam());
+    ASSERT_THAT(reply_address_padded_size, testing::AnyOf(4, 8, 12));
+    std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    command_packet.erase(
+        command_packet.begin() + 4,
+        command_packet.begin() + 4 +
+            command_pattern.reply_address_length_padded);
+    const std::vector<uint8_t> zeroes_reply_address(
+        reply_address_padded_size,
+        0x00);
+    command_packet.insert(
+        command_packet.begin() + 4,
+        zeroes_reply_address.begin(),
+        zeroes_reply_address.end());
+    const uint8_t instruction = rmap_get_instruction(command_packet.data());
+    rmap_set_instruction(
+        command_packet.data(),
+        (instruction & ~0x3) | reply_address_padded_size / 4);
+    const std::vector<uint8_t> expected_reply_address(1, 0x00);
+
+    EXPECT_EQ(
+        rmap_get_reply_address(
+            reply_address.data(),
+            &reply_address_size,
+            reply_address.size(),
+            command_packet.data()),
+        RMAP_OK);
+
+    reply_address.resize(reply_address_size);
+    EXPECT_EQ(reply_address, expected_reply_address);
+}
+
+TEST_P(GetReplyAddressWithAllZeroes, NotEnoughSpace)
+{
+    size_t reply_address_size;
+    std::vector<uint8_t> reply_address(0);
+
+    const auto command_pattern = std::get<0>(GetParam());
+    const size_t reply_address_padded_size = std::get<1>(GetParam());
+    ASSERT_THAT(reply_address_padded_size, testing::AnyOf(4, 8, 12));
+    std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    command_packet.erase(
+        command_packet.begin() + 4,
+        command_packet.begin() + 4 +
+            command_pattern.reply_address_length_padded);
+    const std::vector<uint8_t> zeroes_reply_address(
+        reply_address_padded_size,
+        0x00);
+    command_packet.insert(
+        command_packet.begin() + 4,
+        zeroes_reply_address.begin(),
+        zeroes_reply_address.end());
+    const uint8_t instruction = rmap_get_instruction(command_packet.data());
+    rmap_set_instruction(
+        command_packet.data(),
+        (instruction & ~0x3) | reply_address_padded_size / 4);
+
+    EXPECT_EQ(
+        rmap_get_reply_address(
+            reply_address.data(),
+            &reply_address_size,
+            reply_address.size(),
+            command_packet.data()),
+        RMAP_NOT_ENOUGH_SPACE);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Commands,
+    GetReplyAddressWithAllZeroes,
+    testing::Combine(
+        testing::ValuesIn(test_patterns_commands),
+        testing::Values(4, 8, 12)));
+
 typedef std::tuple<std::vector<uint8_t>, std::vector<uint8_t>>
     SetReplyAddressParameters;
 
@@ -692,6 +822,9 @@ INSTANTIATE_TEST_SUITE_P(
     ReplyAddressPatterns,
     SetReplyAddress,
     testing::Values(
+        std::make_tuple(
+            std::vector<uint8_t>({0}),
+            std::vector<uint8_t>({0, 0, 0, 0})),
         std::make_tuple(
             std::vector<uint8_t>({1}),
             std::vector<uint8_t>({0, 0, 0, 1})),
