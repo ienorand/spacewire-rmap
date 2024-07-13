@@ -1807,6 +1807,26 @@ TEST_F(MockedTargetNode, IncomingCommandWithReplyAllocationFailure)
         RMAP_NODE_ALLOCATION_FAILURE);
 }
 
+TEST_F(MockedTargetNode, IncomingCommandWithRejectReplyAllocationFailure)
+{
+    EXPECT_CALL(mock_callbacks, WriteRequest)
+        .WillOnce(testing::Return(
+            RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED));
+    EXPECT_CALL(mock_callbacks, Allocate).WillOnce(testing::Return(nullptr));
+    EXPECT_CALL(mock_callbacks, SendReply).Times(0);
+
+    auto command_pattern =
+        test_pattern0_unverified_incrementing_write_with_reply;
+    const std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            command_packet.data(),
+            command_packet.size()),
+        RMAP_NODE_ALLOCATION_FAILURE);
+}
+
 TEST_F(MockedTargetNode, IncomingCommandWithReplySendFailure)
 {
     EXPECT_CALL(mock_callbacks, WriteRequest)
