@@ -1,3 +1,5 @@
+#include <numeric>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -3892,6 +3894,86 @@ TEST(RmapRecreateHeader, TestPattern5Reply)
         buf + header_offset - reply_address.size(),
         buf + data_offset + data.size() + 1);
     EXPECT_EQ(packet, expected_packet);
+}
+
+TEST(RmapStatusText, StatusFieldCodes)
+{
+    const std::map<enum rmap_status_field_code, std::string> map = {
+        {
+            RMAP_STATUS_FIELD_CODE_SUCCESS,
+            "RMAP_STATUS_FIELD_CODE_SUCCESS/RMAP_OK",
+        },
+        {
+            RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE,
+            "RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE",
+        },
+        {
+            RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE,
+            "RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE",
+        },
+        {
+            RMAP_STATUS_FIELD_CODE_INVALID_KEY,
+            "RMAP_STATUS_FIELD_CODE_INVALID_KEY",
+        },
+        {
+            RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC,
+            "RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC",
+        },
+        {
+            RMAP_STATUS_FIELD_CODE_EARLY_EOP,
+            "RMAP_STATUS_FIELD_CODE_EARLY_EOP",
+        },
+        {
+            RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA,
+            "RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA",
+        },
+        {
+            RMAP_STATUS_FIELD_CODE_EEP,
+            "RMAP_STATUS_FIELD_CODE_EEP",
+        },
+        {
+            RMAP_STATUS_FIELD_CODE_VERIFY_BUFFER_OVERRUN,
+            "RMAP_STATUS_FIELD_CODE_VERIFY_BUFFER_OVERRUN",
+        },
+        {
+            RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED,
+            "RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED",
+        },
+        {
+            RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR,
+            "RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR",
+        },
+        {
+            RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS,
+            "RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS",
+        },
+    };
+
+    for (const auto &entry : map) {
+        EXPECT_THAT(
+            rmap_status_text(entry.first),
+            testing::StrEq(entry.second));
+    }
+}
+
+TEST(RmapStatusText, Statuses)
+{
+    EXPECT_THAT(
+        rmap_status_text(RMAP_OK),
+        testing::StrEq("RMAP_STATUS_FIELD_CODE_SUCCESS/RMAP_OK"));
+
+    /* Excluding RMAP_OK since not in continuous range. */
+    const int statuses_first = RMAP_INCOMPLETE_HEADER;
+    const rmap_status statuses_last = RMAP_NOT_ENOUGH_SPACE;
+
+    const int statuses_count = statuses_last + 1 - statuses_first;
+    std::vector<int> statuses(statuses_count);
+    std::iota(statuses.begin(), statuses.end(), statuses_first);
+
+    for (const auto status : statuses) {
+        const char *const text = rmap_status_text(status);
+        EXPECT_THAT(text, testing::StartsWith("RMAP_"));
+    }
 }
 
 TEST(RmapCrcCalculate, ZeroesInDataGivesZeroCrc)
