@@ -710,24 +710,26 @@ void rmap_set_address(void *header, uint32_t address);
 /** Get the data length field from a verified RMAP command, read reply, or RMW
  *  reply header.
  *
- * Read-modify-write is not supported.
+ * The data length will be reported as 0 for RMAP write reply headers, since
+ * they contain no data length field.
  *
- * @pre @p header must contain a verified RMAP command, read reply, or RMW
- *      reply header.
+ * @pre @p header must contain a verified RMAP header.
  *
- * @param[in] header Verified RMAP command, read reply or RMW reply header.
+ * @param[in] header Verified RMAP header.
  *
- * @return Data length field.
+ * @return Data length field or 0 for write replies.
  */
 uint32_t rmap_get_data_length(const void *header);
 
 /** Set the data length field in an initialized RMAP command, read reply, or
  *  RMW reply header.
  *
+ * Will do nothing if @p header contains an RMAP write reply, since they
+ * contain no data length field.
+ *
  * @pre @p data_length must be less than or equal to RMAP_DATA_LENGTH_MAX.
  *
- * @pre @p header must contain an initialized RMAP command, read reply, or RMW
- * reply header.
+ * @pre @p header must contain an initialized RMAP header.
  *
  * @param[out] header Initialized RMAP command, read reply, or RMW reply
  *             header.

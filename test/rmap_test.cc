@@ -1070,10 +1070,14 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple(
             test_pattern0_unverified_incrementing_write_with_reply,
             0x000010),
+        std::make_tuple(test_pattern0_expected_write_reply, 0),
         std::make_tuple(test_pattern1_expected_read_reply, 0x000010),
         std::make_tuple(
             test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses,
             0x000010),
+        std::make_tuple(
+            test_pattern2_expected_write_reply_with_spacewire_addresses,
+            0),
         std::make_tuple(
             test_pattern3_expected_read_reply_with_spacewire_addresses,
             0x000010),
@@ -1171,6 +1175,32 @@ INSTANTIATE_TEST_SUITE_P(
         testing::Range(
             (size_t)0,
             (size_t)(RMAP_REPLY_ADDRESS_LENGTH_MAX + 1))));
+
+TEST(SetAndGetDataLength, WriteReply)
+{
+    uint8_t header[64];
+
+    const size_t reply_address_size = 0;
+    ASSERT_EQ(
+        rmap_initialize_header(
+            header,
+            sizeof(header),
+            RMAP_PACKET_TYPE_REPLY,
+            RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+            reply_address_size),
+        RMAP_OK);
+    /* Write reply contains no data length field, expect set to succeed
+     * silently and expect get to always return 0.
+     */
+    rmap_set_data_length(header, 0);
+    EXPECT_EQ(rmap_get_data_length(header), 0);
+    rmap_set_data_length(header, 1);
+    EXPECT_EQ(rmap_get_data_length(header), 0);
+    rmap_set_data_length(header, 12345678);
+    EXPECT_EQ(rmap_get_data_length(header), 0);
+    rmap_set_data_length(header, 0xFFFFFF);
+    EXPECT_EQ(rmap_get_data_length(header), 0);
+}
 
 typedef std::tuple<struct test_pattern, size_t>
     TestPatternCalculateHeaderSizeParameters;
@@ -2424,7 +2454,11 @@ TEST_P(CreateSuccessReplyFromCommand, RmapCreateSuccessReplyFromCommand)
         EXPECT_EQ(
             rmap_get_data_length(reply_packet + reply_header_offset),
             command_data_length / 2);
-    } else if (!rmap_is_write(command_header)) {
+    } else if (rmap_is_write(command_header)) {
+        /* Write reply contains no data length and will be reported as 0. */
+        EXPECT_EQ(rmap_get_data_length(reply_packet + reply_header_offset), 0);
+
+    } else {
         /* Read reply contains data length. */
         EXPECT_EQ(
             rmap_get_data_length(reply_packet + reply_header_offset),
@@ -2535,7 +2569,11 @@ TEST_P(CreateSuccessReplyFromCommand, RmapCreateSuccessReplyFromCommandBefore)
         EXPECT_EQ(
             rmap_get_data_length(buf + reply_header_offset),
             command_data_length / 2);
-    } else if (!rmap_is_write(command_header)) {
+    } else if (rmap_is_write(command_header)) {
+        /* Write reply contains no data length and will be reported as 0. */
+        EXPECT_EQ(rmap_get_data_length(buf + reply_header_offset), 0);
+
+    } else {
         /* Read reply contains data length. */
         EXPECT_EQ(
             rmap_get_data_length(buf + reply_header_offset),
