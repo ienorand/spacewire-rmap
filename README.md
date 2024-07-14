@@ -208,3 +208,19 @@ This library uses the `assert()` macro to verify library-internal pre- and
 post-conditions, these assertions are intended to only be used during the
 verification of the library itself and are therefore removed via the
 `NDEBUG` macro in the default build.
+
+## Coverage
+
+If GCC gcov is available, the `coverage` make target can be run from the root
+directly in order to print a brief code coverage summary and to generate a
+detailed code coverage report in **`test/coverage-build/rmap.c.gcov`**.
+
+Alternatively, the `coverage-run`, `coverage-gcov-report` and `coverage` make
+targets can be run from the **`test/`** subdirectory.
+
+### gcovr
+
+If [gcovr](https://gcovr.com/) is available, the `coverage-gcovr-report` make
+target can be run from the the **`test/`** subdirectory to produce a gcovr HTML
+report with the main index file located at
+**`test/coverage-build/coverage-gcovr-report.html`**.
