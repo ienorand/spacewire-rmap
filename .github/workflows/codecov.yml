@@ -16,7 +16,7 @@ jobs:
     - name: install googletest
       run: sudo apt-get -y install googletest
     - name: generate coverage
-      run: make coverage-run
+      run: make -C test coverage-run
     - name: upload coverage to codecov
       uses: codecov/codecov-action@v4
       env:
