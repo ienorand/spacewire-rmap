@@ -204,7 +204,7 @@ available in the following files:
 
 ## Assertions
 
-This library uses the **`assert()`** macro to verify library-internal pre- and
+This library uses the `assert()` macro to verify library-internal pre- and
 post-conditions, these assertions are intended to only be used during the
 verification of the library itself and are therefore removed via the
-**`NDEBUG`** macro in the default build.
+`NDEBUG` macro in the default build.
