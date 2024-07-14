@@ -163,7 +163,7 @@ coverage-build/coverage-gcovr-report.html: coverage-run
 	(cd coverage-build && gcovr --decisions --html-details $(@:coverage-build/%=%) --print-summary --root $(USER_DIR))
 
 .PHONY: coverage-gcov-report
-coverage-report: coverage-build/rmap.c.gcov
+coverage-gcov-report: coverage-build/rmap.c.gcov
 
 .PHONY: coverage-gcovr-report
 coverage-gcovr-report: coverage-build/coverage-gcovr-report.html
