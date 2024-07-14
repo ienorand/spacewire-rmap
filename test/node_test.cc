@@ -1215,6 +1215,33 @@ INSTANTIATE_TEST_SUITE_P(
         RMAP_INSUFFICIENT_DATA)));
 
 INSTANTIATE_TEST_SUITE_P(
+    RmwInsufficientData,
+    IncomingToTargetRejectWithReplyParams,
+    testing::Values(std::make_tuple(
+        [] {
+            const auto pattern = test_pattern4_rmw;
+            std::vector<uint8_t> incoming_packet =
+                pattern.packet_without_spacewire_address_prefix();
+            incoming_packet.pop_back();
+            return incoming_packet;
+        },
+        [] {
+            const auto pattern = test_pattern4_expected_rmw_reply;
+            std::vector<uint8_t> expected_reply = pattern.data;
+            uint8_t *const header =
+                expected_reply.data() + pattern.header_offset;
+            rmap_set_status(header, RMAP_STATUS_FIELD_CODE_EARLY_EOP);
+            rmap_set_data_length(header, 0);
+            rmap_calculate_and_set_header_crc(header);
+            expected_reply.resize(
+                pattern.header_offset + rmap_calculate_header_size(header) + 1);
+            expected_reply.back() =
+                rmap_crc_calculate(&expected_reply.back(), 0);
+            return expected_reply;
+        },
+        RMAP_INSUFFICIENT_DATA)));
+
+INSTANTIATE_TEST_SUITE_P(
     TooMuchData,
     IncomingToTargetRejectWithReplyParams,
     testing::Values(std::make_tuple(
@@ -1233,6 +1260,33 @@ INSTANTIATE_TEST_SUITE_P(
                 expected_reply.data() + pattern.header_offset;
             rmap_set_status(header, RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA);
             rmap_calculate_and_set_header_crc(header);
+            return expected_reply;
+        },
+        RMAP_TOO_MUCH_DATA)));
+
+INSTANTIATE_TEST_SUITE_P(
+    RmwTooMuchData,
+    IncomingToTargetRejectWithReplyParams,
+    testing::Values(std::make_tuple(
+        [] {
+            const auto pattern = test_pattern4_rmw;
+            std::vector<uint8_t> incoming_packet =
+                pattern.packet_without_spacewire_address_prefix();
+            incoming_packet.push_back(0xDA);
+            return incoming_packet;
+        },
+        [] {
+            const auto pattern = test_pattern4_expected_rmw_reply;
+            std::vector<uint8_t> expected_reply = pattern.data;
+            uint8_t *const header =
+                expected_reply.data() + pattern.header_offset;
+            rmap_set_status(header, RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA);
+            rmap_set_data_length(header, 0);
+            rmap_calculate_and_set_header_crc(header);
+            expected_reply.resize(
+                pattern.header_offset + rmap_calculate_header_size(header) + 1);
+            expected_reply.back() =
+                rmap_crc_calculate(&expected_reply.back(), 0);
             return expected_reply;
         },
         RMAP_TOO_MUCH_DATA)));
