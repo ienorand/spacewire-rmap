@@ -2,9 +2,9 @@ name: codecov
 
 on:
   push:
-    branches: [ "coverage" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "coverage" ]
+    branches: [ "main" ]
 
 jobs:
   test:
