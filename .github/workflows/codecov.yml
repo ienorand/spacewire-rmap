@@ -1,0 +1,23 @@
+name: codecov
+
+on:
+  push:
+    branches: [ "coverage" ]
+  pull_request:
+    branches: [ "coverage" ]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: install googletest
+      run: sudo apt-get -y install googletest
+    - name: generate coverage
+      run: make coverage-run
+    - name: upload coverage to codecov
+        uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

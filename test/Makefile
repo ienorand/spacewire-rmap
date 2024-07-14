@@ -26,18 +26,25 @@ GMOCK_DIR = /usr/src/googletest/googlemock
 # Where to find user code.
 USER_DIR = $(CURDIR)/..
 
+COVERAGE_DIR ?= $(CURDIR)/coverage-build
+
 # Flags passed to the preprocessor.
 # Set Google Test and Google Mock's header directories as system
 # directories, such that the compiler doesn't generate warnings in
 # these headers.
 CPPFLAGS += -isystem $(GTEST_DIR)/include -isystem $(GMOCK_DIR)/include
 CPPFLAGS += -I$(USER_DIR) -I$(USER_DIR)/test
+COVERAGE_CPPFLAGS += -DNDEBUG
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g -Wall -Wextra -pthread -std=c++11
+COVERAGE_CXXFLAGS += -O0 --coverage
 
 # Flags passed to the C compiler.
 CFLAGS += -O2 -g -Wall -Wextra -std=c99 -Wpedantic -pthread
+COVERAGE_CFLAGS += -O0 --coverage
+
+COVERAGE_LDFLAGS += --coverage
 
 LDLIBS += -pthread
 
@@ -63,6 +70,7 @@ all : $(TESTS)
 
 clean :
 	rm -f $(TESTS) gmock.a gmock_main.a *.o
+	rm -rf coverage
 
 # Builds gmock.a and gmock_main.a.  These libraries contain both
 # Google Mock and Google Test.  A test should link with either gmock.a
@@ -127,3 +135,32 @@ test: all
 
 test-with-custom-crc: all
 	./rmap_test_with_custom_crc_implementation
+
+coverage-build/rmap_test: rmap_test.o test_patterns.o rmap_shim.o coverage-build/rmap.o gmock_main.a | coverage-build
+	$(LINK.cc) $(COVERAGE_LDFLAGS) $(OUTPUT_OPTION) $^
+
+coverage-build/rmap_test_with_custom_crc_implementation: rmap_test.o test_patterns.o rmap_shim.o coverage-build/rmap_without_crc_calculate.o rmap_custom_crc_implementation.o gmock_main.a | coverage-build
+	$(LINK.cc) $(COVERAGE_LDFLAGS) $(OUTPUT_OPTION) $^
+
+coverage-build/rmap.o: $(USER_DIR)/rmap.c $(USER_DIR)/rmap.h | coverage-build
+	$(COMPILE.c) $(COVERAGE_CFLAGS) $(COVERAGE_CPPFLAGS) $(OUTPUT_OPTION) $<
+
+coverage-build/rmap_without_crc_calculate.o: $(USER_DIR)/rmap.c $(USER_DIR)/rmap.h | coverage-build
+	$(COMPILE.c) $(COVERAGE_CFLAGS) $(COVERAGE_CPPFLAGS) -DRMAP_CUSTOM_CRC_IMPLEMENTATION $(OUTPUT_OPTION) $<
+
+coverage-build:
+	mkdir -p $@
+
+.PHONY: coverage-run
+coverage-run: coverage-build/rmap_test coverage-build/rmap_test_with_custom_crc_implementation
+	coverage-build/rmap_test --gtest_brief=1
+	coverage-build/rmap_test_with_custom_crc_implementation --gtest_brief=1
+
+coverage-build/%.gcov: coverage-run
+	(cd coverage-build && gcov --all-blocks --branch-probabilities $(@:coverage-build/%.gcov=%))
+
+.PHONY: coverage-gcov-report
+coverage-report: coverage-build/rmap.c.gcov
+
+.PHONY: coverage
+coverage: coverage-gcov-report

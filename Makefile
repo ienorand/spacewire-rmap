@@ -25,6 +25,10 @@ rmap.o: rmap.h
 test:
 	$(MAKE) -C test test
 
+.PHONY: coverage
+coverage:
+	$(MAKE) -C test coverage
+
 .PHONY: examples
 examples: $(EXAMPLES)
 
