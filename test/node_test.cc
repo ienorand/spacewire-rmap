@@ -1788,15 +1788,50 @@ TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
         RMAP_OK);
 }
 
-TEST_F(MockedTargetNode, IncomingCommandWithReplyAllocationFailure)
+class IncomingCommandWithReplyFailure :
+    public MockedTargetNode,
+    public testing::WithParamInterface<struct test_pattern>
 {
+};
+
+TEST_P(IncomingCommandWithReplyFailure, ReplyAllocationFailure)
+{
+    const auto command_pattern = GetParam();
+
     EXPECT_CALL(mock_callbacks, WriteRequest)
-        .WillOnce(testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS));
+        .WillRepeatedly(testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS));
+    EXPECT_CALL(mock_callbacks, ReadRequest)
+        .WillRepeatedly(
+            [](struct rmap_node_context *const node_context,
+               void *const data,
+               size_t *const data_size,
+               const struct rmap_node_target_request *const request) {
+                (void)node_context;
+                const std::vector<uint8_t> source_data(
+                    request->data_length,
+                    0xDA);
+                memcpy(data, source_data.data(), source_data.size());
+                *data_size = source_data.size();
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            });
+    EXPECT_CALL(mock_callbacks, RmwRequest)
+        .WillRepeatedly([](struct rmap_node_context *const node_context,
+                           void *const read_data,
+                           size_t *const read_data_size,
+                           const struct rmap_node_target_request *const request,
+                           const void *const data) {
+            (void)node_context;
+            (void)data;
+            const std::vector<uint8_t> source_data(
+                request->data_length / 2,
+                0xDA);
+            memcpy(read_data, source_data.data(), source_data.size());
+            *read_data_size = source_data.size();
+            return RMAP_STATUS_FIELD_CODE_SUCCESS;
+        });
     EXPECT_CALL(mock_callbacks, Allocate).WillOnce(testing::Return(nullptr));
     EXPECT_CALL(mock_callbacks, SendReply).Times(0);
 
-    auto command_pattern =
-        test_pattern0_unverified_incrementing_write_with_reply;
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
     EXPECT_EQ(
@@ -1807,37 +1842,22 @@ TEST_F(MockedTargetNode, IncomingCommandWithReplyAllocationFailure)
         RMAP_NODE_ALLOCATION_FAILURE);
 }
 
-TEST_F(
-    MockedTargetNode,
-    IncomingCommandWithInvalidDataCrcReplyAllocationFailure)
+TEST_P(IncomingCommandWithReplyFailure, RejectReplyAllocationFailure)
 {
-    EXPECT_CALL(mock_callbacks, Allocate).WillOnce(testing::Return(nullptr));
-    EXPECT_CALL(mock_callbacks, SendReply).Times(0);
+    const auto command_pattern = GetParam();
 
-    auto command_pattern =
-        test_pattern0_unverified_incrementing_write_with_reply;
-    std::vector<uint8_t> command_packet =
-        command_pattern.packet_without_spacewire_address_prefix();
-    /* Flip a bit in data CRC field. */
-    command_packet.back() ^= 1;
-    EXPECT_EQ(
-        rmap_node_handle_incoming(
-            &node_context,
-            command_packet.data(),
-            command_packet.size()),
-        RMAP_NODE_ALLOCATION_FAILURE);
-}
-
-TEST_F(MockedTargetNode, IncomingCommandWithRejectReplyAllocationFailure)
-{
     EXPECT_CALL(mock_callbacks, WriteRequest)
-        .WillOnce(testing::Return(
+        .WillRepeatedly(testing::Return(
+            RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED));
+    EXPECT_CALL(mock_callbacks, ReadRequest)
+        .WillRepeatedly(testing::Return(
+            RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED));
+    EXPECT_CALL(mock_callbacks, RmwRequest)
+        .WillRepeatedly(testing::Return(
             RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED));
     EXPECT_CALL(mock_callbacks, Allocate).WillOnce(testing::Return(nullptr));
     EXPECT_CALL(mock_callbacks, SendReply).Times(0);
 
-    auto command_pattern =
-        test_pattern0_unverified_incrementing_write_with_reply;
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
     EXPECT_EQ(
@@ -1848,10 +1868,41 @@ TEST_F(MockedTargetNode, IncomingCommandWithRejectReplyAllocationFailure)
         RMAP_NODE_ALLOCATION_FAILURE);
 }
 
-TEST_F(MockedTargetNode, IncomingCommandWithReplySendFailure)
+TEST_P(IncomingCommandWithReplyFailure, ReplySendFailure)
 {
+    const auto command_pattern = GetParam();
+
     EXPECT_CALL(mock_callbacks, WriteRequest)
-        .WillOnce(testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS));
+        .WillRepeatedly(testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS));
+    EXPECT_CALL(mock_callbacks, ReadRequest)
+        .WillRepeatedly(
+            [](struct rmap_node_context *const node_context,
+               void *const data,
+               size_t *const data_size,
+               const struct rmap_node_target_request *const request) {
+                (void)node_context;
+                const std::vector<uint8_t> source_data(
+                    request->data_length,
+                    0xDA);
+                memcpy(data, source_data.data(), source_data.size());
+                *data_size = source_data.size();
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            });
+    EXPECT_CALL(mock_callbacks, RmwRequest)
+        .WillRepeatedly([](struct rmap_node_context *const node_context,
+                           void *const read_data,
+                           size_t *const read_data_size,
+                           const struct rmap_node_target_request *const request,
+                           const void *const data) {
+            (void)node_context;
+            (void)data;
+            const std::vector<uint8_t> source_data(
+                request->data_length / 2,
+                0xDA);
+            memcpy(read_data, source_data.data(), source_data.size());
+            *read_data_size = source_data.size();
+            return RMAP_STATUS_FIELD_CODE_SUCCESS;
+        });
 
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
@@ -1866,8 +1917,6 @@ TEST_F(MockedTargetNode, IncomingCommandWithReplySendFailure)
     EXPECT_CALL(mock_callbacks, SendReply)
         .WillOnce(testing::Return(RMAP_NODE_SEND_REPLY_FAILURE));
 
-    auto command_pattern =
-        test_pattern0_unverified_incrementing_write_with_reply;
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
     EXPECT_EQ(
@@ -1878,7 +1927,77 @@ TEST_F(MockedTargetNode, IncomingCommandWithReplySendFailure)
         RMAP_NODE_SEND_REPLY_FAILURE);
 }
 
-TEST_F(MockedTargetNode, IncomingCommandWithInvalidDataCrcReplySendFailure)
+TEST_P(IncomingCommandWithReplyFailure, RejectReplySendFailure)
+{
+    const auto command_pattern = GetParam();
+
+    EXPECT_CALL(mock_callbacks, WriteRequest)
+        .WillRepeatedly(testing::Return(
+            RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED));
+    EXPECT_CALL(mock_callbacks, ReadRequest)
+        .WillRepeatedly(testing::Return(
+            RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED));
+    EXPECT_CALL(mock_callbacks, RmwRequest)
+        .WillRepeatedly(testing::Return(
+            RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED));
+
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    EXPECT_CALL(mock_callbacks, SendReply)
+        .WillOnce(testing::Return(RMAP_NODE_SEND_REPLY_FAILURE));
+
+    const std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            command_packet.data(),
+            command_packet.size()),
+        RMAP_NODE_SEND_REPLY_FAILURE);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Commands,
+    IncomingCommandWithReplyFailure,
+    testing::ValuesIn(test_patterns_commands));
+
+class IncomingCommandWithVerifyDataErrorReplyFailure :
+    public MockedTargetNode,
+    public testing::WithParamInterface<struct test_pattern>
+{
+};
+
+TEST_P(
+    IncomingCommandWithVerifyDataErrorReplyFailure,
+    InvalidDataCrcReplyAllocationFailure)
+{
+    EXPECT_CALL(mock_callbacks, Allocate).WillOnce(testing::Return(nullptr));
+    EXPECT_CALL(mock_callbacks, SendReply).Times(0);
+
+    const auto command_pattern = GetParam();
+    std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    /* Flip a bit in data CRC field. */
+    command_packet.back() ^= 1;
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            command_packet.data(),
+            command_packet.size()),
+        RMAP_NODE_ALLOCATION_FAILURE);
+}
+
+TEST_P(
+    IncomingCommandWithVerifyDataErrorReplyFailure,
+    InvalidDataCrcReplySendFailure)
 {
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
@@ -1907,36 +2026,14 @@ TEST_F(MockedTargetNode, IncomingCommandWithInvalidDataCrcReplySendFailure)
         RMAP_NODE_SEND_REPLY_FAILURE);
 }
 
-TEST_F(MockedTargetNode, IncomingCommandWithRejectReplySendFailure)
-{
-    EXPECT_CALL(mock_callbacks, WriteRequest)
-        .WillOnce(testing::Return(
-            RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE));
-
-    std::vector<uint8_t> allocation;
-    EXPECT_CALL(mock_callbacks, Allocate)
-        .WillOnce([&allocation](
-                      struct rmap_node_context *const node_context,
-                      const size_t size) {
-            (void)node_context;
-            allocation.resize(size);
-            return allocation.data();
-        });
-
-    EXPECT_CALL(mock_callbacks, SendReply)
-        .WillOnce(testing::Return(RMAP_NODE_SEND_REPLY_FAILURE));
-
-    auto command_pattern =
-        test_pattern0_unverified_incrementing_write_with_reply;
-    const std::vector<uint8_t> command_packet =
-        command_pattern.packet_without_spacewire_address_prefix();
-    EXPECT_EQ(
-        rmap_node_handle_incoming(
-            &node_context,
-            command_packet.data(),
-            command_packet.size()),
-        RMAP_NODE_SEND_REPLY_FAILURE);
-}
+INSTANTIATE_TEST_SUITE_P(
+    CommandsWithData,
+    IncomingCommandWithVerifyDataErrorReplyFailure,
+    testing::Values(
+        test_pattern0_unverified_incrementing_write_with_reply,
+        test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses,
+        test_pattern4_rmw,
+        test_pattern5_rmw_with_spacewire_addresses));
 
 class IncomingToInitiatorRejectParams :
     public MockedInitiatorNode,
