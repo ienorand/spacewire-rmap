@@ -4,6 +4,12 @@ spacewire-rmap is a C library for serializing and deserializing SpaceWire RMAP
 commands and replies, it is intended to be useful when handling SpaceWire RMAP
 in software.
 
+SpaceWire RMAP ("Remote Memory Access Protocol") is commonly used in satellite onboard networks.
+
+This library targets the
+[ECSS-E-ST-50-52C standard](https://ecss.nl/standard/ecss-e-st-50-52c-spacewire-remote-memory-access-protocol-5-february-2010/)
+(registration required for access).
+
 [![build](https://github.com/ienorand/spacewire-rmap/actions/workflows/build.yml/badge.svg)](https://github.com/ienorand/spacewire-rmap/actions/workflows/build.yml)
 [![test](https://github.com/ienorand/spacewire-rmap/actions/workflows/test.yml/badge.svg)](https://github.com/ienorand/spacewire-rmap/actions/workflows/test.yml)
 [![codecov](https://codecov.io/github/ienorand/spacewire-rmap/graph/badge.svg?token=K8QFCV6MQ3)](https://codecov.io/github/ienorand/spacewire-rmap)
