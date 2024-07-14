@@ -56,7 +56,6 @@ static enum rmap_status send_error_reply(
     const void *const command,
     const enum rmap_status_field_code error)
 {
-    enum rmap_status status;
     size_t header_offset;
     size_t reply_size;
 
@@ -69,12 +68,14 @@ static enum rmap_status send_error_reply(
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
-    status = rmap_create_success_reply_from_command(
-        reply_buf,
-        &header_offset,
-        reply_size_max,
-        command);
-    assert(status == RMAP_OK);
+    const enum rmap_status create_reply_status =
+        rmap_create_success_reply_from_command(
+            reply_buf,
+            &header_offset,
+            reply_size_max,
+            command);
+    assert(create_reply_status == RMAP_OK);
+    (void)create_reply_status;
 
     uint8_t *const reply_header = reply_buf + header_offset;
 
@@ -90,17 +91,17 @@ static enum rmap_status send_error_reply(
     }
     rmap_calculate_and_set_header_crc(reply_buf + header_offset);
 
-    status =
+    const enum rmap_status send_status =
         context->callbacks.target.send_reply(context, reply_buf, reply_size);
-    switch (status) {
+    switch (send_status) {
     case RMAP_NODE_SEND_REPLY_FAILURE:
-        return status;
+        return send_status;
 
     default:
         /* TODO: Should invalid return value from incorrectly implemented
          * callbacks be treated as UB?
          */
-        assert(status == RMAP_OK);
+        assert(send_status == RMAP_OK);
         break;
     }
 
