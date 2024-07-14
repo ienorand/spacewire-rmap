@@ -1183,7 +1183,8 @@ INSTANTIATE_TEST_SUITE_P(
                     (RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY) << 2);
             rmap_set_data_length(header, 0);
             rmap_calculate_and_set_header_crc(header);
-            expected_reply.resize(rmap_calculate_header_size(header) + 1);
+            expected_reply.resize(
+                pattern.header_offset + rmap_calculate_header_size(header) + 1);
             expected_reply.back() =
                 rmap_crc_calculate(&expected_reply.back(), 0);
             return expected_reply;
@@ -1263,7 +1264,8 @@ INSTANTIATE_TEST_SUITE_P(
                 RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR);
             rmap_set_data_length(header, 0);
             rmap_calculate_and_set_header_crc(header);
-            expected_reply.resize(rmap_calculate_header_size(header) + 1);
+            expected_reply.resize(
+                pattern.header_offset + rmap_calculate_header_size(header) + 1);
             expected_reply.back() =
                 rmap_crc_calculate(&expected_reply.back(), 0);
             return expected_reply;
