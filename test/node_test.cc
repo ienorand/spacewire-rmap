@@ -960,6 +960,78 @@ INSTANTIATE_TEST_SUITE_P(
             }),
         testing::Values(RMAP_NO_RMAP_PROTOCOL)));
 
+INSTANTIATE_TEST_SUITE_P(
+    UnusedCommandCodeCommandsWithNoReply,
+    IncomingToTargetRejectParams,
+    testing::Combine(
+        testing::Values(
+            [] {
+                const auto pattern = test_pattern1_incrementing_read;
+                std::vector<uint8_t> incoming_packet =
+                    pattern.packet_without_spacewire_address_prefix();
+                /* Set an invalid command code (read, non-verified,
+                 * non-incrementing, without reply).
+                 */
+                rmap_set_instruction(
+                    incoming_packet.data(),
+                    RMAP_PACKET_TYPE_COMMAND << 6 | 0 << 2);
+                rmap_calculate_and_set_header_crc(incoming_packet.data());
+                return incoming_packet;
+            },
+            [] {
+                const auto pattern = test_pattern1_incrementing_read;
+                std::vector<uint8_t> incoming_packet =
+                    pattern.packet_without_spacewire_address_prefix();
+                /* Set an invalid command code (read, non-verified,
+                 * non-incrementing, without reply).
+                 */
+                rmap_set_instruction(
+                    incoming_packet.data(),
+                    RMAP_PACKET_TYPE_COMMAND << 6 | 0 << 2);
+                rmap_calculate_and_set_header_crc(incoming_packet.data());
+                return incoming_packet;
+            }),
+        testing::Values(RMAP_UNUSED_COMMAND_CODE)));
+
+INSTANTIATE_TEST_SUITE_P(
+    InvalidDataCrcInWriteCommandsWithNoReply,
+    IncomingToTargetRejectParams,
+    testing::Combine(
+        testing::Values(
+            [] {
+                const auto pattern =
+                    test_pattern0_unverified_incrementing_write_with_reply;
+                std::vector<uint8_t> incoming_packet =
+                    pattern.packet_without_spacewire_address_prefix();
+                const uint8_t instruction =
+                    rmap_get_instruction(incoming_packet.data());
+                /* Clear reply bit. */
+                rmap_set_instruction(
+                    incoming_packet.data(),
+                    instruction & ~(RMAP_COMMAND_CODE_REPLY << 2));
+                rmap_calculate_and_set_header_crc(incoming_packet.data());
+                /* Flip a bit in data CRC field. */
+                incoming_packet.back() ^= 1;
+                return incoming_packet;
+            },
+            [] {
+                const auto pattern =
+                    test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses;
+                std::vector<uint8_t> incoming_packet =
+                    pattern.packet_without_spacewire_address_prefix();
+                const uint8_t instruction =
+                    rmap_get_instruction(incoming_packet.data());
+                /* Clear reply bit. */
+                rmap_set_instruction(
+                    incoming_packet.data(),
+                    instruction & ~(RMAP_COMMAND_CODE_REPLY << 2));
+                rmap_calculate_and_set_header_crc(incoming_packet.data());
+                /* Flip a bit in data CRC field. */
+                incoming_packet.back() ^= 1;
+                return incoming_packet;
+            }),
+        testing::Values(RMAP_INVALID_DATA_CRC)));
+
 TEST(
     HandleIncoming,
     CommandWithUnusedPacketTypeWitReplyForUnusedPacketTypeDisabled)
@@ -1099,6 +1171,30 @@ TEST(
             incoming_packet.data(),
             incoming_packet.size()),
         RMAP_UNUSED_PACKET_TYPE);
+}
+
+TEST_F(MockedTargetNode, AuthorizationRejectOfWriteCommandWithoutReply)
+{
+    const auto pattern = test_pattern0_unverified_incrementing_write_with_reply;
+    std::vector<uint8_t> incoming_packet =
+        pattern.packet_without_spacewire_address_prefix();
+    const uint8_t instruction = rmap_get_instruction(incoming_packet.data());
+    /* Clear reply bit. */
+    rmap_set_instruction(
+        incoming_packet.data(),
+        instruction & ~(RMAP_COMMAND_CODE_REPLY << 2));
+    rmap_calculate_and_set_header_crc(incoming_packet.data());
+
+    EXPECT_CALL(mock_callbacks, WriteRequest)
+        .WillOnce(testing::Return(
+            RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED));
+
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED);
 }
 
 class IncomingToTargetRejectWithReplyParams :
