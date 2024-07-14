@@ -305,7 +305,7 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
             return allocation.data();
         });
 
-    auto command_pattern =
+    const auto command_pattern =
         test_pattern0_unverified_incrementing_write_with_reply;
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
@@ -362,10 +362,10 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
             return allocation.data();
         });
 
-    auto command_pattern = test_pattern1_incrementing_read;
+    const auto command_pattern = test_pattern1_incrementing_read;
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
-    auto reply_pattern = test_pattern1_expected_read_reply;
+    const auto reply_pattern = test_pattern1_expected_read_reply;
     const std::vector<uint8_t> source_data = reply_pattern.data_field();
     struct rmap_node_target_request request;
     EXPECT_CALL(
@@ -434,7 +434,7 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
             return allocation.data();
         });
 
-    auto command_pattern =
+    const auto command_pattern =
         test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses;
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
@@ -491,11 +491,11 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
             return allocation.data();
         });
 
-    auto command_pattern =
+    const auto command_pattern =
         test_pattern3_incrementing_read_with_spacewire_addresses;
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
-    auto reply_pattern =
+    const auto reply_pattern =
         test_pattern3_expected_read_reply_with_spacewire_addresses;
     const std::vector<uint8_t> source_data = reply_pattern.data_field();
     struct rmap_node_target_request request;
@@ -565,12 +565,12 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
             return allocation.data();
         });
 
-    auto command_pattern = test_pattern4_rmw;
+    const auto command_pattern = test_pattern4_rmw;
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
     const uint8_t *const incoming_data = command_packet.data() +
         rmap_calculate_header_size(command_packet.data());
-    auto reply_pattern = test_pattern4_expected_rmw_reply;
+    const auto reply_pattern = test_pattern4_expected_rmw_reply;
     const std::vector<uint8_t> source_data = reply_pattern.data_field();
     struct rmap_node_target_request request;
     EXPECT_CALL(
@@ -643,12 +643,12 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
             return allocation.data();
         });
 
-    auto command_pattern = test_pattern5_rmw_with_spacewire_addresses;
+    const auto command_pattern = test_pattern5_rmw_with_spacewire_addresses;
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
     const uint8_t *const incoming_data = command_packet.data() +
         rmap_calculate_header_size(command_packet.data());
-    auto reply_pattern =
+    const auto reply_pattern =
         test_pattern5_expected_rmw_reply_with_spacewire_addresses;
     const std::vector<uint8_t> source_data = reply_pattern.data_field();
     struct rmap_node_target_request request;
@@ -878,7 +878,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(
             [] {
-                auto pattern =
+                const auto pattern =
                     test_pattern0_unverified_incrementing_write_with_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
@@ -887,7 +887,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern =
+                const auto pattern =
                     test_pattern0_unverified_incrementing_write_with_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
@@ -896,7 +896,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern =
+                const auto pattern =
                     test_pattern0_unverified_incrementing_write_with_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
@@ -912,7 +912,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(
             [] {
-                auto pattern =
+                const auto pattern =
                     test_pattern0_unverified_incrementing_write_with_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
@@ -921,7 +921,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern =
+                const auto pattern =
                     test_pattern0_unverified_incrementing_write_with_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
@@ -939,7 +939,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(
             [] {
-                auto pattern =
+                const auto pattern =
                     test_pattern0_unverified_incrementing_write_with_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
@@ -949,7 +949,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern =
+                const auto pattern =
                     test_pattern0_unverified_incrementing_write_with_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
@@ -995,7 +995,7 @@ TEST(
         rmap_node_initialize(&node_context, &custom_context, &callbacks, flags),
         RMAP_OK);
 
-    auto pattern = test_pattern0_unverified_incrementing_write_with_reply;
+    const auto pattern = test_pattern0_unverified_incrementing_write_with_reply;
     pattern.packet_without_spacewire_address_prefix();
     std::vector<uint8_t> incoming_packet =
         pattern.packet_without_spacewire_address_prefix();
@@ -1050,7 +1050,7 @@ TEST(
         rmap_node_initialize(&node_context, &custom_context, &callbacks, flags),
         RMAP_OK);
 
-    auto pattern = test_pattern0_unverified_incrementing_write_with_reply;
+    const auto pattern = test_pattern0_unverified_incrementing_write_with_reply;
     const std::vector<uint8_t> original_packet =
         pattern.packet_without_spacewire_address_prefix();
     std::vector<uint8_t> incoming_packet = original_packet;
@@ -1153,7 +1153,7 @@ INSTANTIATE_TEST_SUITE_P(
     IncomingToTargetRejectWithReplyParams,
     testing::Values(std::make_tuple(
         [] {
-            auto pattern = test_pattern1_incrementing_read;
+            const auto pattern = test_pattern1_incrementing_read;
             std::vector<uint8_t> incoming_packet =
                 pattern.packet_without_spacewire_address_prefix();
             const uint8_t instruction =
@@ -1170,7 +1170,7 @@ INSTANTIATE_TEST_SUITE_P(
             return incoming_packet;
         },
         [] {
-            auto pattern = test_pattern1_expected_read_reply;
+            const auto pattern = test_pattern1_expected_read_reply;
             std::vector<uint8_t> expected_reply = pattern.data;
             uint8_t *const header =
                 expected_reply.data() + pattern.header_offset;
@@ -1195,7 +1195,7 @@ INSTANTIATE_TEST_SUITE_P(
     IncomingToTargetRejectWithReplyParams,
     testing::Values(std::make_tuple(
         [] {
-            auto pattern =
+            const auto pattern =
                 test_pattern0_unverified_incrementing_write_with_reply;
             std::vector<uint8_t> incoming_packet =
                 pattern.packet_without_spacewire_address_prefix();
@@ -1203,7 +1203,7 @@ INSTANTIATE_TEST_SUITE_P(
             return incoming_packet;
         },
         [] {
-            auto pattern = test_pattern0_expected_write_reply;
+            const auto pattern = test_pattern0_expected_write_reply;
             std::vector<uint8_t> expected_reply = pattern.data;
             uint8_t *const header =
                 expected_reply.data() + pattern.header_offset;
@@ -1218,7 +1218,7 @@ INSTANTIATE_TEST_SUITE_P(
     IncomingToTargetRejectWithReplyParams,
     testing::Values(std::make_tuple(
         [] {
-            auto pattern =
+            const auto pattern =
                 test_pattern0_unverified_incrementing_write_with_reply;
             std::vector<uint8_t> incoming_packet =
                 pattern.packet_without_spacewire_address_prefix();
@@ -1226,7 +1226,7 @@ INSTANTIATE_TEST_SUITE_P(
             return incoming_packet;
         },
         [] {
-            auto pattern = test_pattern0_expected_write_reply;
+            const auto pattern = test_pattern0_expected_write_reply;
             std::vector<uint8_t> expected_reply = pattern.data;
             uint8_t *const header =
                 expected_reply.data() + pattern.header_offset;
@@ -1241,7 +1241,7 @@ INSTANTIATE_TEST_SUITE_P(
     IncomingToTargetRejectWithReplyParams,
     testing::Values(std::make_tuple(
         [] {
-            auto pattern = test_pattern4_rmw;
+            const auto pattern = test_pattern4_rmw;
             std::vector<uint8_t> incoming_packet =
                 pattern.packet_without_spacewire_address_prefix();
             rmap_set_data_length(incoming_packet.data(), 3);
@@ -1254,7 +1254,7 @@ INSTANTIATE_TEST_SUITE_P(
             return incoming_packet;
         },
         [] {
-            auto pattern = test_pattern4_expected_rmw_reply;
+            const auto pattern = test_pattern4_expected_rmw_reply;
             std::vector<uint8_t> expected_reply = pattern.data;
             uint8_t *const header =
                 expected_reply.data() + pattern.header_offset;
@@ -1276,7 +1276,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Values(
         std::make_tuple(
             [] {
-                auto pattern =
+                const auto pattern =
                     test_pattern0_unverified_incrementing_write_with_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
@@ -1286,7 +1286,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern0_expected_write_reply;
+                const auto pattern = test_pattern0_expected_write_reply;
                 std::vector<uint8_t> expected_reply = pattern.data;
                 uint8_t *const header =
                     expected_reply.data() + pattern.header_offset;
@@ -1299,7 +1299,7 @@ INSTANTIATE_TEST_SUITE_P(
             RMAP_INVALID_DATA_CRC),
         std::make_tuple(
             [] {
-                auto pattern =
+                const auto pattern =
                     test_pattern0_unverified_incrementing_write_with_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
@@ -1308,7 +1308,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern0_expected_write_reply;
+                const auto pattern = test_pattern0_expected_write_reply;
                 std::vector<uint8_t> expected_reply = pattern.data;
                 uint8_t *const header =
                     expected_reply.data() + pattern.header_offset;
@@ -1425,14 +1425,14 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_F(MockedTargetNode, ReadError)
 {
-    auto incoming_pattern = test_pattern1_incrementing_read;
+    const auto incoming_pattern = test_pattern1_incrementing_read;
     const std::vector<uint8_t> incoming_packet =
         incoming_pattern.packet_without_spacewire_address_prefix();
     const size_t requested_data_size =
         rmap_get_data_length(incoming_packet.data());
 
     /* Expect reply with one less data byte than requested. */
-    auto reply_pattern = test_pattern1_expected_read_reply;
+    const auto reply_pattern = test_pattern1_expected_read_reply;
     std::vector<uint8_t> expected_reply = reply_pattern.data;
     expected_reply.pop_back();
     const size_t expected_reply_data_size = requested_data_size - 1;
@@ -1495,14 +1495,14 @@ TEST_F(MockedTargetNode, ReadError)
 
 TEST_F(MockedTargetNode, RmwReadError)
 {
-    auto incoming_pattern = test_pattern4_rmw;
+    const auto incoming_pattern = test_pattern4_rmw;
     const std::vector<uint8_t> incoming_packet =
         incoming_pattern.packet_without_spacewire_address_prefix();
     const size_t requested_data_size =
         rmap_get_data_length(incoming_packet.data());
 
     /* Expect reply with one less data byte than requested. */
-    auto reply_pattern = test_pattern4_expected_rmw_reply;
+    const auto reply_pattern = test_pattern4_expected_rmw_reply;
     std::vector<uint8_t> expected_reply = reply_pattern.data;
     expected_reply.pop_back();
     const size_t expected_reply_data_size = requested_data_size / 2 - 1;
@@ -1568,14 +1568,14 @@ TEST_F(MockedTargetNode, RmwReadError)
 
 TEST_F(MockedTargetNode, RmwWriteError)
 {
-    auto incoming_pattern = test_pattern4_rmw;
+    const auto incoming_pattern = test_pattern4_rmw;
     const std::vector<uint8_t> incoming_packet =
         incoming_pattern.packet_without_spacewire_address_prefix();
     const size_t requested_data_size =
         rmap_get_data_length(incoming_packet.data());
 
     /* Expect reply with all requested data and error status. */
-    auto reply_pattern = test_pattern4_expected_rmw_reply;
+    const auto reply_pattern = test_pattern4_expected_rmw_reply;
     std::vector<uint8_t> expected_reply = reply_pattern.data;
     uint8_t *const expected_reply_header =
         expected_reply.data() + reply_pattern.header_offset;
@@ -1652,7 +1652,7 @@ TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS));
 
-    auto pattern = test_pattern0_expected_write_reply;
+    const auto pattern = test_pattern0_expected_write_reply;
     const std::vector<uint8_t> incoming_packet =
         pattern.packet_without_spacewire_address_prefix();
     EXPECT_EQ(
@@ -1665,7 +1665,7 @@ TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
 
 TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
 {
-    auto pattern = test_pattern1_expected_read_reply;
+    const auto pattern = test_pattern1_expected_read_reply;
     const std::vector<uint8_t> incoming_packet =
         pattern.packet_without_spacewire_address_prefix();
     const uint8_t *const incoming_data = incoming_packet.data() +
@@ -1699,7 +1699,8 @@ TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS));
 
-    auto pattern = test_pattern2_expected_write_reply_with_spacewire_addresses;
+    const auto pattern =
+        test_pattern2_expected_write_reply_with_spacewire_addresses;
     const std::vector<uint8_t> incoming_packet =
         pattern.packet_without_spacewire_address_prefix();
     EXPECT_EQ(
@@ -1712,7 +1713,8 @@ TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
 
 TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
 {
-    auto pattern = test_pattern3_expected_read_reply_with_spacewire_addresses;
+    const auto pattern =
+        test_pattern3_expected_read_reply_with_spacewire_addresses;
     const std::vector<uint8_t> incoming_packet =
         pattern.packet_without_spacewire_address_prefix();
     const uint8_t *const incoming_data = incoming_packet.data() +
@@ -1738,7 +1740,7 @@ TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
 
 TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
 {
-    auto pattern = test_pattern4_expected_rmw_reply;
+    const auto pattern = test_pattern4_expected_rmw_reply;
     const std::vector<uint8_t> incoming_packet =
         pattern.packet_without_spacewire_address_prefix();
     const uint8_t *const incoming_data = incoming_packet.data() +
@@ -1764,7 +1766,8 @@ TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
 
 TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
 {
-    auto pattern = test_pattern5_expected_rmw_reply_with_spacewire_addresses;
+    const auto pattern =
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses;
     const std::vector<uint8_t> incoming_packet =
         pattern.packet_without_spacewire_address_prefix();
     const uint8_t *const incoming_data = incoming_packet.data() +
@@ -2070,7 +2073,7 @@ TEST_P(
     EXPECT_CALL(mock_callbacks, SendReply)
         .WillOnce(testing::Return(RMAP_NODE_SEND_REPLY_FAILURE));
 
-    auto command_pattern =
+    const auto command_pattern =
         test_pattern0_unverified_incrementing_write_with_reply;
     std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
@@ -2159,7 +2162,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(
             [] {
-                auto pattern = test_pattern0_expected_write_reply;
+                const auto pattern = test_pattern0_expected_write_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 incoming_packet.resize(
@@ -2167,7 +2170,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern0_expected_write_reply;
+                const auto pattern = test_pattern0_expected_write_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 /* Only target logical address and protocol. */
@@ -2175,7 +2178,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern0_expected_write_reply;
+                const auto pattern = test_pattern0_expected_write_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 /* Only target logical address. */
@@ -2190,7 +2193,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(
             [] {
-                auto pattern = test_pattern0_expected_write_reply;
+                const auto pattern = test_pattern0_expected_write_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 /* Flip a bit in the status field. */
@@ -2198,7 +2201,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern0_expected_write_reply;
+                const auto pattern = test_pattern0_expected_write_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 const size_t header_size =
@@ -2215,7 +2218,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(
             [] {
-                auto pattern = test_pattern0_expected_write_reply;
+                const auto pattern = test_pattern0_expected_write_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 /* Set non-RMAP protocol. */
@@ -2224,7 +2227,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern0_expected_write_reply;
+                const auto pattern = test_pattern0_expected_write_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 /* Set non-RMAP protocol. */
@@ -2240,7 +2243,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(
             [] {
-                auto pattern = test_pattern0_expected_write_reply;
+                const auto pattern = test_pattern0_expected_write_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 /* Set reserved bit in packet type field. */
@@ -2249,7 +2252,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern1_expected_read_reply;
+                const auto pattern = test_pattern1_expected_read_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 const uint8_t instruction =
@@ -2265,7 +2268,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern0_expected_write_reply;
+                const auto pattern = test_pattern0_expected_write_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 const uint8_t instruction =
@@ -2287,7 +2290,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(
             [] {
-                auto pattern = test_pattern4_expected_rmw_reply;
+                const auto pattern = test_pattern4_expected_rmw_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 rmap_set_data_length(incoming_packet.data(), 5);
@@ -2300,7 +2303,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern1_expected_read_reply;
+                const auto pattern = test_pattern1_expected_read_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 /* One byte too small. */
@@ -2308,7 +2311,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern1_expected_read_reply;
+                const auto pattern = test_pattern1_expected_read_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 /* One byte too big. */
@@ -2316,7 +2319,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern1_expected_read_reply;
+                const auto pattern = test_pattern1_expected_read_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 /* Flip a bit in data field. */
@@ -2325,7 +2328,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return incoming_packet;
             },
             [] {
-                auto pattern = test_pattern1_expected_read_reply;
+                const auto pattern = test_pattern1_expected_read_reply;
                 std::vector<uint8_t> incoming_packet =
                     pattern.packet_without_spacewire_address_prefix();
                 /* Flip a bit in data CRC field. */
