@@ -1964,6 +1964,64 @@ TEST_P(IncomingCommandWithReplyFailure, RejectReplySendFailure)
         RMAP_NODE_SEND_REPLY_FAILURE);
 }
 
+TEST_P(IncomingCommandWithReplyFailure, InvalidHeaderCrcReplyAllocationFailure)
+{
+    EXPECT_CALL(mock_callbacks, Allocate).WillOnce(testing::Return(nullptr));
+    EXPECT_CALL(mock_callbacks, SendReply).Times(0);
+
+    const auto command_pattern = GetParam();
+    std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    /* Set an invalid command code (read, verified, non-incrementing, with
+     * reply).
+     */
+    rmap_set_instruction(
+        command_packet.data(),
+        RMAP_PACKET_TYPE_COMMAND << 6 |
+            (RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY) << 2);
+    rmap_calculate_and_set_header_crc(command_packet.data());
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            command_packet.data(),
+            command_packet.size()),
+        RMAP_NODE_ALLOCATION_FAILURE);
+}
+
+TEST_P(IncomingCommandWithReplyFailure, InvalidHeaderCrcReplySendFailure)
+{
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    EXPECT_CALL(mock_callbacks, SendReply)
+        .WillOnce(testing::Return(RMAP_NODE_SEND_REPLY_FAILURE));
+
+    const auto command_pattern = GetParam();
+    std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    /* Set an invalid command code (read, verified, non-incrementing, with
+     * reply).
+     */
+    rmap_set_instruction(
+        command_packet.data(),
+        RMAP_PACKET_TYPE_COMMAND << 6 |
+            (RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY) << 2);
+    rmap_calculate_and_set_header_crc(command_packet.data());
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            command_packet.data(),
+            command_packet.size()),
+        RMAP_NODE_SEND_REPLY_FAILURE);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     Commands,
     IncomingCommandWithReplyFailure,
