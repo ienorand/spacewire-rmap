@@ -3976,6 +3976,13 @@ TEST(RmapStatusText, Statuses)
     }
 }
 
+TEST(RmapStatusText, InvalidStatuses)
+{
+    EXPECT_THAT(rmap_status_text(8), testing::StrEq("INVALID_STATUS"));
+    EXPECT_THAT(rmap_status_text(123), testing::StrEq("INVALID_STATUS"));
+    EXPECT_THAT(rmap_status_text(1234), testing::StrEq("INVALID_STATUS"));
+}
+
 TEST(RmapCrcCalculate, ZeroesInDataGivesZeroCrc)
 {
     unsigned char data[17] = {};
