@@ -159,8 +159,14 @@ coverage-run: coverage-build/rmap_test coverage-build/rmap_test_with_custom_crc_
 coverage-build/%.gcov: coverage-run
 	(cd coverage-build && gcov --all-blocks --branch-probabilities $(@:coverage-build/%.gcov=%))
 
+coverage-build/coverage-gcovr-report.html: coverage-run
+	(cd coverage-build && gcovr --decisions --html-details $(@:coverage-build/%=%) --print-summary --root $(USER_DIR))
+
 .PHONY: coverage-gcov-report
 coverage-report: coverage-build/rmap.c.gcov
+
+.PHONY: coverage-gcovr-report
+coverage-gcovr-report: coverage-build/coverage-gcovr-report.html
 
 .PHONY: coverage
 coverage: coverage-gcov-report
