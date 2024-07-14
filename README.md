@@ -6,6 +6,7 @@ in software.
 
 [![build](https://github.com/ienorand/spacewire-rmap/actions/workflows/build.yml/badge.svg)](https://github.com/ienorand/spacewire-rmap/actions/workflows/build.yml)
 [![test](https://github.com/ienorand/spacewire-rmap/actions/workflows/test.yml/badge.svg)](https://github.com/ienorand/spacewire-rmap/actions/workflows/test.yml)
+[![codecov](https://codecov.io/github/ienorand/spacewire-rmap/graph/badge.svg?token=K8QFCV6MQ3)](https://codecov.io/github/ienorand/spacewire-rmap)
 
 ## License
 
