@@ -8,10 +8,10 @@ CFLAGS += -Wshadow -Wundef -Wcast-qual -Wcast-align -Wstrict-prototypes
 CFLAGS += -Wstrict-overflow -Wwrite-strings -Wunused-macros -Wredundant-decls
 LDFLAGS += -Wl,--warn-common
 
-
 EXAMPLES = \
 	examples/creating_a_write_command \
-	examples/creating_a_reply_from_a_command
+	examples/creating_a_reply_from_a_command \
+	examples/print_packet_descriptions
 
 .PHONY: default
 default: librmap.a

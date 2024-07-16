@@ -202,6 +202,11 @@ available in the following files:
 *   [**`examples/creating_a_write_command.c`**](examples/creating_a_write_command.c)
 *   [**`examples/creating_a_reply_from_a_command.c`**](examples/creating_a_reply_from_a_command.c)
 
+An example showing parsing of packets and printing of descriptions is available
+in the file:
+
+*   [**`examples/print_packet_descriptions.c`**](examples/print_packet_descriptions.c)
+
 ## Assertions
 
 This library uses the `assert()` macro to verify library-internal pre- and
