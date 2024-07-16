@@ -30,7 +30,7 @@ librmap-node.a: rmap.o node.o
 
 rmap.o: rmap.h
 
-node.o: node.h
+node.o: node.h rmap.h
 
 .PHONY: test
 test:
