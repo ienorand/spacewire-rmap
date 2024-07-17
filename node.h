@@ -127,7 +127,8 @@ typedef enum rmap_status (*rmap_node_target_send_reply_callback)(
  * The callback is finally expected to notify the user that a write operation
  * has occurred and to then return RMAP_STATUS_FIELD_CODE_SUCCESS.
  *
- * A write reply will be sent based on the return value and the read data.
+ * A write reply will be sent based on the return value if the write command
+ * was with-reply.
  *
  * @param[in,out] context Node context object.
  * @param[in] request Generic request parameters.
