@@ -78,8 +78,8 @@ typedef void *(*rmap_node_target_allocate_callback)(
  * a spacewire packet.
  *
  * Send failure can be indicated by returning RMAP_NODE_SEND_REPLY_FAILURE,
- * this value will then be returned by the rmap_node_handle_incoming() which
- * triggered this callback.
+ * this value will then be returned by the rmap_node_handle_incoming() call
+ * which triggered this callback.
  *
  * The callback is expected to return RMAP_OK on success or if send failure is
  * not indicated.
