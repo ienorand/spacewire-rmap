@@ -2,34 +2,6 @@
 
 #include <assert.h>
 
-/* Input must be a valid command header. */
-static size_t
-calculate_success_reply_size_from_command(const void *const command_header)
-{
-    /* TODO:
-     * Maybe expose rmap_calculate_reply_address_size() or
-     * rmap_calculate_theoretical_header_size()?
-     */
-    uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
-    size_t reply_address_size;
-    const enum rmap_status status = rmap_get_reply_address(
-        reply_address,
-        &reply_address_size,
-        sizeof(reply_address),
-        command_header);
-    assert(status == RMAP_OK);
-    (void)status;
-
-    if (rmap_is_write(command_header)) {
-        return reply_address_size + RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
-    }
-
-    /* Read or RMW. */
-
-    return reply_address_size + RMAP_READ_REPLY_HEADER_STATIC_SIZE +
-        rmap_get_data_length(command_header) + 1;
-}
-
 enum rmap_status rmap_node_initialize(
     struct rmap_node_context *const context,
     void *const custom_context,
@@ -208,10 +180,11 @@ static enum rmap_status handle_write_command(
         return write_status;
     }
 
-    const size_t reply_size = calculate_success_reply_size_from_command(packet);
+    const size_t reply_maximum_size =
+        RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
 
     uint8_t *const reply_buf =
-        context->callbacks.target.allocate(context, reply_size);
+        context->callbacks.target.allocate(context, reply_maximum_size);
     if (!reply_buf) {
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
@@ -223,15 +196,13 @@ static enum rmap_status handle_write_command(
         rmap_create_success_reply_from_command(
             reply_buf,
             &reply_header_offset,
-            reply_size,
+            reply_maximum_size,
             packet);
     assert(create_reply_status == RMAP_OK);
     (void)create_reply_status;
-    assert(
-        reply_header_offset +
-            rmap_calculate_header_size(reply_buf + reply_header_offset) ==
-        reply_size);
 
+    const size_t reply_size = reply_header_offset +
+        rmap_calculate_header_size(reply_buf + reply_header_offset);
     const enum rmap_status send_status =
         context->callbacks.target.send_reply(context, reply_buf, reply_size);
     switch (send_status) {
@@ -255,8 +226,8 @@ static enum rmap_status handle_read_command(
     size_t reply_data_size;
     enum rmap_status read_status;
 
-    const size_t reply_maximum_size =
-        calculate_success_reply_size_from_command(packet);
+    const size_t reply_maximum_size = RMAP_REPLY_ADDRESS_LENGTH_MAX +
+        RMAP_COMMAND_HEADER_STATIC_SIZE + rmap_get_data_length(packet) + 1;
 
     uint8_t *const reply_buf =
         context->callbacks.target.allocate(context, reply_maximum_size);
@@ -275,11 +246,6 @@ static enum rmap_status handle_read_command(
             packet);
     assert(create_reply_status == RMAP_OK);
     (void)create_reply_status;
-    assert(
-        reply_header_offset +
-            rmap_calculate_header_size(reply_buf + reply_header_offset) +
-            rmap_get_data_length(packet) + 1 ==
-        reply_maximum_size);
 
     const struct rmap_node_target_request read_request = {
         .target_logical_address = rmap_get_target_logical_address(packet),
@@ -394,8 +360,8 @@ static enum rmap_status handle_rmw_command(
         return verify_status;
     }
 
-    const size_t reply_maximum_size =
-        calculate_success_reply_size_from_command(packet);
+    const size_t reply_maximum_size = RMAP_REPLY_ADDRESS_LENGTH_MAX +
+        RMAP_COMMAND_HEADER_STATIC_SIZE + rmap_get_data_length(packet) / 2 + 1;
 
     uint8_t *const reply_buf =
         context->callbacks.target.allocate(context, reply_maximum_size);
@@ -416,8 +382,6 @@ static enum rmap_status handle_rmw_command(
     (void)create_reply_status;
     const size_t data_offset =
         reply_header_offset + RMAP_READ_REPLY_HEADER_STATIC_SIZE;
-    assert(
-        data_offset + rmap_get_data_length(packet) + 1 == reply_maximum_size);
 
     const struct rmap_node_target_request rmw_request = {
         .target_logical_address = rmap_get_target_logical_address(packet),
