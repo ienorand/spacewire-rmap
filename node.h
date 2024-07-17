@@ -267,7 +267,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
  * (Notes are non-normative in ECSS standards.)
  *
  * This indicates that:
- * * It is expected that the sending of the read reply including the read data
+ * * It is expected that the sending of the RMW reply including the read data
  *   will start and potentially even finish before the write operation occurs.
  * * The status field is expected to not be possible to modify after the read
  *   operation has started.
