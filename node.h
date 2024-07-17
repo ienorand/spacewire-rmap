@@ -130,6 +130,9 @@ typedef enum rmap_status (*rmap_node_target_send_reply_callback)(
  * A write reply will be sent based on the return value if the write command
  * was with-reply.
  *
+ * @attention The callback @e must return one of the return values defined for
+ *            this callback.
+ *
  * @param[in,out] context Node context object.
  * @param[in] request Generic request parameters.
  * @param[in] data Data to be written.
@@ -177,6 +180,9 @@ typedef enum rmap_status_field_code (*rmap_node_target_write_request_callback)(
  * has occurred and to then return RMAP_STATUS_FIELD_CODE_SUCCESS.
  *
  * A read reply will be sent based on the return value and the read data.
+ *
+ * @attention The callback @e must return one of the return values defined for
+ *            this callback.
  *
  * @param[in,out] context Node context object.
  * @param[out] data Destination for read data.
@@ -241,6 +247,9 @@ typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
  * occurred and to then return RMAP_STATUS_FIELD_CODE_SUCCESS.
  *
  * A RMW reply will be sent based on the return value and the read data.
+ *
+ * @attention The callback @e must return one of the return values defined for
+ *            this callback.
  *
  * @par Read and write failure details.
  * @parblock

@@ -98,9 +98,6 @@ static enum rmap_status send_error_reply(
         return send_status;
 
     default:
-        /* TODO: Should invalid return value from incorrectly implemented
-         * callbacks be treated as UB?
-         */
         assert(send_status == RMAP_OK);
         break;
     }
@@ -242,9 +239,6 @@ static enum rmap_status handle_write_command(
         return send_status;
 
     default:
-        /* TODO: Should invalid return value from incorrectly implemented
-         * callbacks be treated as UB?
-         */
         assert(send_status == RMAP_OK);
         break;
     }
@@ -318,9 +312,6 @@ static enum rmap_status handle_read_command(
         break;
 
     default:
-        /* TODO: Should incorrectly implemented callbacks be handled by the
-         * library or simply declared undefined behvaiour?
-         */
         assert(status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS);
         if (reply_data_size != read_request.data_length) {
             read_status = RMAP_NODE_MEMORY_ACCESS_ERROR;
@@ -348,9 +339,6 @@ static enum rmap_status handle_read_command(
         return send_status;
 
     default:
-        /* TODO: Should invalid return value from incorrectly implemented
-         * callbacks be treated as UB?
-         */
         assert(send_status == RMAP_OK);
         break;
     }
@@ -471,9 +459,6 @@ static enum rmap_status handle_rmw_command(
         break;
 
     default:
-        /* TODO: Should incorrectly implemented callbacks be handled by the
-         * library or simply declared undefined behvaiour?
-         */
         assert(status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS);
         if (reply_data_size != rmw_request.data_length / 2) {
             rmw_status = RMAP_NODE_MEMORY_ACCESS_ERROR;
@@ -493,10 +478,10 @@ static enum rmap_status handle_rmw_command(
     case RMAP_NODE_SEND_REPLY_FAILURE:
         return send_status;
 
+    case RMAP_OK:
+        return rmw_status;
+
     default:
-        /* TODO: Should invalid return value from incorrectly implemented
-         * callbacks be treated as UB?
-         */
         assert(send_status == RMAP_OK);
         break;
     }
