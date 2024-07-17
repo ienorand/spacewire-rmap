@@ -715,7 +715,6 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
     std::vector<uint8_t> incoming_packet(RMAP_COMMAND_HEADER_STATIC_SIZE + 32);
     const std::vector<uint8_t> reply_address = {0x01, 0x02, 0x03};
 
-    /* Incoming read command. */
     ASSERT_EQ(
         rmap_initialize_header(
             incoming_packet.data(),
