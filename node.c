@@ -59,7 +59,6 @@ static enum rmap_status send_error_reply(
     size_t header_offset;
     size_t reply_size;
 
-    /* TODO Add tests for maximum size replies. */
     const size_t reply_size_max =
         RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX + 1;
 

@@ -1,3 +1,5 @@
+#include <numeric>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -807,6 +809,94 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
     ASSERT_EQ(data_offset + 234 + 1, expected_reply.size());
     expected_reply.back() =
         rmap_crc_calculate(expected_reply.data() + data_offset, 234);
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+TEST_F(MockedTargetNode, ValidIncomingWriteWithMaximumReplyAddressLength)
+{
+    std::vector<uint8_t> reply_address(RMAP_REPLY_ADDRESS_LENGTH_MAX);
+    std::iota(reply_address.begin(), reply_address.end(), 0x01);
+    /* No data. */
+    std::vector<uint8_t> incoming_packet(
+        RMAP_COMMAND_HEADER_STATIC_SIZE + reply_address.size() + 1);
+
+    ASSERT_EQ(
+        rmap_initialize_header(
+            incoming_packet.data(),
+            incoming_packet.size(),
+            RMAP_PACKET_TYPE_COMMAND,
+            RMAP_COMMAND_CODE_WRITE | RMAP_COMMAND_CODE_REPLY,
+            reply_address.size()),
+        RMAP_OK);
+    rmap_set_target_logical_address(incoming_packet.data(), 0xFE);
+    rmap_set_key(incoming_packet.data(), 0x7E);
+    rmap_set_reply_address(
+        incoming_packet.data(),
+        reply_address.data(),
+        reply_address.size());
+    rmap_set_initiator_logical_address(incoming_packet.data(), 0x67);
+    rmap_set_transaction_identifier(incoming_packet.data(), 123);
+    rmap_set_extended_address(incoming_packet.data(), 0x12);
+    rmap_set_address(incoming_packet.data(), 0x3456789A);
+    rmap_set_data_length(incoming_packet.data(), 0);
+    rmap_calculate_and_set_header_crc(incoming_packet.data());
+    incoming_packet.back() = rmap_crc_calculate(&incoming_packet.back(), 0);
+
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node_context *const node_context,
+                      const size_t size) {
+            (void)node_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    struct rmap_node_target_request write_request;
+    EXPECT_CALL(mock_callbacks, WriteRequest)
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<1>(&write_request),
+            testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS)));
+
+    void *reply_allocation_ptr;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(
+            testing::_,
+            testing::_,
+            reply_address.size() + RMAP_WRITE_REPLY_HEADER_STATIC_SIZE))
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::Return(RMAP_OK)));
+
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size()),
+        RMAP_OK);
+
+    EXPECT_EQ(write_request.target_logical_address, 0xFE);
+    EXPECT_EQ(write_request.key, 0x7E);
+    EXPECT_EQ(write_request.initiator_logical_address, 0x67);
+    EXPECT_EQ(write_request.transaction_identifier, 123);
+    EXPECT_EQ(write_request.extended_address, 0x12);
+    EXPECT_EQ(write_request.address, 0x3456789A);
+    EXPECT_EQ(write_request.data_length, 0);
+    EXPECT_EQ(reply_allocation_ptr, allocation.data());
+
+    std::vector<uint8_t> expected_reply(
+        reply_address.size() + RMAP_WRITE_REPLY_HEADER_STATIC_SIZE);
+    size_t reply_header_offset;
+    ASSERT_EQ(
+        rmap_create_success_reply_from_command(
+            expected_reply.data(),
+            &reply_header_offset,
+            expected_reply.size(),
+            incoming_packet.data()),
+        RMAP_OK);
+    ASSERT_EQ(reply_header_offset, reply_address.size());
     allocation.resize(expected_reply.size());
     EXPECT_EQ(allocation, expected_reply);
 }
