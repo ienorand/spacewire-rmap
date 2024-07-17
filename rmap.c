@@ -221,12 +221,10 @@ enum rmap_status rmap_get_reply_address(
     const size_t reply_address_max_size,
     const void *const header)
 {
-    const unsigned char *reply_address_padded;
-
     const size_t reply_address_padded_size =
         calculate_reply_address_padded_size(rmap_get_instruction(header));
     const unsigned char *const header_bytes = header;
-    reply_address_padded =
+    const unsigned char *const reply_address_padded =
         header_bytes + sizeof(struct command_header_first_static_part);
 
     uint8_t *const reply_address0 = reply_address;
