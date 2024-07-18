@@ -37,4 +37,5 @@ $(EXAMPLES): librmap.a
 .PHONY: clean
 clean:
 	rm -f rmap.o librmap.a $(EXAMPLES:%=%.o) $(EXAMPLES)
+	rm -rf html
 	$(MAKE) -C test clean

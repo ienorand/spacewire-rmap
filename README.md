@@ -35,6 +35,18 @@ Alternatively, the test-suite binary can be compiled via the default make
 target in the **`test/`** subdirectory and the test-suite can be run by
 executing the resulting **`test/rmap_test`** binary.
 
+## Doxygen
+
+Interface documentation is available via
+[doxygen](https://www.doxygen.nl/index.html) source code comments.
+
+If the doxygen tool is available, running
+
+    doxygen
+
+will produce an HTML version of the interface documentation with the main index
+file located at **`html/index.html`**.
+
 ## Usage
 
 ### Error Reporting
