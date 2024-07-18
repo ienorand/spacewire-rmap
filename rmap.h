@@ -9,15 +9,21 @@
 extern "C" {
 #endif
 
+/** Bit offset of packet type in instruction field. */
 #define RMAP_INSTRUCTION_PACKET_TYPE_SHIFT 6
+/** Bit mask of packet type in instruction field. */
 #define RMAP_INSTRUCTION_PACKET_TYPE_MASK \
     (0x3 << RMAP_INSTRUCTION_PACKET_TYPE_SHIFT)
 
+/** Bit offset of command code in instruction field. */
 #define RMAP_INSTRUCTION_COMMAND_CODE_SHIFT 2
+/** Bit mask of command code in instruction field. */
 #define RMAP_INSTRUCTION_COMMAND_CODE_MASK \
     (0xF << RMAP_INSTRUCTION_COMMAND_CODE_SHIFT)
 
+/** Bit offset of reply address length in instruction field. */
 #define RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT 0
+/** Bit mask of reply address length in instruction field. */
 #define RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_MASK \
     (0x3 << RMAP_INSTRUCTION_REPLY_ADDRESS_LENGTH_SHIFT)
 
