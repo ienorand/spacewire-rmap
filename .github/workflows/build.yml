@@ -18,6 +18,6 @@ jobs:
     - name: build examples
       run: make examples
     - name: install doxygen
-      run: sudo apt-get -y install doxygen
+      run: sudo apt-get -y install doxygen graphviz
     - name: generate doxygen
       run: doxygen
