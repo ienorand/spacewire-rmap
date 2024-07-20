@@ -101,9 +101,6 @@ enum rmap_status_field_code {
      * Error description according to the RMAP standard:
      *
      * > EOP marker detected before the end of the data.
-     *
-     * This error can also be reported as error information to the target node
-     * according to the RMAP standard.
      */
     RMAP_STATUS_FIELD_CODE_EARLY_EOP = 5,
 
@@ -122,9 +119,6 @@ enum rmap_status_field_code {
      * > EEP marker detected immediately after the header CRC or during the
      * > transfer of data and Data CRC or immediately thereafter. Indicates that
      * > there was a communication failure of some sort on the network.
-     *
-     * This error can also be reported as error information to the target node
-     * according to the RMAP standard.
      */
     RMAP_STATUS_FIELD_CODE_EEP = 7,
 
