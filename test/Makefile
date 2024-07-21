@@ -70,7 +70,7 @@ all : $(TESTS)
 
 clean :
 	rm -f $(TESTS) gmock.a gmock_main.a *.o
-	rm -rf coverage
+	rm -rf coverage-build
 
 # Builds gmock.a and gmock_main.a.  These libraries contain both
 # Google Mock and Google Test.  A test should link with either gmock.a
