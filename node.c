@@ -442,9 +442,6 @@ static enum rmap_status handle_rmw_command(
     case RMAP_NODE_SEND_REPLY_FAILURE:
         return send_status;
 
-    case RMAP_OK:
-        return rmw_status;
-
     default:
         assert(send_status == RMAP_OK);
         break;
