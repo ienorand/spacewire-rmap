@@ -614,7 +614,7 @@ enum rmap_status rmap_node_handle_incoming(
     default:
         assert(status == RMAP_OK);
         break;
-    };
+    }
 
     if (rmap_is_command(packet)) {
         return handle_command(context, packet, size, has_eep_termination);
