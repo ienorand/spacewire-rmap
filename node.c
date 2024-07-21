@@ -23,6 +23,27 @@ enum rmap_status rmap_node_initialize(
     return RMAP_OK;
 }
 
+/** Create and send an error reply to a given command header.
+ *
+ * Allocate space for, create, and send an error reply based on a given
+ * command header and status code.
+ *
+ * Read and RMW replies (which normally contain data) will have the data length
+ * set to 0 and will have a data field with 0 bytes, regardless of the data
+ * length in the command header.
+ *
+ * @pre @p command must have been verified to be a valid RMAP command
+ *      header.
+ * @pre @p error must be a valid non-success RMAP status field code.
+ *
+ * @param[in,out] context Node context object.
+ * @param[in] command Command header to create reply for.
+ * @param error RMAP status field code to use in reply.
+ *
+ * @retval RMAP_NODE_ALLOCATION_FAILURE Failed to allocate space for reply.
+ * @retval RMAP_NODE_SEND_REPLY_FAILURE Failed to send reply.
+ * @retval RMAP_OK Reply packet sent successfully.
+ */
 static enum rmap_status send_error_reply(
     struct rmap_node_context *const context,
     const void *const command,
@@ -30,6 +51,8 @@ static enum rmap_status send_error_reply(
 {
     size_t header_offset;
     size_t reply_size;
+
+    assert(error != RMAP_STATUS_FIELD_CODE_SUCCESS);
 
     const size_t reply_size_max =
         RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX + 1;
@@ -77,6 +100,54 @@ static enum rmap_status send_error_reply(
     return RMAP_OK;
 }
 
+/** Handle incoming write command packet to node.
+ *
+ * Verify the data field and forward the request for authorization and
+ * processing by the user, send reply if relevant.
+ *
+ * @pre @p packet must have been verified to contain a valid RMAP write command
+ *      header.
+ * @pre @p size must indicate the exact number of bytes in the write command
+ *      packet.
+ *
+ * @param[in,out] context Node context object.
+ * @param[in] packet Incoming packet.
+ * @param size Number of bytes in incoming packet in @p packet (excluding the
+ *        EOP or EEP).
+ * @param has_eep_termination Flag indicating if the incoming packet was
+ *        terminated with an EEP.
+ *
+ * @retval RMAP_NODE_ALLOCATION_FAILURE Incoming packet and intended reply
+ *         discarded due to allocation failure.
+ * @retval RMAP_NODE_SEND_REPLY_FAILURE Incoming packet and intended reply
+ *         discarded due to reply sending failure.
+ * @retval RMAP_INSUFFICIENT_DATA Incoming packet rejected due to being smaller
+ *         than indicated by the data length. An error reply has been sent if
+ *         applicable.
+ * @retval RMAP_NODE_INSUFFICIENT_DATA_WITH_EEP Incoming packet (terminated
+ *         with an EEP) rejected due to being smaller than indicated by the
+ *         data length. An error reply has been sent if applicable.
+ * @retval RMAP_TOO_MUCH_DATA Incoming packet rejected due to being larger than
+ *         indicated by the data length. An error reply has been sent if
+ *         applicable.
+ * @retval RMAP_INVALID_DATA_CRC Incoming packet rejected due to the data CRC
+ *         indicating errors in the data. An error reply has been sent if
+ *         applicable.
+ * @retval RMAP_NODE_INVALID_KEY Incoming packet rejected due to its key not
+ *         being authorized by the request callback. An error reply has been
+ *         sent if applicable.
+ * @retval RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS Incoming packet rejected
+ *         due to its target logical address not being authorized by
+ *         the request callback. An error reply has been sent if applicable.
+ * @retval RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED Incoming packet
+ *         rejected due to not being authorized for "any other reason" by the
+ *         request callback. An error reply has been sent if applicable.
+ * @retval RMAP_NODE_MEMORY_ACCESS_ERROR Incoming packet processing aborted due
+ *         to write memory access error. An error reply has been sent if
+ *         applicable.
+ * @retval RMAP_OK Incoming packet processed successfully. A reply has been
+ *         sent if applicable.
+ */
 static enum rmap_status handle_write_command(
     struct rmap_node_context *const context,
     const uint8_t *const packet,
@@ -223,6 +294,35 @@ static enum rmap_status handle_write_command(
     return RMAP_OK;
 }
 
+/** Handle incoming read command packet to node.
+ *
+ * Forward the request for authorization and processing by the user, send
+ * reply.
+ *
+ * @pre @p packet must have been verified to contain a valid RMAP read command
+ *      header.
+ *
+ * @param[in,out] context Node context object.
+ * @param[in] packet Incoming packet.
+ *
+ * @retval RMAP_NODE_ALLOCATION_FAILURE Incoming packet and intended reply
+ *         discarded due to allocation failure.
+ * @retval RMAP_NODE_SEND_REPLY_FAILURE Incoming packet and intended reply
+ *         discarded due to reply sending failure.
+ * @retval RMAP_NODE_INVALID_KEY Incoming packet rejected due to its key not
+ *         being authorized by the request callback. An error reply has been
+ *         sent.
+ * @retval RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS Incoming packet rejected
+ *         due to its target logical address not being authorized by
+ *         the request callback. An error reply has been sent.
+ * @retval RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED Incoming packet
+ *         rejected due to not being authorized for "any other reason" by the
+ *         request callback. An error reply has been sent.
+ * @retval RMAP_NODE_MEMORY_ACCESS_ERROR Incoming packet processing aborted due
+ *         to read memory access error. An error reply has been sent.
+ * @retval RMAP_OK Incoming packet processed successfully. A reply has been
+ *         sent if applicable.
+ */
 static enum rmap_status handle_read_command(
     struct rmap_node_context *const context,
     const uint8_t *const packet)
@@ -318,6 +418,53 @@ static enum rmap_status handle_read_command(
     return read_status;
 }
 
+/** Handle incoming RMW command packet to node.
+ *
+ * Verify the data field and forward the request for authorization and
+ * processing by the user, send reply if relevant.
+ *
+ * @pre @p packet must have been verified to contain a valid RMAP RMW command
+ *      header.
+ * @pre @p size must indicate the exact number of bytes in the RMW command
+ *      packet.
+ *
+ * @param[in,out] context Node context object.
+ * @param[in] packet Incoming packet.
+ * @param size Number of bytes in incoming packet in @p packet (excluding the
+ *        EOP or EEP).
+ * @param has_eep_termination Flag indicating if the incoming packet was
+ *        terminated with an EEP.
+ *
+ * @retval RMAP_NODE_ALLOCATION_FAILURE Incoming packet and intended reply
+ *         discarded due to allocation failure.
+ * @retval RMAP_NODE_SEND_REPLY_FAILURE Incoming packet and intended reply
+ *         discarded due to reply sending failure.
+ * @retval RMAP_RMW_DATA_LENGTH_ERROR Incoming packet rejected due to data
+ *         length field value being invalid for a RMW command. An error reply
+ *         has been sent.
+ * @retval RMAP_INSUFFICIENT_DATA Incoming packet rejected due to being smaller
+ *         than indicated by the data length. An error reply has been sent.
+ * @retval RMAP_NODE_INSUFFICIENT_DATA_WITH_EEP Incoming packet (terminated
+ *         with an EEP) rejected due to being smaller than indicated by the
+ *         data length. An error reply has been sent.
+ * @retval RMAP_TOO_MUCH_DATA Incoming packet rejected due to being larger than
+ *         indicated by the data length. An error reply has been sent.
+ * @retval RMAP_INVALID_DATA_CRC Incoming packet rejected due to the data CRC
+ *         indicating errors in the data. An error reply has been sent.
+ * @retval RMAP_NODE_INVALID_KEY Incoming packet rejected due to its key not
+ *         being authorized by the request callback. An error reply has been
+ *         sent.
+ * @retval RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS Incoming packet rejected
+ *         due to its target logical address not being authorized by
+ *         the request callback. An error reply has been sent.
+ * @retval RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED Incoming packet
+ *         rejected due to not being authorized for "any other reason" by the
+ *         request callback. An error reply has been sent.
+ * @retval RMAP_NODE_MEMORY_ACCESS_ERROR Incoming packet processing aborted due
+ *         to read or write memory access error. An error reply has been sent.
+ * @retval RMAP_OK Incoming packet processed successfully. A reply has been
+ *         sent if applicable.
+ */
 static enum rmap_status handle_rmw_command(
     struct rmap_node_context *const context,
     const uint8_t *const packet,
@@ -462,6 +609,67 @@ static enum rmap_status handle_rmw_command(
     return rmw_status;
 }
 
+/** Handle incoming command packet to node.
+ *
+ * Verify header, check if the node accepts commands, verify data field if
+ * applicable, and forward the request for authorization and processing by the
+ * user, send reply if relevant.
+ *
+ * @pre @p packet must have been verified to contain a complete RMAP command
+ *         header via rmap_verify_header_integrity() and rmap_is_command().
+ * @pre @p size must indicate the exact number of bytes in the command packet.
+ *
+ * @param[in,out] context Node context object.
+ * @param[in] packet Incoming packet.
+ * @param size Number of bytes in incoming packet in @p packet (excluding the
+ *        EOP or EEP).
+ * @param has_eep_termination Flag indicating if the incoming packet was
+ *        terminated with an EEP.
+ *
+ * @retval RMAP_NODE_COMMAND_HEADER_FOLLOWED_BY_EEP Incoming command packet
+ *         discarded due to valid header being immediately followed by EEP.
+ * @retval RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR Incoming command packet
+ *         discarded due to node being configured to reject incoming commands.
+ * @retval RMAP_NODE_ALLOCATION_FAILURE Incoming packet and intended reply
+ *         discarded due to allocation failure.
+ * @retval RMAP_NODE_SEND_REPLY_FAILURE Incoming packet and intended reply
+ *         discarded due to reply sending failure.
+ * @retval RMAP_UNUSED_PACKET_TYPE Incoming packet rejected due to the packet
+ *         type field having the reserved bit set. An error reply may have been
+ *         sent, if applicable, depending on the configuration of the node.
+ * @retval RMAP_UNUSED_COMMAND_CODE Incoming packet rejected due to the command
+ *         field containing a reserved command code.
+ * @retval RMAP_INSUFFICIENT_DATA Incoming write or RMW command packet rejected
+ *         due to being smaller than indicated by the data length. An error
+ *         reply has been sent if applicable.
+ * @retval RMAP_NODE_INSUFFICIENT_DATA_WITH_EEP Incoming write or RMW command
+ *         packet (terminated with an EEP) rejected due to being smaller than
+ *         indicated by the data length. An error reply has been sent if
+ *         applicable.
+ * @retval RMAP_TOO_MUCH_DATA Incoming write or RMW command packet rejected due
+ *         to being larger than indicated by the data length. An error reply
+ *         has been sent if applicable.
+ * @retval RMAP_INVALID_DATA_CRC Incoming write or RMW command packet rejected
+ *         due to the data CRC indicating errors in the data. An error reply
+ *         has been sent if applicable.
+ * @retval RMAP_RMW_DATA_LENGTH_ERROR Incoming RMW command packet rejected due
+ *         to data length field value being invalid for a RMW command. An error
+ *         reply has been sent.
+ * @retval RMAP_NODE_INVALID_KEY Incoming command packet rejected due to its
+ *         key not being authorized by the request callback. An error reply has
+ *         been sent if applicable.
+ * @retval RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS Incoming command packet
+ *         rejected due to its target logical address not being authorized by
+ *         the request callback. An error reply has been sent if applicable.
+ * @retval RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED Incoming command
+ *         packet rejected due to not being authorized for "any other reason"
+ *         by the request callback. An error reply has been sent if applicable.
+ * @retval RMAP_NODE_MEMORY_ACCESS_ERROR Incoming command packet processing
+ *         aborted due to write or read memory access error. An error reply has
+ *         been sent if applicable.
+ * @retval RMAP_OK Incoming packet processed successfully. A reply has been
+ *         sent if applicable.
+ */
 static enum rmap_status handle_command(
     struct rmap_node_context *const context,
     const void *const packet,
@@ -520,6 +728,31 @@ static enum rmap_status handle_command(
     return handle_read_command(context, packet);
 }
 
+/** Handle incoming reply packet to node.
+ *
+ * Verify header, check if the node accepts replies, verify data field if
+ * applicable, and forward the reply information to the user.
+ *
+ * @pre @p packet must have been verified to contain a complete RMAP reply
+ *      header via rmap_verify_header_integrity() and rmap_is_reply().
+ * @pre @p size must indicate the exact number of bytes in the reply packet.
+ *
+ * @param[in,out] context Node context object.
+ * @param[in] packet Incoming packet.
+ * @param size Number of bytes in incoming packet in @p packet.
+ *
+ * @retval RMAP_NODE_PACKET_ERROR Incoming packet rejected due to one of:
+ *         * The packet type field having the reserved bit set.
+ *         * The command field containing a reserved command code.
+ *         * The command field not having the reply bit set.
+ * @retval RMAP_NODE_INVALID_REPLY Incoming packet rejected due to one of:
+ *         * The packet being a RMW reply with a data length field value that
+ *           is invalid for a RMW reply.
+ *         * The packet being smaller than indicated by the data length field.
+ *         * The packet being larger than indicated by the data length field.
+ *         * The data CRC indicating errors in the data.
+ * @retval RMAP_OK Incoming packet processed successfully.
+ */
 static enum rmap_status handle_reply(
     struct rmap_node_context *const context,
     const uint8_t *const packet,
