@@ -555,6 +555,8 @@ enum rmap_status rmap_node_initialize(
  * @retval RMAP_NODE_MEMORY_ACCESS_ERROR Incoming command packet processing
  *         aborted due to write or read memory access error. An error reply has
  *         been sent if applicable.
+ * @retval RMAP_OK Incoming packet processed successfully. A reply has been
+ *         sent if applicable.
  */
 enum rmap_status rmap_node_handle_incoming(
     struct rmap_node_context *context,
