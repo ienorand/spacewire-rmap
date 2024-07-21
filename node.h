@@ -552,7 +552,6 @@ enum rmap_status rmap_node_initialize(
  * @retval RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED Incoming command
  *         packet rejected due to not being authorized for "any other reason"
  *         by the request callback. An error reply has been sent if applicable.
- *         by the command code.
  * @retval RMAP_NODE_MEMORY_ACCESS_ERROR Incoming write or RMW command rejected
  *         due to write memory access error. An error reply has been sent if
  *         applicable.
