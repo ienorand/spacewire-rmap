@@ -545,7 +545,7 @@ enum rmap_status rmap_node_initialize(
  *         reply has been sent.
  * @retval RMAP_NODE_INVALID_KEY Incoming command packet rejected due to its
  *         key not being authorized by the request callback. An error reply has
- *         been sent if applicable
+ *         been sent if applicable.
  * @retval RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS Incoming command packet
  *         rejected due to its target logical address not being authorized by
  *         the request callback. An error reply has been sent if applicable.
