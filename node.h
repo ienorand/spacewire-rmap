@@ -39,13 +39,21 @@ struct rmap_node_context;
  *  callbacks.
  */
 struct rmap_node_target_request {
+    /** Target logical address of incoming command. */
     uint8_t target_logical_address;
+    /** Instruction of incoming command. */
     uint8_t instruction;
+    /** Key of incoming command. */
     uint8_t key;
+    /** Initiator logical address of incoming command. */
     uint8_t initiator_logical_address;
+    /** Transaction identifier of incoming command. */
     uint16_t transaction_identifier;
+    /** Extended address of incoming command. */
     uint8_t extended_address;
+    /** Address of incoming command. */
     uint32_t address;
+    /** Data length of incoming command. */
     uint32_t data_length;
 };
 
