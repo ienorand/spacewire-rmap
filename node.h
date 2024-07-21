@@ -273,6 +273,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
  *      initiator, or
  *   2. Append an appropriate data CRC byte covering the data sent in the reply
  *      to the initiator, followed by an EOP.
+ *
  *        NOTE In this case the data length field in the reply contains the
  *        amount of data requested which is different to the amount of data
  *        returned in the data field of the reply.
