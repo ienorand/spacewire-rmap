@@ -4003,7 +4003,7 @@ TEST(RmapStatusText, Statuses)
 
     /* Excluding RMAP_OK since not in continuous range. */
     const int statuses_first = RMAP_INCOMPLETE_HEADER;
-    const rmap_status statuses_last = RMAP_NODE_SEND_REPLY_FAILURE;
+    const rmap_status statuses_last = RMAP_NODE_NO_TARGET_OR_INITIATOR;
 
     const int statuses_count = statuses_last + 1 - statuses_first;
     std::vector<int> statuses(statuses_count);
