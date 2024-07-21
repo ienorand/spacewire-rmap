@@ -919,15 +919,18 @@ TEST_F(MockedTargetNode, ValidIncomingWriteWithMaximumReplyAddressLength)
 
 class IncomingToTargetRejectParams :
     public MockedTargetNode,
-    public testing::WithParamInterface<
-        std::tuple<std::function<std::vector<uint8_t>()>, enum rmap_status>>
+    public testing::WithParamInterface<std::tuple<
+        std::function<std::vector<uint8_t>()>,
+        bool,
+        enum rmap_status>>
 {
 };
 
 TEST_P(IncomingToTargetRejectParams, Check)
 {
     const auto incoming_packet_generator_fn = std::get<0>(GetParam());
-    const auto expected_status = std::get<1>(GetParam());
+    const auto has_eep_termination = std::get<1>(GetParam());
+    const auto expected_status = std::get<2>(GetParam());
 
     const auto incoming_packet = incoming_packet_generator_fn();
 
@@ -938,7 +941,6 @@ TEST_P(IncomingToTargetRejectParams, Check)
     testing::StrictMock<MockCallbacks> strict_mock_callbacks;
     custom_context->mock_callbacks = &strict_mock_callbacks;
 
-    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
@@ -977,6 +979,7 @@ INSTANTIATE_TEST_SUITE_P(
                 return test_pattern5_expected_rmw_reply_with_spacewire_addresses
                     .packet_without_spacewire_address_prefix();
             }),
+        testing::Values(false, true),
         testing::Values(RMAP_NODE_REPLY_RECEIVED_BY_TARGET)));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -1011,6 +1014,7 @@ INSTANTIATE_TEST_SUITE_P(
                 incoming_packet.resize(1);
                 return incoming_packet;
             }),
+        testing::Values(false, true),
         testing::Values(RMAP_INCOMPLETE_HEADER)));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -1038,6 +1042,7 @@ INSTANTIATE_TEST_SUITE_P(
                 incoming_packet.at(header_size - 1) ^= 1;
                 return incoming_packet;
             }),
+        testing::Values(false, true),
         testing::Values(RMAP_HEADER_CRC_ERROR)));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -1065,6 +1070,7 @@ INSTANTIATE_TEST_SUITE_P(
                 rmap_calculate_and_set_header_crc(incoming_packet.data());
                 return incoming_packet;
             }),
+        testing::Values(false, true),
         testing::Values(RMAP_NO_RMAP_PROTOCOL)));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -1098,6 +1104,10 @@ INSTANTIATE_TEST_SUITE_P(
                 rmap_calculate_and_set_header_crc(incoming_packet.data());
                 return incoming_packet;
             }),
+        /* Not applicable with EEP termination, would have been discarded
+         * earlier in that case.
+         */
+        testing::Values(false),
         testing::Values(RMAP_UNUSED_COMMAND_CODE)));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -1137,7 +1147,44 @@ INSTANTIATE_TEST_SUITE_P(
                 incoming_packet.back() ^= 1;
                 return incoming_packet;
             }),
+        testing::Values(false, true),
         testing::Values(RMAP_INVALID_DATA_CRC)));
+
+class IncomingToTargetWithEepImmediatelyFollowingHeaderParams :
+    public MockedTargetNode,
+    public testing::WithParamInterface<struct test_pattern>
+{
+};
+
+TEST_P(IncomingToTargetWithEepImmediatelyFollowingHeaderParams, Check)
+{
+    const auto command_pattern = GetParam();
+
+    auto incoming_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    incoming_packet.resize(rmap_calculate_header_size(incoming_packet.data()));
+
+    /* Fail test on any unexpected callback. */
+    struct mocked_callbacks_custom_context *const custom_context =
+        reinterpret_cast<struct mocked_callbacks_custom_context *>(
+            node_context.custom_context);
+    testing::StrictMock<MockCallbacks> strict_mock_callbacks;
+    custom_context->mock_callbacks = &strict_mock_callbacks;
+
+    const bool has_eep_termination = true;
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node_context,
+            incoming_packet.data(),
+            incoming_packet.size(),
+            has_eep_termination),
+        RMAP_NODE_COMMAND_HEADER_FOLLOWED_BY_EEP);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Commands,
+    IncomingToTargetWithEepImmediatelyFollowingHeaderParams,
+    testing::ValuesIn(test_patterns_commands));
 
 TEST(
     HandleIncoming,
@@ -1186,14 +1233,26 @@ TEST(
     EXPECT_CALL(mock_callbacks, Allocate).Times(0);
     EXPECT_CALL(mock_callbacks, SendReply).Times(0);
 
-    const bool has_eep_termination = false;
-    EXPECT_EQ(
-        rmap_node_handle_incoming(
-            &node_context,
-            incoming_packet.data(),
-            incoming_packet.size(),
-            has_eep_termination),
-        RMAP_UNUSED_PACKET_TYPE);
+    {
+        const bool has_eep_termination = false;
+        EXPECT_EQ(
+            rmap_node_handle_incoming(
+                &node_context,
+                incoming_packet.data(),
+                incoming_packet.size(),
+                has_eep_termination),
+            RMAP_UNUSED_PACKET_TYPE);
+    }
+    {
+        const bool has_eep_termination = true;
+        EXPECT_EQ(
+            rmap_node_handle_incoming(
+                &node_context,
+                incoming_packet.data(),
+                incoming_packet.size(),
+                has_eep_termination),
+            RMAP_UNUSED_PACKET_TYPE);
+    }
 }
 
 TEST(
@@ -1258,9 +1317,10 @@ TEST(
 
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
-        .WillOnce([&allocation](
-                      struct rmap_node_context *const node_context,
-                      const size_t size) {
+        .Times(2)
+        .WillRepeatedly([&allocation](
+                            struct rmap_node_context *const node_context,
+                            const size_t size) {
             (void)node_context;
             allocation.resize(size);
             return allocation.data();
@@ -1270,18 +1330,37 @@ TEST(
     EXPECT_CALL(
         mock_callbacks,
         SendReply(testing::_, testing::_, expected_reply.size()))
-        .WillOnce(testing::DoAll(
+        .Times(2)
+        .WillRepeatedly(testing::DoAll(
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
-    const bool has_eep_termination = false;
-    EXPECT_EQ(
-        rmap_node_handle_incoming(
-            &node_context,
-            incoming_packet.data(),
-            incoming_packet.size(),
-            has_eep_termination),
-        RMAP_UNUSED_PACKET_TYPE);
+    {
+        const bool has_eep_termination = false;
+        EXPECT_EQ(
+            rmap_node_handle_incoming(
+                &node_context,
+                incoming_packet.data(),
+                incoming_packet.size(),
+                has_eep_termination),
+            RMAP_UNUSED_PACKET_TYPE);
+
+        allocation.resize(expected_reply.size());
+        EXPECT_EQ(allocation, expected_reply);
+    }
+    {
+        const bool has_eep_termination = true;
+        EXPECT_EQ(
+            rmap_node_handle_incoming(
+                &node_context,
+                incoming_packet.data(),
+                incoming_packet.size(),
+                has_eep_termination),
+            RMAP_UNUSED_PACKET_TYPE);
+
+        allocation.resize(expected_reply.size());
+        EXPECT_EQ(allocation, expected_reply);
+    }
 }
 
 TEST_F(MockedTargetNode, AuthorizationRejectOfWriteCommandWithoutReply)
@@ -1297,23 +1376,37 @@ TEST_F(MockedTargetNode, AuthorizationRejectOfWriteCommandWithoutReply)
     rmap_calculate_and_set_header_crc(incoming_packet.data());
 
     EXPECT_CALL(mock_callbacks, WriteRequest)
-        .WillOnce(testing::Return(
+        .Times(2)
+        .WillRepeatedly(testing::Return(
             RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED));
 
-    const bool has_eep_termination = false;
-    EXPECT_EQ(
-        rmap_node_handle_incoming(
-            &node_context,
-            incoming_packet.data(),
-            incoming_packet.size(),
-            has_eep_termination),
-        RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED);
+    {
+        const bool has_eep_termination = false;
+        EXPECT_EQ(
+            rmap_node_handle_incoming(
+                &node_context,
+                incoming_packet.data(),
+                incoming_packet.size(),
+                has_eep_termination),
+            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED);
+    }
+    {
+        const bool has_eep_termination = true;
+        EXPECT_EQ(
+            rmap_node_handle_incoming(
+                &node_context,
+                incoming_packet.data(),
+                incoming_packet.size(),
+                has_eep_termination),
+            RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED);
+    }
 }
 
 class IncomingToTargetRejectWithReplyParams :
     public MockedTargetNode,
     public testing::WithParamInterface<std::tuple<
         std::function<std::vector<uint8_t>()>,
+        bool,
         std::function<std::vector<uint8_t>()>,
         enum rmap_status>>
 {
@@ -1322,8 +1415,9 @@ class IncomingToTargetRejectWithReplyParams :
 TEST_P(IncomingToTargetRejectWithReplyParams, Check)
 {
     const auto incoming_packet_generator_fn = std::get<0>(GetParam());
-    const auto expected_reply_generator_fn = std::get<1>(GetParam());
-    const auto expected_status = std::get<2>(GetParam());
+    const auto has_eep_termination = std::get<1>(GetParam());
+    const auto expected_reply_generator_fn = std::get<2>(GetParam());
+    const auto expected_status = std::get<3>(GetParam());
 
     const auto incoming_packet = incoming_packet_generator_fn();
     const auto expected_reply = expected_reply_generator_fn();
@@ -1346,7 +1440,6 @@ TEST_P(IncomingToTargetRejectWithReplyParams, Check)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
-    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
@@ -1380,6 +1473,10 @@ INSTANTIATE_TEST_SUITE_P(
 
             return incoming_packet;
         },
+        /* Not applicable with EEP termination, would have been discarded
+         * earlier in that case.
+         */
+        false,
         [] {
             const auto pattern = test_pattern1_expected_read_reply;
             std::vector<uint8_t> expected_reply = pattern.data;
@@ -1403,7 +1500,7 @@ INSTANTIATE_TEST_SUITE_P(
         RMAP_UNUSED_COMMAND_CODE)));
 
 INSTANTIATE_TEST_SUITE_P(
-    InsufficientData,
+    InsufficientDataWithoutEep,
     IncomingToTargetRejectWithReplyParams,
     testing::Values(std::make_tuple(
         [] {
@@ -1414,6 +1511,7 @@ INSTANTIATE_TEST_SUITE_P(
             incoming_packet.pop_back();
             return incoming_packet;
         },
+        false,
         [] {
             const auto pattern = test_pattern0_expected_write_reply;
             std::vector<uint8_t> expected_reply = pattern.data;
@@ -1426,7 +1524,31 @@ INSTANTIATE_TEST_SUITE_P(
         RMAP_INSUFFICIENT_DATA)));
 
 INSTANTIATE_TEST_SUITE_P(
-    RmwInsufficientData,
+    InsufficientDataWithEep,
+    IncomingToTargetRejectWithReplyParams,
+    testing::Values(std::make_tuple(
+        [] {
+            const auto pattern =
+                test_pattern0_unverified_incrementing_write_with_reply;
+            std::vector<uint8_t> incoming_packet =
+                pattern.packet_without_spacewire_address_prefix();
+            incoming_packet.pop_back();
+            return incoming_packet;
+        },
+        true,
+        [] {
+            const auto pattern = test_pattern0_expected_write_reply;
+            std::vector<uint8_t> expected_reply = pattern.data;
+            uint8_t *const header =
+                expected_reply.data() + pattern.header_offset;
+            rmap_set_status(header, RMAP_STATUS_FIELD_CODE_EEP);
+            rmap_calculate_and_set_header_crc(header);
+            return expected_reply;
+        },
+        RMAP_NODE_INSUFFICIENT_DATA_WITH_EEP)));
+
+INSTANTIATE_TEST_SUITE_P(
+    RmwInsufficientDataWithoutEep,
     IncomingToTargetRejectWithReplyParams,
     testing::Values(std::make_tuple(
         [] {
@@ -1436,6 +1558,7 @@ INSTANTIATE_TEST_SUITE_P(
             incoming_packet.pop_back();
             return incoming_packet;
         },
+        false,
         [] {
             const auto pattern = test_pattern4_expected_rmw_reply;
             std::vector<uint8_t> expected_reply = pattern.data;
@@ -1451,20 +1574,49 @@ INSTANTIATE_TEST_SUITE_P(
             return expected_reply;
         },
         RMAP_INSUFFICIENT_DATA)));
+
+INSTANTIATE_TEST_SUITE_P(
+    RmwInsufficientDataWithEep,
+    IncomingToTargetRejectWithReplyParams,
+    testing::Values(std::make_tuple(
+        [] {
+            const auto pattern = test_pattern4_rmw;
+            std::vector<uint8_t> incoming_packet =
+                pattern.packet_without_spacewire_address_prefix();
+            incoming_packet.pop_back();
+            return incoming_packet;
+        },
+        true,
+        [] {
+            const auto pattern = test_pattern4_expected_rmw_reply;
+            std::vector<uint8_t> expected_reply = pattern.data;
+            uint8_t *const header =
+                expected_reply.data() + pattern.header_offset;
+            rmap_set_status(header, RMAP_STATUS_FIELD_CODE_EEP);
+            rmap_set_data_length(header, 0);
+            rmap_calculate_and_set_header_crc(header);
+            expected_reply.resize(
+                pattern.header_offset + rmap_calculate_header_size(header) + 1);
+            expected_reply.back() =
+                rmap_crc_calculate(&expected_reply.back(), 0);
+            return expected_reply;
+        },
+        RMAP_NODE_INSUFFICIENT_DATA_WITH_EEP)));
 
 INSTANTIATE_TEST_SUITE_P(
     TooMuchData,
     IncomingToTargetRejectWithReplyParams,
-    testing::Values(std::make_tuple(
-        [] {
+    testing::Combine(
+        testing::Values([] {
             const auto pattern =
                 test_pattern0_unverified_incrementing_write_with_reply;
             std::vector<uint8_t> incoming_packet =
                 pattern.packet_without_spacewire_address_prefix();
             incoming_packet.push_back(0xDA);
             return incoming_packet;
-        },
-        [] {
+        }),
+        testing::Values(false, true),
+        testing::Values([] {
             const auto pattern = test_pattern0_expected_write_reply;
             std::vector<uint8_t> expected_reply = pattern.data;
             uint8_t *const header =
@@ -1472,21 +1624,22 @@ INSTANTIATE_TEST_SUITE_P(
             rmap_set_status(header, RMAP_STATUS_FIELD_CODE_TOO_MUCH_DATA);
             rmap_calculate_and_set_header_crc(header);
             return expected_reply;
-        },
-        RMAP_TOO_MUCH_DATA)));
+        }),
+        testing::Values(RMAP_TOO_MUCH_DATA)));
 
 INSTANTIATE_TEST_SUITE_P(
     RmwTooMuchData,
     IncomingToTargetRejectWithReplyParams,
-    testing::Values(std::make_tuple(
-        [] {
+    testing::Combine(
+        testing::Values([] {
             const auto pattern = test_pattern4_rmw;
             std::vector<uint8_t> incoming_packet =
                 pattern.packet_without_spacewire_address_prefix();
             incoming_packet.push_back(0xDA);
             return incoming_packet;
-        },
-        [] {
+        }),
+        testing::Values(false, true),
+        testing::Values([] {
             const auto pattern = test_pattern4_expected_rmw_reply;
             std::vector<uint8_t> expected_reply = pattern.data;
             uint8_t *const header =
@@ -1499,14 +1652,14 @@ INSTANTIATE_TEST_SUITE_P(
             expected_reply.back() =
                 rmap_crc_calculate(&expected_reply.back(), 0);
             return expected_reply;
-        },
-        RMAP_TOO_MUCH_DATA)));
+        }),
+        testing::Values(RMAP_TOO_MUCH_DATA)));
 
 INSTANTIATE_TEST_SUITE_P(
     RmwDataLengthError,
     IncomingToTargetRejectWithReplyParams,
-    testing::Values(std::make_tuple(
-        [] {
+    testing::Combine(
+        testing::Values([] {
             const auto pattern = test_pattern4_rmw;
             std::vector<uint8_t> incoming_packet =
                 pattern.packet_without_spacewire_address_prefix();
@@ -1518,8 +1671,9 @@ INSTANTIATE_TEST_SUITE_P(
             incoming_packet.back() =
                 rmap_crc_calculate(incoming_packet.data() + data_offset, 3);
             return incoming_packet;
-        },
-        [] {
+        }),
+        testing::Values(false, true),
+        testing::Values([] {
             const auto pattern = test_pattern4_expected_rmw_reply;
             std::vector<uint8_t> expected_reply = pattern.data;
             uint8_t *const header =
@@ -1534,63 +1688,65 @@ INSTANTIATE_TEST_SUITE_P(
             expected_reply.back() =
                 rmap_crc_calculate(&expected_reply.back(), 0);
             return expected_reply;
-        },
-        RMAP_RMW_DATA_LENGTH_ERROR)));
+        }),
+        testing::Values(RMAP_RMW_DATA_LENGTH_ERROR)));
 
 INSTANTIATE_TEST_SUITE_P(
-    InvalidDataCrc,
+    InvalidDataCrcBitflipInDataField,
     IncomingToTargetRejectWithReplyParams,
-    testing::Values(
-        std::make_tuple(
-            [] {
-                const auto pattern =
-                    test_pattern0_unverified_incrementing_write_with_reply;
-                std::vector<uint8_t> incoming_packet =
-                    pattern.packet_without_spacewire_address_prefix();
-                /* Flip a bit in data field. */
-                incoming_packet.at(
-                    rmap_calculate_header_size(incoming_packet.data())) ^= 1;
-                return incoming_packet;
-            },
-            [] {
-                const auto pattern = test_pattern0_expected_write_reply;
-                std::vector<uint8_t> expected_reply = pattern.data;
-                uint8_t *const header =
-                    expected_reply.data() + pattern.header_offset;
-                rmap_set_status(
-                    header,
-                    RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC);
-                rmap_calculate_and_set_header_crc(header);
-                return expected_reply;
-            },
-            RMAP_INVALID_DATA_CRC),
-        std::make_tuple(
-            [] {
-                const auto pattern =
-                    test_pattern0_unverified_incrementing_write_with_reply;
-                std::vector<uint8_t> incoming_packet =
-                    pattern.packet_without_spacewire_address_prefix();
-                /* Flip a bit in data CRC field. */
-                incoming_packet.back() ^= 1;
-                return incoming_packet;
-            },
-            [] {
-                const auto pattern = test_pattern0_expected_write_reply;
-                std::vector<uint8_t> expected_reply = pattern.data;
-                uint8_t *const header =
-                    expected_reply.data() + pattern.header_offset;
-                rmap_set_status(
-                    header,
-                    RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC);
-                rmap_calculate_and_set_header_crc(header);
-                return expected_reply;
-            },
-            RMAP_INVALID_DATA_CRC)));
+    testing::Combine(
+        testing::Values([] {
+            const auto pattern =
+                test_pattern0_unverified_incrementing_write_with_reply;
+            std::vector<uint8_t> incoming_packet =
+                pattern.packet_without_spacewire_address_prefix();
+            /* Flip a bit in data field. */
+            incoming_packet.at(
+                rmap_calculate_header_size(incoming_packet.data())) ^= 1;
+            return incoming_packet;
+        }),
+        testing::Values(false, true),
+        testing::Values([] {
+            const auto pattern = test_pattern0_expected_write_reply;
+            std::vector<uint8_t> expected_reply = pattern.data;
+            uint8_t *const header =
+                expected_reply.data() + pattern.header_offset;
+            rmap_set_status(header, RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC);
+            rmap_calculate_and_set_header_crc(header);
+            return expected_reply;
+        }),
+        testing::Values(RMAP_INVALID_DATA_CRC)));
+
+INSTANTIATE_TEST_SUITE_P(
+    InvalidDataCrcBitflipInDataCrcField,
+    IncomingToTargetRejectWithReplyParams,
+    testing::Combine(
+        testing::Values([] {
+            const auto pattern =
+                test_pattern0_unverified_incrementing_write_with_reply;
+            std::vector<uint8_t> incoming_packet =
+                pattern.packet_without_spacewire_address_prefix();
+            /* Flip a bit in data CRC field. */
+            incoming_packet.back() ^= 1;
+            return incoming_packet;
+        }),
+        testing::Values(false, true),
+        testing::Values([] {
+            const auto pattern = test_pattern0_expected_write_reply;
+            std::vector<uint8_t> expected_reply = pattern.data;
+            uint8_t *const header =
+                expected_reply.data() + pattern.header_offset;
+            rmap_set_status(header, RMAP_STATUS_FIELD_CODE_INVALID_DATA_CRC);
+            rmap_calculate_and_set_header_crc(header);
+            return expected_reply;
+        }),
+        testing::Values(RMAP_INVALID_DATA_CRC)));
 
 class IncomingToTargetAuthorizationRejectWithReplyParams :
     public MockedTargetNode,
     public testing::WithParamInterface<std::tuple<
         std::pair<struct test_pattern, struct test_pattern>,
+        bool,
         std::pair<enum rmap_status_field_code, enum rmap_status>>>
 {
 };
@@ -1598,8 +1754,9 @@ class IncomingToTargetAuthorizationRejectWithReplyParams :
 TEST_P(IncomingToTargetAuthorizationRejectWithReplyParams, Check)
 {
     const auto command_reply_pair = std::get<0>(GetParam());
-    const auto status_field_code = std::get<0>(std::get<1>(GetParam()));
-    const auto expected_status = std::get<1>(std::get<1>(GetParam()));
+    const auto has_eep_termination = std::get<1>(GetParam());
+    const auto status_field_code = std::get<0>(std::get<2>(GetParam()));
+    const auto expected_status = std::get<1>(std::get<2>(GetParam()));
 
     const auto incoming_pattern = std::get<0>(command_reply_pair);
     const std::vector<uint8_t> incoming_packet =
@@ -1648,7 +1805,6 @@ TEST_P(IncomingToTargetAuthorizationRejectWithReplyParams, Check)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
-    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
@@ -1662,10 +1818,41 @@ TEST_P(IncomingToTargetAuthorizationRejectWithReplyParams, Check)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    CommonRejectsForAllCommands,
+    CommonRejectsForAllCommandsWithoutEepTermination,
     IncomingToTargetAuthorizationRejectWithReplyParams,
     testing::Combine(
         testing::ValuesIn(test_patterns_command_reply_pairs),
+        /* Not applicable with EEP termination for commands without data, would
+         * have been discarded earlier in that case.
+         */
+        testing::Values(false),
+        testing::Values(
+            std::make_pair(
+                RMAP_STATUS_FIELD_CODE_INVALID_KEY,
+                RMAP_NODE_INVALID_KEY),
+            std::make_pair(
+                RMAP_STATUS_FIELD_CODE_INVALID_TARGET_LOGICAL_ADDRESS,
+                RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS),
+            std::make_pair(
+                RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED,
+                RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED))));
+
+INSTANTIATE_TEST_SUITE_P(
+    CommonRejectsForCommandsWithData,
+    IncomingToTargetAuthorizationRejectWithReplyParams,
+    testing::Combine(
+        testing::Values(
+            std::make_pair(
+                test_pattern0_unverified_incrementing_write_with_reply,
+                test_pattern0_expected_write_reply),
+            std::make_pair(
+                test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses,
+                test_pattern2_expected_write_reply_with_spacewire_addresses),
+            std::make_pair(test_pattern4_rmw, test_pattern4_expected_rmw_reply),
+            std::make_pair(
+                test_pattern5_rmw_with_spacewire_addresses,
+                test_pattern5_expected_rmw_reply_with_spacewire_addresses)),
+        testing::Values(false, true),
         testing::Values(
             std::make_pair(
                 RMAP_STATUS_FIELD_CODE_INVALID_KEY,
@@ -1688,6 +1875,7 @@ INSTANTIATE_TEST_SUITE_P(
             std::make_pair(
                 test_pattern2_unverified_incrementing_write_with_reply_with_spacewire_addresses,
                 test_pattern2_expected_write_reply_with_spacewire_addresses)),
+        testing::Values(false, true),
         testing::Values(std::make_pair(
             RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE,
             RMAP_NODE_MEMORY_ACCESS_ERROR))));
@@ -1751,6 +1939,9 @@ TEST_F(MockedTargetNode, ReadError)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    /* Not applicable with EEP termination, would have been discarded earlier
+     * in that case.
+     */
     const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
@@ -1793,26 +1984,29 @@ TEST_F(MockedTargetNode, RmwReadError)
                 &rmap_node_target_request::data_length,
                 requested_data_size),
             testing::_))
-        .WillOnce([&source_data](
-                      struct rmap_node_context *const context,
-                      void *const read_data,
-                      size_t *const read_data_size,
-                      const struct rmap_node_target_request *const request,
-                      const void *const data) {
-            (void)context;
-            (void)request;
-            (void)data;
-            /* Provide one less byte than requested. */
-            memcpy(read_data, source_data.data(), source_data.size() - 1);
-            *read_data_size = source_data.size() - 1;
-            return RMAP_STATUS_FIELD_CODE_SUCCESS;
-        });
+        .Times(2)
+        .WillRepeatedly(
+            [&source_data](
+                struct rmap_node_context *const context,
+                void *const read_data,
+                size_t *const read_data_size,
+                const struct rmap_node_target_request *const request,
+                const void *const data) {
+                (void)context;
+                (void)request;
+                (void)data;
+                /* Provide one less byte than requested. */
+                memcpy(read_data, source_data.data(), source_data.size() - 1);
+                *read_data_size = source_data.size() - 1;
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            });
 
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
-        .WillOnce([&allocation](
-                      struct rmap_node_context *const node_context,
-                      const size_t size) {
+        .Times(2)
+        .WillRepeatedly([&allocation](
+                            struct rmap_node_context *const node_context,
+                            const size_t size) {
             (void)node_context;
             allocation.resize(size);
             return allocation.data();
@@ -1822,21 +2016,37 @@ TEST_F(MockedTargetNode, RmwReadError)
     EXPECT_CALL(
         mock_callbacks,
         SendReply(testing::_, testing::_, expected_reply.size()))
-        .WillOnce(testing::DoAll(
+        .Times(2)
+        .WillRepeatedly(testing::DoAll(
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
-    const bool has_eep_termination = false;
-    EXPECT_EQ(
-        rmap_node_handle_incoming(
-            &node_context,
-            incoming_packet.data(),
-            incoming_packet.size(),
-            has_eep_termination),
-        RMAP_NODE_MEMORY_ACCESS_ERROR);
+    {
+        const bool has_eep_termination = false;
+        EXPECT_EQ(
+            rmap_node_handle_incoming(
+                &node_context,
+                incoming_packet.data(),
+                incoming_packet.size(),
+                has_eep_termination),
+            RMAP_NODE_MEMORY_ACCESS_ERROR);
 
-    allocation.resize(expected_reply.size());
-    EXPECT_EQ(allocation, expected_reply);
+        allocation.resize(expected_reply.size());
+        EXPECT_EQ(allocation, expected_reply);
+    }
+    {
+        const bool has_eep_termination = true;
+        EXPECT_EQ(
+            rmap_node_handle_incoming(
+                &node_context,
+                incoming_packet.data(),
+                incoming_packet.size(),
+                has_eep_termination),
+            RMAP_NODE_MEMORY_ACCESS_ERROR);
+
+        allocation.resize(expected_reply.size());
+        EXPECT_EQ(allocation, expected_reply);
+    }
 }
 
 TEST_F(MockedTargetNode, RmwWriteError)
@@ -1869,28 +2079,31 @@ TEST_F(MockedTargetNode, RmwWriteError)
                 &rmap_node_target_request::data_length,
                 requested_data_size),
             testing::_))
-        .WillOnce([&source_data](
-                      struct rmap_node_context *const context,
-                      void *const read_data,
-                      size_t *const read_data_size,
-                      const struct rmap_node_target_request *const request,
-                      const void *const data) {
-            (void)context;
-            (void)request;
-            (void)data;
-            /* Provide all requested data and indicate write error via return
-             * value.
-             */
-            memcpy(read_data, source_data.data(), source_data.size());
-            *read_data_size = source_data.size();
-            return RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE;
-        });
+        .Times(2)
+        .WillRepeatedly(
+            [&source_data](
+                struct rmap_node_context *const context,
+                void *const read_data,
+                size_t *const read_data_size,
+                const struct rmap_node_target_request *const request,
+                const void *const data) {
+                (void)context;
+                (void)request;
+                (void)data;
+                /* Provide all requested data and indicate write error via
+                 * return value.
+                 */
+                memcpy(read_data, source_data.data(), source_data.size());
+                *read_data_size = source_data.size();
+                return RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE;
+            });
 
     std::vector<uint8_t> allocation;
     EXPECT_CALL(mock_callbacks, Allocate)
-        .WillOnce([&allocation](
-                      struct rmap_node_context *const node_context,
-                      const size_t size) {
+        .Times(2)
+        .WillRepeatedly([&allocation](
+                            struct rmap_node_context *const node_context,
+                            const size_t size) {
             (void)node_context;
             allocation.resize(size);
             return allocation.data();
@@ -1900,21 +2113,37 @@ TEST_F(MockedTargetNode, RmwWriteError)
     EXPECT_CALL(
         mock_callbacks,
         SendReply(testing::_, testing::_, expected_reply.size()))
-        .WillOnce(testing::DoAll(
+        .Times(2)
+        .WillRepeatedly(testing::DoAll(
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
-    const bool has_eep_termination = false;
-    EXPECT_EQ(
-        rmap_node_handle_incoming(
-            &node_context,
-            incoming_packet.data(),
-            incoming_packet.size(),
-            has_eep_termination),
-        RMAP_NODE_MEMORY_ACCESS_ERROR);
+    {
+        const bool has_eep_termination = false;
+        EXPECT_EQ(
+            rmap_node_handle_incoming(
+                &node_context,
+                incoming_packet.data(),
+                incoming_packet.size(),
+                has_eep_termination),
+            RMAP_NODE_MEMORY_ACCESS_ERROR);
 
-    allocation.resize(expected_reply.size());
-    EXPECT_EQ(allocation, expected_reply);
+        allocation.resize(expected_reply.size());
+        EXPECT_EQ(allocation, expected_reply);
+    }
+    {
+        const bool has_eep_termination = true;
+        EXPECT_EQ(
+            rmap_node_handle_incoming(
+                &node_context,
+                incoming_packet.data(),
+                incoming_packet.size(),
+                has_eep_termination),
+            RMAP_NODE_MEMORY_ACCESS_ERROR);
+
+        allocation.resize(expected_reply.size());
+        EXPECT_EQ(allocation, expected_reply);
+    }
 }
 
 TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
@@ -2401,15 +2630,18 @@ INSTANTIATE_TEST_SUITE_P(
 
 class IncomingToInitiatorRejectParams :
     public MockedInitiatorNode,
-    public testing::WithParamInterface<
-        std::tuple<std::function<std::vector<uint8_t>()>, enum rmap_status>>
+    public testing::WithParamInterface<std::tuple<
+        std::function<std::vector<uint8_t>()>,
+        bool,
+        enum rmap_status>>
 {
 };
 
 TEST_P(IncomingToInitiatorRejectParams, Check)
 {
     const auto incoming_packet_generator_fn = std::get<0>(GetParam());
-    const auto expected_status = std::get<1>(GetParam());
+    const auto has_eep_termination = std::get<1>(GetParam());
+    const auto expected_status = std::get<2>(GetParam());
 
     const auto incoming_packet = incoming_packet_generator_fn();
 
@@ -2420,7 +2652,6 @@ TEST_P(IncomingToInitiatorRejectParams, Check)
     testing::StrictMock<MockCallbacks> strict_mock_callbacks;
     custom_context->mock_callbacks = &strict_mock_callbacks;
 
-    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
@@ -2459,6 +2690,10 @@ INSTANTIATE_TEST_SUITE_P(
                 return test_pattern5_rmw_with_spacewire_addresses
                     .packet_without_spacewire_address_prefix();
             }),
+        /* Not applicable with EEP termination, would have been discarded
+         * earlier in that case.
+         */
+        testing::Values(false),
         testing::Values(RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR)));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -2490,6 +2725,7 @@ INSTANTIATE_TEST_SUITE_P(
                 incoming_packet.resize(1);
                 return incoming_packet;
             }),
+        testing::Values(false, true),
         testing::Values(RMAP_INCOMPLETE_HEADER)));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -2515,6 +2751,7 @@ INSTANTIATE_TEST_SUITE_P(
                 incoming_packet.at(header_size - 1) ^= 1;
                 return incoming_packet;
             }),
+        testing::Values(false, true),
         testing::Values(RMAP_HEADER_CRC_ERROR)));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -2540,6 +2777,7 @@ INSTANTIATE_TEST_SUITE_P(
                 rmap_calculate_and_set_header_crc(incoming_packet.data());
                 return incoming_packet;
             }),
+        testing::Values(false, true),
         testing::Values(RMAP_NO_RMAP_PROTOCOL)));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -2587,6 +2825,7 @@ INSTANTIATE_TEST_SUITE_P(
                 rmap_calculate_and_set_header_crc(incoming_packet.data());
                 return incoming_packet;
             }),
+        testing::Values(false, true),
         testing::Values(RMAP_NODE_PACKET_ERROR)));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -2640,4 +2879,5 @@ INSTANTIATE_TEST_SUITE_P(
                 incoming_packet.back() ^= 1;
                 return incoming_packet;
             }),
+        testing::Values(false, true),
         testing::Values(RMAP_NODE_INVALID_REPLY)));

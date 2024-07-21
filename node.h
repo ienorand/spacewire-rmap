@@ -530,6 +530,10 @@ enum rmap_status rmap_node_initialize(
  * @retval RMAP_INSUFFICIENT_DATA Incoming write or RMW command packet rejected
  *         due to being smaller than indicated by the data length. An error
  *         reply has been sent if applicable.
+ * @retval RMAP_NODE_INSUFFICIENT_DATA_WITH_EEP Incoming write or RMW command
+ *         packet (terminated with an EEP) rejected due to being smaller than
+ *         indicated by the data length. An error reply has been sent if
+ *         applicable.
  * @retval RMAP_TOO_MUCH_DATA Incoming write or RMW command packet rejected due
  *         to being larger than indicated by the data length. An error reply
  *         has been sent if applicable.

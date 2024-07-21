@@ -80,9 +80,11 @@ static enum rmap_status send_error_reply(
 static enum rmap_status handle_write_command(
     struct rmap_node_context *const context,
     const uint8_t *const packet,
-    const size_t size)
+    const size_t size,
+    const bool has_eep_termination)
 {
     enum rmap_status_field_code status_field_code;
+    enum rmap_status verify_status;
     size_t reply_header_offset;
     enum rmap_status write_status;
 
@@ -93,10 +95,14 @@ static enum rmap_status handle_write_command(
      * match the standard RMAP behaviour?
      */
     status_field_code = RMAP_STATUS_FIELD_CODE_SUCCESS;
-    const enum rmap_status verify_status = rmap_verify_data(packet, size);
+    verify_status = rmap_verify_data(packet, size);
     switch (verify_status) {
     case RMAP_INSUFFICIENT_DATA:
         status_field_code = RMAP_STATUS_FIELD_CODE_EARLY_EOP;
+        if (has_eep_termination) {
+            status_field_code = RMAP_STATUS_FIELD_CODE_EEP;
+            verify_status = RMAP_NODE_INSUFFICIENT_DATA_WITH_EEP;
+        }
         break;
 
     case RMAP_TOO_MUCH_DATA:
@@ -315,15 +321,17 @@ static enum rmap_status handle_read_command(
 static enum rmap_status handle_rmw_command(
     struct rmap_node_context *const context,
     const uint8_t *const packet,
-    const size_t size)
+    const size_t size,
+    const bool has_eep_termination)
 {
     enum rmap_status_field_code status_field_code;
+    enum rmap_status verify_status;
     size_t reply_header_offset;
     size_t reply_data_size;
     enum rmap_status rmw_status;
 
     status_field_code = RMAP_STATUS_FIELD_CODE_SUCCESS;
-    const enum rmap_status verify_status = rmap_verify_data(packet, size);
+    verify_status = rmap_verify_data(packet, size);
     switch (verify_status) {
     case RMAP_RMW_DATA_LENGTH_ERROR:
         status_field_code = RMAP_STATUS_FIELD_CODE_RMW_DATA_LENGTH_ERROR;
@@ -331,6 +339,10 @@ static enum rmap_status handle_rmw_command(
 
     case RMAP_INSUFFICIENT_DATA:
         status_field_code = RMAP_STATUS_FIELD_CODE_EARLY_EOP;
+        if (has_eep_termination) {
+            status_field_code = RMAP_STATUS_FIELD_CODE_EEP;
+            verify_status = RMAP_NODE_INSUFFICIENT_DATA_WITH_EEP;
+        }
         break;
 
     case RMAP_TOO_MUCH_DATA:
@@ -498,11 +510,11 @@ static enum rmap_status handle_command(
     }
 
     if (rmap_is_write(packet)) {
-        return handle_write_command(context, packet, size);
+        return handle_write_command(context, packet, size, has_eep_termination);
     }
 
     if (rmap_is_rmw(packet)) {
-        return handle_rmw_command(context, packet, size);
+        return handle_rmw_command(context, packet, size, has_eep_termination);
     }
 
     return handle_read_command(context, packet);

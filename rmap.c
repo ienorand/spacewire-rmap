@@ -989,6 +989,9 @@ const char *rmap_status_text(const int status)
     case RMAP_NODE_COMMAND_HEADER_FOLLOWED_BY_EEP:
         return "RMAP_NODE_COMMAND_HEADER_FOLLOWED_BY_EEP";
 
+    case RMAP_NODE_INSUFFICIENT_DATA_WITH_EEP:
+        return "RMAP_NODE_INSUFFICIENT_DATA_WITH_EEP";
+
     case RMAP_NODE_INVALID_KEY:
         return "RMAP_NODE_INVALID_KEY";
 
