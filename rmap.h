@@ -247,13 +247,9 @@ enum rmap_status {
     /** Not enough space to initialize header. */
     RMAP_NOT_ENOUGH_SPACE = 270,
 
-    /* Only used by node. */
-    /* TODO
-     * Document node-specific statuses, maybe avoid documenting here and just
-     * refer to rmap_node_handle_incoming() instead?
-     */
-
-    /** An incoming command header is immediately followed by an EEP.
+    /** @{
+     *  See return value documentation of rmap_node_handle_incoming() for
+     *  details.
      *
      * This status is only used by the RMAP node library.
      */
@@ -263,32 +259,19 @@ enum rmap_status {
     RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED = 274,
     RMAP_NODE_VERIFY_BUFFER_OVERRUN = 275,
     RMAP_NODE_MEMORY_ACCESS_ERROR = 276,
-    /* Corresponds to reply received with:
-     * * Reserved bit set (RMAP_UNUSED_PACKET_TYPE).
-     * * With-reply bit not set (RMAP_NO_REPLY).
-     *
-     * Corresponds to a write reply that:
-     * * "Is corrupted" (?).
-     * * "Does not reach the node intact" (?).
-     *
-     */
     RMAP_NODE_INVALID_REPLY = 277,
-    /* Corresponds to read reply received with:
-     * * Header CRC error (RMAP_HEADER_CRC_ERROR)
-     * * "Packet type error" (?).
-     * * "Other error in the header" (?).
-     * * With-reply bit not set (RMAP_NO_REPLY).
-     *
-     * Corresponds to a write reply received with:
-     */
     RMAP_NODE_PACKET_ERROR = 278,
     RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR = 279,
     RMAP_NODE_REPLY_RECEIVED_BY_TARGET = 280,
     RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS = 281,
-    /* Indicates failure to allocate memory for reply. */
     RMAP_NODE_ALLOCATION_FAILURE = 282,
-    /* Optionally indicates failure in user-implemented send reply callback. */
     RMAP_NODE_SEND_REPLY_FAILURE = 283,
+    /** @} */
+
+    /** See return value documentation of rmap_node_initialize() for details.
+     *
+     * This status is only used by the RMAP node library.
+     */
     RMAP_NODE_NO_TARGET_OR_INITIATOR = 284,
 };
 
