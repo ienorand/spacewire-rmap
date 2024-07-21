@@ -386,31 +386,30 @@ typedef void (*rmap_node_initiator_received_rmw_reply_callback)(
     const void *data,
     size_t data_length);
 
-struct rmap_node_initiator_callbacks {
-    /** Callback for a received write reply. */
-    rmap_node_initiator_received_write_reply_callback received_write_reply;
-    /** Callback for a received read reply. */
-    rmap_node_initiator_received_read_reply_callback received_read_reply;
-    /** Callback for a received RMW reply. */
-    rmap_node_initiator_received_rmw_reply_callback received_rmw_reply;
-};
-
-struct rmap_node_target_callbacks {
-    /** Callback for allocating memory for reply packets. */
-    rmap_node_target_allocate_callback allocate;
-    /** Callback for sending a reply. */
-    rmap_node_target_send_reply_callback send_reply;
-    /** Callback for both authorizing and performing a write. */
-    rmap_node_target_write_request_callback write_request;
-    /** Callback for both authorizing and performing a read. */
-    rmap_node_target_read_request_callback read_request;
-    /** Callback for both authorizing and performing a RMW. */
-    rmap_node_target_rmw_request_callback rmw_request;
-};
-
+/** Callbacks for RMAP node. */
 struct rmap_node_callbacks {
-    struct rmap_node_target_callbacks target;
-    struct rmap_node_initiator_callbacks initiator;
+    /** Callbacks for RMAP target node. */
+    struct {
+        /** Callback for allocating memory for reply packets. */
+        rmap_node_target_allocate_callback allocate;
+        /** Callback for sending a reply. */
+        rmap_node_target_send_reply_callback send_reply;
+        /** Callback for both authorizing and performing a write. */
+        rmap_node_target_write_request_callback write_request;
+        /** Callback for both authorizing and performing a read. */
+        rmap_node_target_read_request_callback read_request;
+        /** Callback for both authorizing and performing a RMW. */
+        rmap_node_target_rmw_request_callback rmw_request;
+    } target;
+    /** Callbacks for RMAP initiator node. */
+    struct {
+        /** Callback for a received write reply. */
+        rmap_node_initiator_received_write_reply_callback received_write_reply;
+        /** Callback for a received read reply. */
+        rmap_node_initiator_received_read_reply_callback received_read_reply;
+        /** Callback for a received RMW reply. */
+        rmap_node_initiator_received_rmw_reply_callback received_rmw_reply;
+    } initiator;
 };
 
 /** RMAP node context object. */
