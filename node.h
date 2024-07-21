@@ -483,11 +483,17 @@ enum rmap_status rmap_node_initialize(
  * return value, most non-success return values corresponds to a node error
  * information status from the RMAP standard.
  *
+ * TODO: Document which return values are "error information to be gathered by
+ * the node" according to the RMAP standard and which are not.
+ *
  * @pre @p size must indicate the exact number of bytes in the incoming packet.
  *
  * @param[in,out] context Node context object.
  * @param[in] packet Incoming packet data.
- * @param size Number of bytes in incoming packet in @p packet.
+ * @param size Number of bytes in incoming packet in @p packet (excluding the
+ *        EOP or EEP).
+ * @param has_eep_termination Flag indicating if the incoming packet was
+ *        terminated with an EEP.
  *
  * @retval RMAP_NO_RMAP_PROTOCOL Incoming packet discarded due to non-RMAP
  *         protocol.
@@ -495,6 +501,8 @@ enum rmap_status rmap_node_initialize(
  *         large enough to contain the whole RMAP header.
  * @retval RMAP_HEADER_CRC_ERROR Incoming packet discarded due to header CRC
  *         indicating that errors are present in the header.
+ * @retval RMAP_NODE_COMMAND_HEADER_FOLLOWED_BY_EEP Incoming command packet
+ *         discarded due to valid header being immediately followed by EEP.
  * @retval RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR Incoming command packet
  *         discarded due to node being configured to reject incoming commands.
  * @retval RMAP_NODE_REPLY_RECEIVED_BY_TARGET Incoming reply packet
@@ -548,7 +556,8 @@ enum rmap_status rmap_node_initialize(
 enum rmap_status rmap_node_handle_incoming(
     struct rmap_node_context *context,
     const void *packet,
-    size_t size);
+    size_t size,
+    bool has_eep_termination);
 
 #ifdef __cplusplus
 }

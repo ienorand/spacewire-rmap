@@ -332,11 +332,13 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
@@ -404,11 +406,13 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
@@ -461,11 +465,13 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
@@ -535,11 +541,13 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
@@ -613,11 +621,13 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
@@ -692,11 +702,13 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 
     EXPECT_EQ(request.target_logical_address, 0xFE);
@@ -775,11 +787,13 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 
     EXPECT_EQ(read_request.target_logical_address, 0xFE);
@@ -870,11 +884,13 @@ TEST_F(MockedTargetNode, ValidIncomingWriteWithMaximumReplyAddressLength)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 
     EXPECT_EQ(write_request.target_logical_address, 0xFE);
@@ -922,11 +938,13 @@ TEST_P(IncomingToTargetRejectParams, Check)
     testing::StrictMock<MockCallbacks> strict_mock_callbacks;
     custom_context->mock_callbacks = &strict_mock_callbacks;
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         expected_status);
 }
 
@@ -1168,11 +1186,13 @@ TEST(
     EXPECT_CALL(mock_callbacks, Allocate).Times(0);
     EXPECT_CALL(mock_callbacks, SendReply).Times(0);
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_UNUSED_PACKET_TYPE);
 }
 
@@ -1254,11 +1274,13 @@ TEST(
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_UNUSED_PACKET_TYPE);
 }
 
@@ -1278,11 +1300,13 @@ TEST_F(MockedTargetNode, AuthorizationRejectOfWriteCommandWithoutReply)
         .WillOnce(testing::Return(
             RMAP_STATUS_FIELD_CODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED);
 }
 
@@ -1322,11 +1346,13 @@ TEST_P(IncomingToTargetRejectWithReplyParams, Check)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         expected_status);
 
     allocation.resize(expected_reply.size());
@@ -1622,11 +1648,13 @@ TEST_P(IncomingToTargetAuthorizationRejectWithReplyParams, Check)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         expected_status);
 
     allocation.resize(expected_reply.size());
@@ -1723,11 +1751,13 @@ TEST_F(MockedTargetNode, ReadError)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_NODE_MEMORY_ACCESS_ERROR);
 
     allocation.resize(expected_reply.size());
@@ -1796,11 +1826,13 @@ TEST_F(MockedTargetNode, RmwReadError)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_NODE_MEMORY_ACCESS_ERROR);
 
     allocation.resize(expected_reply.size());
@@ -1872,11 +1904,13 @@ TEST_F(MockedTargetNode, RmwWriteError)
             testing::SaveArg<1>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_NODE_MEMORY_ACCESS_ERROR);
 
     allocation.resize(expected_reply.size());
@@ -1896,11 +1930,13 @@ TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
     const auto pattern = test_pattern0_expected_write_reply;
     const std::vector<uint8_t> incoming_packet =
         pattern.packet_without_spacewire_address_prefix();
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 }
 
@@ -1922,11 +1958,13 @@ TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_packet.data())));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 }
 
@@ -1944,11 +1982,13 @@ TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
         test_pattern2_expected_write_reply_with_spacewire_addresses;
     const std::vector<uint8_t> incoming_packet =
         pattern.packet_without_spacewire_address_prefix();
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 }
 
@@ -1971,11 +2011,13 @@ TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_packet.data())));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 }
 
@@ -1997,11 +2039,13 @@ TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_packet.data())));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 }
 
@@ -2024,11 +2068,13 @@ TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
             incoming_data,
             rmap_get_data_length(incoming_packet.data())));
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         RMAP_OK);
 }
 
@@ -2078,11 +2124,13 @@ TEST_P(IncomingCommandWithReplyFailure, ReplyAllocationFailure)
 
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_NODE_ALLOCATION_FAILURE);
 }
 
@@ -2104,11 +2152,13 @@ TEST_P(IncomingCommandWithReplyFailure, RejectReplyAllocationFailure)
 
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_NODE_ALLOCATION_FAILURE);
 }
 
@@ -2163,11 +2213,13 @@ TEST_P(IncomingCommandWithReplyFailure, ReplySendFailure)
 
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_NODE_SEND_REPLY_FAILURE);
 }
 
@@ -2200,11 +2252,13 @@ TEST_P(IncomingCommandWithReplyFailure, RejectReplySendFailure)
 
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_NODE_SEND_REPLY_FAILURE);
 }
 
@@ -2224,11 +2278,13 @@ TEST_P(IncomingCommandWithReplyFailure, InvalidHeaderCrcReplyAllocationFailure)
         RMAP_PACKET_TYPE_COMMAND << 6 |
             (RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY) << 2);
     rmap_calculate_and_set_header_crc(command_packet.data());
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_NODE_ALLOCATION_FAILURE);
 }
 
@@ -2258,11 +2314,13 @@ TEST_P(IncomingCommandWithReplyFailure, InvalidHeaderCrcReplySendFailure)
         RMAP_PACKET_TYPE_COMMAND << 6 |
             (RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY) << 2);
     rmap_calculate_and_set_header_crc(command_packet.data());
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_NODE_SEND_REPLY_FAILURE);
 }
 
@@ -2289,11 +2347,13 @@ TEST_P(
         command_pattern.packet_without_spacewire_address_prefix();
     /* Flip a bit in data CRC field. */
     command_packet.back() ^= 1;
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_NODE_ALLOCATION_FAILURE);
 }
 
@@ -2320,11 +2380,13 @@ TEST_P(
         command_pattern.packet_without_spacewire_address_prefix();
     /* Flip a bit in data CRC field. */
     command_packet.back() ^= 1;
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             command_packet.data(),
-            command_packet.size()),
+            command_packet.size(),
+            has_eep_termination),
         RMAP_NODE_SEND_REPLY_FAILURE);
 }
 
@@ -2358,11 +2420,13 @@ TEST_P(IncomingToInitiatorRejectParams, Check)
     testing::StrictMock<MockCallbacks> strict_mock_callbacks;
     custom_context->mock_callbacks = &strict_mock_callbacks;
 
+    const bool has_eep_termination = false;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
             incoming_packet.data(),
-            incoming_packet.size()),
+            incoming_packet.size(),
+            has_eep_termination),
         expected_status);
 }
 

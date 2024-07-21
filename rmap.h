@@ -248,11 +248,20 @@ enum rmap_status {
     RMAP_NOT_ENOUGH_SPACE = 270,
 
     /* Only used by node. */
+    /* TODO
+     * Document node-specific statuses, maybe avoid documenting here and just
+     * refer to rmap_node_handle_incoming() instead?
+     */
 
-    RMAP_NODE_INVALID_KEY = 271,
-    RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED = 272,
-    RMAP_NODE_VERIFY_BUFFER_OVERRUN = 273,
-    RMAP_NODE_MEMORY_ACCESS_ERROR = 274,
+    /** An incoming command header is immediately followed by an EEP.
+     *
+     * This status is only used by the RMAP node library.
+     */
+    RMAP_NODE_COMMAND_HEADER_FOLLOWED_BY_EEP = 271,
+    RMAP_NODE_INVALID_KEY = 272,
+    RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED = 273,
+    RMAP_NODE_VERIFY_BUFFER_OVERRUN = 274,
+    RMAP_NODE_MEMORY_ACCESS_ERROR = 275,
     /* Corresponds to reply received with:
      * * Reserved bit set (RMAP_UNUSED_PACKET_TYPE).
      * * With-reply bit not set (RMAP_NO_REPLY).
@@ -262,7 +271,7 @@ enum rmap_status {
      * * "Does not reach the node intact" (?).
      *
      */
-    RMAP_NODE_INVALID_REPLY = 275,
+    RMAP_NODE_INVALID_REPLY = 276,
     /* Corresponds to read reply received with:
      * * Header CRC error (RMAP_HEADER_CRC_ERROR)
      * * "Packet type error" (?).
@@ -271,15 +280,15 @@ enum rmap_status {
      *
      * Corresponds to a write reply received with:
      */
-    RMAP_NODE_PACKET_ERROR = 276,
-    RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR = 277,
-    RMAP_NODE_REPLY_RECEIVED_BY_TARGET = 278,
-    RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS = 279,
+    RMAP_NODE_PACKET_ERROR = 277,
+    RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR = 278,
+    RMAP_NODE_REPLY_RECEIVED_BY_TARGET = 279,
+    RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS = 280,
     /* Indicates failure to allocate memory for reply. */
-    RMAP_NODE_ALLOCATION_FAILURE = 280,
-    RMAP_NODE_NO_TARGET_OR_INITIATOR = 281,
+    RMAP_NODE_ALLOCATION_FAILURE = 281,
+    RMAP_NODE_NO_TARGET_OR_INITIATOR = 282,
     /* Optionally indicates failure in user-implemented send reply callback. */
-    RMAP_NODE_SEND_REPLY_FAILURE = 282,
+    RMAP_NODE_SEND_REPLY_FAILURE = 283,
 };
 
 /** Size constants for RMAP packets. */

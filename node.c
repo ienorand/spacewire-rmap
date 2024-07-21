@@ -456,8 +456,13 @@ static enum rmap_status handle_rmw_command(
 static enum rmap_status handle_command(
     struct rmap_node_context *const context,
     const void *const packet,
-    const size_t size)
+    const size_t size,
+    const bool has_eep_termination)
 {
+    if (has_eep_termination && rmap_calculate_header_size(packet) == size) {
+        return RMAP_NODE_COMMAND_HEADER_FOLLOWED_BY_EEP;
+    }
+
     if (!context->is_target) {
         return RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR;
     }
@@ -582,14 +587,11 @@ static enum rmap_status handle_reply(
     return RMAP_OK;
 }
 
-/* TODO: How to handle EEP? Should this be passed to incoming and on to
- * handle_write_command() and handle_rmw_command() and acted upon if located in
- * data?
- */
 enum rmap_status rmap_node_handle_incoming(
     struct rmap_node_context *const context,
     const void *const packet,
-    const size_t size)
+    const size_t size,
+    const bool has_eep_termination)
 {
     enum rmap_status status;
 
@@ -606,7 +608,7 @@ enum rmap_status rmap_node_handle_incoming(
     };
 
     if (rmap_is_command(packet)) {
-        return handle_command(context, packet, size);
+        return handle_command(context, packet, size, has_eep_termination);
     }
 
     return handle_reply(context, packet, size);
