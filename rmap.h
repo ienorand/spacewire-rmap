@@ -899,10 +899,6 @@ enum rmap_status rmap_initialize_header(
  *         packet type.
  * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains an
  *         unrepresentable command code.
- * @retval RMAP_UNUSED_COMMAND_CODE @p command_code contains a reserved command
- *         code.
- * @retval RMAP_NO_REPLY @p packet_type is a reply but @p command_code does not
- *         contain a with-reply command code.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG @p reply_address_unpadded_size is larger
  *         than RMAP_REPLY_ADDRESS_LENGTH_MAX.
  * @retval RMAP_NOT_ENOUGH_SPACE Header would not fit before @p data_offset.
