@@ -665,10 +665,10 @@ enum rmap_status rmap_verify_data(const void *const packet, const size_t size)
  *        zero-padding used to calculate and set the reply address length
  *        field.
  *
- * @retval RMAP_INVALID_PACKET_TYPE @p packet_type contains an unrepresentable
- *         packet type.
- * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains an
- *         unrepresentable command code.
+ * @retval RMAP_INVALID_PACKET_TYPE @p packet_type contains a value which
+ *         cannot be represented as a packet type in an RMAP packet.
+ * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains a value which
+ *         cannot be represented as a command code in an RMAP packet.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG @p reply_address_unpadded_size is larger
  *         than RMAP_REPLY_ADDRESS_LENGTH_MAX.
  * @retval RMAP_OK Instruction created successfully.

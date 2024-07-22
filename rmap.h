@@ -855,10 +855,10 @@ enum rmap_status rmap_verify_data(const void *packet, size_t size);
  *        zero-padding used to calculate and set the reply address length
  *        field.
  *
- * @retval RMAP_INVALID_PACKET_TYPE @p packet_type contains an unrepresentable
- *         packet type.
- * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains an
- *         unrepresentable command code.
+ * @retval RMAP_INVALID_PACKET_TYPE @p packet_type contains a value which
+ *         cannot be represented as a packet type in an RMAP packet.
+ * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains a value which
+ *         cannot be represented as a command code in an RMAP packet.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG @p reply_address_unpadded_size is larger
  *         than RMAP_REPLY_ADDRESS_LENGTH_MAX.
  * @retval RMAP_NOT_ENOUGH_SPACE @p max_size is less than the size of the
@@ -884,6 +884,10 @@ enum rmap_status rmap_initialize_header(
  * further writes via accessor function will be valid if this initialization
  * succeeds
  *
+ * Creating invalid headers with unused packet types or unused command codes is
+ * supported in order to allow creating invalid RMAP packets for testing
+ * purposes.
+ *
  * @param[out] header_offset Offset of start of written header from @p raw.
  * @param[out] raw Start of area containing the existing data field and into
  *             which the header will be written.
@@ -895,10 +899,10 @@ enum rmap_status rmap_initialize_header(
  *        zero-padding used to calculate and set the reply address length
  *        field.
  *
- * @retval RMAP_UNUSED_PACKET_TYPE @p packet_type contains an unrepresentable
- *         packet type.
- * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains an
- *         unrepresentable command code.
+ * @retval RMAP_INVALID_PACKET_TYPE @p packet_type contains a value which
+ *         cannot be represented as a packet type in an RMAP packet.
+ * @retval RMAP_INVALID_COMMAND_CODE @p command_code contains a value which
+ *         cannot be represented as a command code in an RMAP packet.
  * @retval RMAP_REPLY_ADDRESS_TOO_LONG @p reply_address_unpadded_size is larger
  *         than RMAP_REPLY_ADDRESS_LENGTH_MAX.
  * @retval RMAP_NOT_ENOUGH_SPACE Header would not fit before @p data_offset.
