@@ -21,10 +21,10 @@ class AccessorByteCheckInPattern :
 TEST_P(AccessorByteCheckInPattern, Check)
 {
     const auto pattern = std::get<0>(GetParam());
-    auto accessor = std::get<0>(std::get<1>(GetParam()));
+    auto access_fn = std::get<0>(std::get<1>(GetParam()));
     auto expected = std::get<1>(std::get<1>(GetParam()));
 
-    EXPECT_EQ(accessor(pattern.data.data() + pattern.header_offset), expected);
+    EXPECT_EQ(access_fn(pattern.data.data() + pattern.header_offset), expected);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -345,8 +345,8 @@ TEST_P(AccessorByteSetGet, GetGivesMatchingAfterSet)
     auto command_code = std::get<1>(std::get<0>(GetParam()));
     auto reply_address_size = std::get<2>(std::get<0>(GetParam()));
 
-    auto accessor_set = std::get<0>(std::get<1>(GetParam()));
-    auto accessor_get = std::get<1>(std::get<1>(GetParam()));
+    auto access_set_fn = std::get<0>(std::get<1>(GetParam()));
+    auto access_get_fn = std::get<1>(std::get<1>(GetParam()));
 
     ASSERT_EQ(
         rmap_initialize_header(
@@ -356,26 +356,26 @@ TEST_P(AccessorByteSetGet, GetGivesMatchingAfterSet)
             command_code,
             reply_address_size),
         RMAP_OK);
-    accessor_set(header, 0);
-    EXPECT_EQ(accessor_get(header), 0);
-    accessor_set(header, 1);
-    EXPECT_EQ(accessor_get(header), 1);
-    accessor_set(header, 123);
-    EXPECT_EQ(accessor_get(header), 123);
-    accessor_set(header, 0xFF);
-    EXPECT_EQ(accessor_get(header), 0xFF);
+    access_set_fn(header, 0);
+    EXPECT_EQ(access_get_fn(header), 0);
+    access_set_fn(header, 1);
+    EXPECT_EQ(access_get_fn(header), 1);
+    access_set_fn(header, 123);
+    EXPECT_EQ(access_get_fn(header), 123);
+    access_set_fn(header, 0xFF);
+    EXPECT_EQ(access_get_fn(header), 0xFF);
 }
 
-/* When this fixture is instantiated for instruction field accessors, it
+/* When this fixture is instantiated for instruction field access functions, it
  * verifies correct overwriting of the instruction field in an already
  * initialized header.
  *
- * For other accessors, the instantiation verifies that set and get matches
- * with different header types and reply address lengths.
+ * For other access functions, the instantiation verifies that set and get
+ * matches with different header types and reply address lengths.
  *
- * Status and key accessors do perform some invalid accesses as part of these
- * tests, since only valid for some header types, but these are expected to
- * succeed anyway.
+ * Status and key access functions do perform some invalid accesses as part of
+ * these tests, since only valid for some header types, but these are expected
+ * to succeed anyway.
  */
 
 INSTANTIATE_TEST_SUITE_P(
@@ -452,10 +452,10 @@ class AccessorBoolCheckInPattern :
 TEST_P(AccessorBoolCheckInPattern, Check)
 {
     const auto pattern = std::get<0>(GetParam());
-    auto accessor = std::get<0>(std::get<1>(GetParam()));
+    auto access_fn = std::get<0>(std::get<1>(GetParam()));
     auto expected = std::get<1>(std::get<1>(GetParam()));
 
-    EXPECT_EQ(accessor(pattern.data.data() + pattern.header_offset), expected);
+    EXPECT_EQ(access_fn(pattern.data.data() + pattern.header_offset), expected);
 }
 
 INSTANTIATE_TEST_SUITE_P(
