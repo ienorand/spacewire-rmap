@@ -1,10 +1,10 @@
-#ifndef RMAP_H
-#define RMAP_H
-
 /** Serializing and deserializing for SpaceWire RMAP.
  *
  * @file
  */
+
+#ifndef RMAP_H
+#define RMAP_H
 
 #include <stdbool.h>
 #include <stddef.h>
