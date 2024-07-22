@@ -1,10 +1,10 @@
-#ifndef NODE_H
-#define NODE_H
-
 /** Target and initiator node for incoming SpaceWire RMAP packets.
  *
  * @file
  */
+
+#ifndef NODE_H
+#define NODE_H
 
 #include "rmap.h"
 
