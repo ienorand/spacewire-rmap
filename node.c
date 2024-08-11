@@ -37,6 +37,7 @@ enum rmap_status rmap_node_initialize(
  * @pre @p error must be a valid non-success RMAP status field code.
  *
  * @param[in,out] context Node context object.
+ * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param[in] command Command header to create reply for.
  * @param error RMAP status field code to use in reply.
  *
@@ -46,6 +47,7 @@ enum rmap_status rmap_node_initialize(
  */
 static enum rmap_status send_error_reply(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const void *const command,
     const enum rmap_status_field_code error)
 {
@@ -57,8 +59,10 @@ static enum rmap_status send_error_reply(
     const size_t reply_size_max =
         RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_HEADER_SIZE_MAX + 1;
 
-    uint8_t *const reply_buf =
-        context->callbacks.target.allocate(context, reply_size_max);
+    uint8_t *const reply_buf = context->callbacks.target.allocate(
+        context,
+        transaction_custom_context,
+        reply_size_max);
     if (!reply_buf) {
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
@@ -86,8 +90,11 @@ static enum rmap_status send_error_reply(
     }
     rmap_calculate_and_set_header_crc(reply_buf + header_offset);
 
-    const enum rmap_status send_status =
-        context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    const enum rmap_status send_status = context->callbacks.target.send_reply(
+        context,
+        transaction_custom_context,
+        reply_buf,
+        reply_size);
     switch (send_status) {
     case RMAP_NODE_SEND_REPLY_FAILURE:
         return send_status;
@@ -111,6 +118,7 @@ static enum rmap_status send_error_reply(
  *      packet.
  *
  * @param[in,out] context Node context object.
+ * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param[in] packet Incoming packet.
  * @param size Number of bytes in incoming packet in @p packet (excluding the
  *        EOP or EEP).
@@ -150,6 +158,7 @@ static enum rmap_status send_error_reply(
  */
 static enum rmap_status handle_write_command(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const uint8_t *const packet,
     const size_t size,
     const bool has_eep_termination)
@@ -190,8 +199,11 @@ static enum rmap_status handle_write_command(
     }
     if (verify_status != RMAP_OK) {
         if (rmap_is_with_reply(packet)) {
-            const enum rmap_status send_status =
-                send_error_reply(context, packet, status_field_code);
+            const enum rmap_status send_status = send_error_reply(
+                context,
+                transaction_custom_context,
+                packet,
+                status_field_code);
             switch (send_status) {
             case RMAP_NODE_ALLOCATION_FAILURE:
             case RMAP_NODE_SEND_REPLY_FAILURE:
@@ -216,6 +228,7 @@ static enum rmap_status handle_write_command(
         .data_length = rmap_get_data_length(packet)};
     status_field_code = context->callbacks.target.write_request(
         context,
+        transaction_custom_context,
         &write_request,
         packet + rmap_calculate_header_size(packet));
     write_status = RMAP_OK;
@@ -242,8 +255,11 @@ static enum rmap_status handle_write_command(
     }
     if (status_field_code != RMAP_STATUS_FIELD_CODE_SUCCESS) {
         if (rmap_is_with_reply(packet)) {
-            const enum rmap_status send_status =
-                send_error_reply(context, packet, status_field_code);
+            const enum rmap_status send_status = send_error_reply(
+                context,
+                transaction_custom_context,
+                packet,
+                status_field_code);
             switch (send_status) {
             case RMAP_NODE_ALLOCATION_FAILURE:
             case RMAP_NODE_SEND_REPLY_FAILURE:
@@ -260,8 +276,10 @@ static enum rmap_status handle_write_command(
     const size_t reply_maximum_size =
         RMAP_REPLY_ADDRESS_LENGTH_MAX + RMAP_WRITE_REPLY_HEADER_STATIC_SIZE;
 
-    uint8_t *const reply_buf =
-        context->callbacks.target.allocate(context, reply_maximum_size);
+    uint8_t *const reply_buf = context->callbacks.target.allocate(
+        context,
+        transaction_custom_context,
+        reply_maximum_size);
     if (!reply_buf) {
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
@@ -280,8 +298,11 @@ static enum rmap_status handle_write_command(
 
     const size_t reply_size = reply_header_offset +
         rmap_calculate_header_size(reply_buf + reply_header_offset);
-    const enum rmap_status send_status =
-        context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    const enum rmap_status send_status = context->callbacks.target.send_reply(
+        context,
+        transaction_custom_context,
+        reply_buf,
+        reply_size);
     switch (send_status) {
     case RMAP_NODE_SEND_REPLY_FAILURE:
         return send_status;
@@ -303,6 +324,7 @@ static enum rmap_status handle_write_command(
  *      header.
  *
  * @param[in,out] context Node context object.
+ * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param[in] packet Incoming packet.
  *
  * @retval RMAP_NODE_ALLOCATION_FAILURE Incoming packet and intended reply
@@ -325,6 +347,7 @@ static enum rmap_status handle_write_command(
  */
 static enum rmap_status handle_read_command(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const uint8_t *const packet)
 {
     enum rmap_status_field_code status_field_code;
@@ -335,8 +358,10 @@ static enum rmap_status handle_read_command(
     const size_t reply_maximum_size = RMAP_REPLY_ADDRESS_LENGTH_MAX +
         RMAP_COMMAND_HEADER_STATIC_SIZE + rmap_get_data_length(packet) + 1;
 
-    uint8_t *const reply_buf =
-        context->callbacks.target.allocate(context, reply_maximum_size);
+    uint8_t *const reply_buf = context->callbacks.target.allocate(
+        context,
+        transaction_custom_context,
+        reply_maximum_size);
     if (!reply_buf) {
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
@@ -366,6 +391,7 @@ static enum rmap_status handle_read_command(
         rmap_calculate_header_size(reply_buf + reply_header_offset);
     status_field_code = context->callbacks.target.read_request(
         context,
+        transaction_custom_context,
         reply_buf + data_offset,
         &reply_data_size,
         &read_request);
@@ -404,8 +430,11 @@ static enum rmap_status handle_read_command(
         reply_size = data_offset + 1;
     }
 
-    const enum rmap_status send_status =
-        context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    const enum rmap_status send_status = context->callbacks.target.send_reply(
+        context,
+        transaction_custom_context,
+        reply_buf,
+        reply_size);
     switch (send_status) {
     case RMAP_NODE_SEND_REPLY_FAILURE:
         return send_status;
@@ -429,6 +458,7 @@ static enum rmap_status handle_read_command(
  *      packet.
  *
  * @param[in,out] context Node context object.
+ * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param[in] packet Incoming packet.
  * @param size Number of bytes in incoming packet in @p packet (excluding the
  *        EOP or EEP).
@@ -467,6 +497,7 @@ static enum rmap_status handle_read_command(
  */
 static enum rmap_status handle_rmw_command(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const uint8_t *const packet,
     const size_t size,
     const bool has_eep_termination)
@@ -505,8 +536,11 @@ static enum rmap_status handle_rmw_command(
         break;
     }
     if (verify_status != RMAP_OK) {
-        const enum rmap_status send_status =
-            send_error_reply(context, packet, status_field_code);
+        const enum rmap_status send_status = send_error_reply(
+            context,
+            transaction_custom_context,
+            packet,
+            status_field_code);
         switch (send_status) {
         case RMAP_NODE_ALLOCATION_FAILURE:
         case RMAP_NODE_SEND_REPLY_FAILURE:
@@ -522,8 +556,10 @@ static enum rmap_status handle_rmw_command(
     const size_t reply_maximum_size = RMAP_REPLY_ADDRESS_LENGTH_MAX +
         RMAP_COMMAND_HEADER_STATIC_SIZE + rmap_get_data_length(packet) / 2 + 1;
 
-    uint8_t *const reply_buf =
-        context->callbacks.target.allocate(context, reply_maximum_size);
+    uint8_t *const reply_buf = context->callbacks.target.allocate(
+        context,
+        transaction_custom_context,
+        reply_maximum_size);
     if (!reply_buf) {
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
@@ -554,6 +590,7 @@ static enum rmap_status handle_rmw_command(
     rmw_status = RMAP_OK;
     status_field_code = context->callbacks.target.rmw_request(
         context,
+        transaction_custom_context,
         reply_buf + data_offset,
         &reply_data_size,
         &rmw_request,
@@ -595,8 +632,11 @@ static enum rmap_status handle_rmw_command(
         rmap_crc_calculate(reply_buf + data_offset, reply_data_size);
     const size_t reply_size = data_offset + reply_data_size + 1;
 
-    const enum rmap_status send_status =
-        context->callbacks.target.send_reply(context, reply_buf, reply_size);
+    const enum rmap_status send_status = context->callbacks.target.send_reply(
+        context,
+        transaction_custom_context,
+        reply_buf,
+        reply_size);
     switch (send_status) {
     case RMAP_NODE_SEND_REPLY_FAILURE:
         return send_status;
@@ -620,6 +660,7 @@ static enum rmap_status handle_rmw_command(
  * @pre @p size must indicate the exact number of bytes in the command packet.
  *
  * @param[in,out] context Node context object.
+ * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param[in] packet Incoming packet.
  * @param size Number of bytes in incoming packet in @p packet (excluding the
  *        EOP or EEP).
@@ -672,6 +713,7 @@ static enum rmap_status handle_rmw_command(
  */
 static enum rmap_status handle_command(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const void *const packet,
     const size_t size,
     const bool has_eep_termination)
@@ -698,6 +740,7 @@ static enum rmap_status handle_command(
         if (rmap_is_with_reply(packet)) {
             const enum rmap_status send_status = send_error_reply(
                 context,
+                transaction_custom_context,
                 packet,
                 RMAP_STATUS_FIELD_CODE_UNUSED_PACKET_TYPE_OR_COMMAND_CODE);
             switch (send_status) {
@@ -718,14 +761,24 @@ static enum rmap_status handle_command(
     }
 
     if (rmap_is_write(packet)) {
-        return handle_write_command(context, packet, size, has_eep_termination);
+        return handle_write_command(
+            context,
+            transaction_custom_context,
+            packet,
+            size,
+            has_eep_termination);
     }
 
     if (rmap_is_rmw(packet)) {
-        return handle_rmw_command(context, packet, size, has_eep_termination);
+        return handle_rmw_command(
+            context,
+            transaction_custom_context,
+            packet,
+            size,
+            has_eep_termination);
     }
 
-    return handle_read_command(context, packet);
+    return handle_read_command(context, transaction_custom_context, packet);
 }
 
 /** Handle incoming reply packet to node.
@@ -738,6 +791,7 @@ static enum rmap_status handle_command(
  * @pre @p size must indicate the exact number of bytes in the reply packet.
  *
  * @param[in,out] context Node context object.
+ * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param[in] packet Incoming packet.
  * @param size Number of bytes in incoming packet in @p packet.
  *
@@ -755,6 +809,7 @@ static enum rmap_status handle_command(
  */
 static enum rmap_status handle_reply(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const uint8_t *const packet,
     const size_t size)
 {
@@ -784,6 +839,7 @@ static enum rmap_status handle_reply(
     if (rmap_is_write(packet)) {
         context->callbacks.initiator.received_write_reply(
             context,
+            transaction_custom_context,
             rmap_get_transaction_identifier(packet),
             rmap_get_status(packet));
         return RMAP_OK;
@@ -810,6 +866,7 @@ static enum rmap_status handle_reply(
     if (rmap_is_rmw(packet)) {
         context->callbacks.initiator.received_rmw_reply(
             context,
+            transaction_custom_context,
             rmap_get_transaction_identifier(packet),
             rmap_get_status(packet),
             packet + rmap_calculate_header_size(packet),
@@ -821,6 +878,7 @@ static enum rmap_status handle_reply(
 
     context->callbacks.initiator.received_read_reply(
         context,
+        transaction_custom_context,
         rmap_get_transaction_identifier(packet),
         rmap_get_status(packet),
         packet + rmap_calculate_header_size(packet),
@@ -831,6 +889,7 @@ static enum rmap_status handle_reply(
 
 enum rmap_status rmap_node_handle_incoming(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const void *const packet,
     const size_t size,
     const bool has_eep_termination)
@@ -850,8 +909,13 @@ enum rmap_status rmap_node_handle_incoming(
     }
 
     if (rmap_is_command(packet)) {
-        return handle_command(context, packet, size, has_eep_termination);
+        return handle_command(
+            context,
+            transaction_custom_context,
+            packet,
+            size,
+            has_eep_termination);
     }
 
-    return handle_reply(context, packet, size);
+    return handle_reply(context, transaction_custom_context, packet, size);
 }

@@ -30,21 +30,28 @@ class MockCallbacks
     MOCK_METHOD(
         void *,
         Allocate,
-        (struct rmap_node_context * context, size_t size));
+        (struct rmap_node_context * context,
+         void *transaction_custom_context,
+         size_t size));
     MOCK_METHOD(
         enum rmap_status,
         SendReply,
-        (struct rmap_node_context * context, void *packet, size_t size));
+        (struct rmap_node_context * context,
+         void *transaction_custom_context,
+         void *packet,
+         size_t size));
     MOCK_METHOD(
         enum rmap_status_field_code,
         WriteRequest,
         (struct rmap_node_context * context,
+         void *transaction_custom_context,
          const struct rmap_node_target_request *request,
          const void *data));
     MOCK_METHOD(
         enum rmap_status_field_code,
         ReadRequest,
         (struct rmap_node_context * context,
+         void *transaction_custom_context,
          void *data,
          size_t *data_size,
          const struct rmap_node_target_request *request));
@@ -52,6 +59,7 @@ class MockCallbacks
         enum rmap_status_field_code,
         RmwRequest,
         (struct rmap_node_context * context,
+         void *transaction_custom_context,
          void *read_data,
          size_t *read_data_size,
          const struct rmap_node_target_request *request,
@@ -60,12 +68,14 @@ class MockCallbacks
         void,
         ReceivedWriteReply,
         (struct rmap_node_context * context,
+         void *transaction_custom_context,
          uint16_t transaction_identifier,
          enum rmap_status_field_code status));
     MOCK_METHOD(
         void,
         ReceivedReadReply,
         (struct rmap_node_context * context,
+         void *transaction_custom_context,
          uint16_t transaction_identifier,
          enum rmap_status_field_code status,
          const void *data,
@@ -74,6 +84,7 @@ class MockCallbacks
         void,
         ReceivedRmwReply,
         (struct rmap_node_context * context,
+         void *transaction_custom_context,
          uint16_t transaction_identifier,
          enum rmap_status_field_code status,
          const void *data,
@@ -86,38 +97,47 @@ struct mocked_callbacks_custom_context {
 
 static void *allocate_mock_wrapper(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const size_t size)
 {
     struct mocked_callbacks_custom_context *const custom_context =
         reinterpret_cast<struct mocked_callbacks_custom_context *>(
             context->custom_context);
-    return custom_context->mock_callbacks->Allocate(context, size);
+    return custom_context->mock_callbacks->Allocate(
+        context,
+        transaction_custom_context,
+        size);
 }
 
 static enum rmap_status send_reply_mock_wrapper(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     void *const packet,
     const size_t size)
 {
     struct mocked_callbacks_custom_context *const custom_context =
         reinterpret_cast<struct mocked_callbacks_custom_context *>(
             context->custom_context);
-    return custom_context->mock_callbacks->SendReply(context, packet, size);
+    return custom_context->mock_callbacks
+        ->SendReply(context, transaction_custom_context, packet, size);
 }
 
 static enum rmap_status_field_code write_request_mock_wrapper(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const struct rmap_node_target_request *const request,
     const void *const data)
 {
     struct mocked_callbacks_custom_context *const custom_context =
         reinterpret_cast<struct mocked_callbacks_custom_context *>(
             context->custom_context);
-    return custom_context->mock_callbacks->WriteRequest(context, request, data);
+    return custom_context->mock_callbacks
+        ->WriteRequest(context, transaction_custom_context, request, data);
 }
 
 static enum rmap_status_field_code read_request_mock_wrapper(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     void *const data,
     size_t *const data_size,
     const struct rmap_node_target_request *const request)
@@ -125,12 +145,17 @@ static enum rmap_status_field_code read_request_mock_wrapper(
     struct mocked_callbacks_custom_context *const custom_context =
         reinterpret_cast<struct mocked_callbacks_custom_context *>(
             context->custom_context);
-    return custom_context->mock_callbacks
-        ->ReadRequest(context, data, data_size, request);
+    return custom_context->mock_callbacks->ReadRequest(
+        context,
+        transaction_custom_context,
+        data,
+        data_size,
+        request);
 }
 
 static enum rmap_status_field_code rmw_request_mock_wrapper(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     void *const read_data,
     size_t *const read_data_size,
     const struct rmap_node_target_request *const request,
@@ -139,12 +164,18 @@ static enum rmap_status_field_code rmw_request_mock_wrapper(
     struct mocked_callbacks_custom_context *const custom_context =
         reinterpret_cast<struct mocked_callbacks_custom_context *>(
             context->custom_context);
-    return custom_context->mock_callbacks
-        ->RmwRequest(context, read_data, read_data_size, request, data);
+    return custom_context->mock_callbacks->RmwRequest(
+        context,
+        transaction_custom_context,
+        read_data,
+        read_data_size,
+        request,
+        data);
 }
 
 static void received_write_reply_mock_wrapper(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const uint16_t transaction_identifier,
     const enum rmap_status_field_code status)
 {
@@ -153,12 +184,14 @@ static void received_write_reply_mock_wrapper(
             context->custom_context);
     return custom_context->mock_callbacks->ReceivedWriteReply(
         context,
+        transaction_custom_context,
         transaction_identifier,
         status);
 }
 
 static void received_read_reply_mock_wrapper(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const uint16_t transaction_identifier,
     const enum rmap_status_field_code status,
     const void *const data,
@@ -169,6 +202,7 @@ static void received_read_reply_mock_wrapper(
             context->custom_context);
     return custom_context->mock_callbacks->ReceivedReadReply(
         context,
+        transaction_custom_context,
         transaction_identifier,
         status,
         data,
@@ -177,6 +211,7 @@ static void received_read_reply_mock_wrapper(
 
 static void received_rmw_reply_mock_wrapper(
     struct rmap_node_context *const context,
+    void *const transaction_custom_context,
     const uint16_t transaction_identifier,
     const enum rmap_status_field_code status,
     const void *const data,
@@ -187,6 +222,7 @@ static void received_rmw_reply_mock_wrapper(
             context->custom_context);
     return custom_context->mock_callbacks->ReceivedRmwReply(
         context,
+        transaction_custom_context,
         transaction_identifier,
         status,
         data,
@@ -301,8 +337,10 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -316,9 +354,9 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
     struct rmap_node_target_request request;
     EXPECT_CALL(
         mock_callbacks,
-        WriteRequest(testing::_, testing::_, incoming_data))
+        WriteRequest(testing::_, testing::_, testing::_, incoming_data))
         .WillOnce(testing::DoAll(
-            testing::SaveArgPointee<1>(&request),
+            testing::SaveArgPointee<2>(&request),
             testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS)));
 
     const std::vector<uint8_t> expected_reply =
@@ -327,15 +365,18 @@ TEST_F(MockedTargetNode, TestPattern0IncomingCommand)
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
+
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -360,8 +401,10 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -378,18 +421,21 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
             testing::_,
             testing::_,
             testing::_,
+            testing::_,
             testing::Field(
                 &rmap_node_target_request::data_length,
                 source_data.size())))
         .WillOnce(testing::DoAll(
-            testing::SaveArgPointee<3>(&request),
-            testing::SetArgPointee<2>(source_data.size()),
+            testing::SaveArgPointee<4>(&request),
+            testing::SetArgPointee<3>(source_data.size()),
             [&source_data](
                 struct rmap_node_context *const node_context,
+                void *const transaction_custom_context,
                 void *const data,
                 size_t *const data_size,
                 const struct rmap_node_target_request *const request) {
                 (void)node_context;
+                (void)transaction_custom_context;
                 (void)data_size;
                 (void)request;
                 memcpy(data, source_data.data(), source_data.size());
@@ -401,15 +447,17 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -434,8 +482,10 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -449,9 +499,9 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
     struct rmap_node_target_request request;
     EXPECT_CALL(
         mock_callbacks,
-        WriteRequest(testing::_, testing::_, incoming_data))
+        WriteRequest(testing::_, testing::_, testing::_, incoming_data))
         .WillOnce(testing::DoAll(
-            testing::SaveArgPointee<1>(&request),
+            testing::SaveArgPointee<2>(&request),
             testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS)));
 
     const std::vector<uint8_t> expected_reply =
@@ -460,15 +510,17 @@ TEST_F(MockedTargetNode, TestPattern2IncomingCommand)
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -493,8 +545,10 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -513,18 +567,21 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
             testing::_,
             testing::_,
             testing::_,
+            testing::_,
             testing::Field(
                 &rmap_node_target_request::data_length,
                 source_data.size())))
         .WillOnce(testing::DoAll(
-            testing::SaveArgPointee<3>(&request),
-            testing::SetArgPointee<2>(source_data.size()),
+            testing::SaveArgPointee<4>(&request),
+            testing::SetArgPointee<3>(source_data.size()),
             [&source_data](
                 struct rmap_node_context *const node_context,
+                void *const transaction_custom_context,
                 void *const data,
                 size_t *const data_size,
                 const struct rmap_node_target_request *const request) {
                 (void)node_context;
+                (void)transaction_custom_context;
                 (void)data_size;
                 (void)request;
                 memcpy(data, source_data.data(), source_data.size());
@@ -536,15 +593,17 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -569,8 +628,10 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -589,20 +650,23 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
             testing::_,
             testing::_,
             testing::_,
+            testing::_,
             testing::Field(
                 &rmap_node_target_request::data_length,
                 2 * source_data.size()),
             incoming_data))
         .WillOnce(testing::DoAll(
-            testing::SaveArgPointee<3>(&request),
-            testing::SetArgPointee<2>(source_data.size()),
+            testing::SaveArgPointee<4>(&request),
+            testing::SetArgPointee<3>(source_data.size()),
             [&source_data](
                 struct rmap_node_context *const node_context,
+                void *const transaction_custom_context,
                 void *const read_data,
                 size_t *const read_data_size,
                 const struct rmap_node_target_request *const request,
                 const void *const data) {
                 (void)node_context;
+                (void)transaction_custom_context;
                 (void)read_data_size;
                 (void)request;
                 (void)data;
@@ -616,15 +680,17 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -649,8 +715,10 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -670,20 +738,23 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
             testing::_,
             testing::_,
             testing::_,
+            testing::_,
             testing::Field(
                 &rmap_node_target_request::data_length,
                 2 * source_data.size()),
             incoming_data))
         .WillOnce(testing::DoAll(
-            testing::SaveArgPointee<3>(&request),
-            testing::SetArgPointee<2>(source_data.size()),
+            testing::SaveArgPointee<4>(&request),
+            testing::SetArgPointee<3>(source_data.size()),
             [&source_data](
                 struct rmap_node_context *const node_context,
+                void *const transaction_custom_context,
                 void *const read_data,
                 size_t *const read_data_size,
                 const struct rmap_node_target_request *const request,
                 const void *const data) {
                 (void)node_context;
+                (void)transaction_custom_context;
                 (void)read_data_size;
                 (void)request;
                 (void)data;
@@ -697,15 +768,17 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -755,8 +828,10 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -764,12 +839,14 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
     struct rmap_node_target_request read_request;
     EXPECT_CALL(mock_callbacks, ReadRequest)
         .WillOnce(testing::DoAll(
-            testing::SaveArgPointee<3>(&read_request),
+            testing::SaveArgPointee<4>(&read_request),
             [](struct rmap_node_context *const node_context,
+               void *const transaction_custom_context,
                void *const data,
                size_t *const data_size,
                const struct rmap_node_target_request *const request) {
                 (void)node_context;
+                (void)transaction_custom_context;
                 memset(data, 0xDA, request->data_length);
                 *data_size = request->data_length;
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
@@ -781,16 +858,19 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
         SendReply(
             testing::_,
             testing::_,
+            testing::_,
             reply_address.size() + RMAP_READ_REPLY_HEADER_STATIC_SIZE + 234 +
                 1))
         .WillOnce(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -861,8 +941,10 @@ TEST_F(MockedTargetNode, ValidIncomingWriteWithMaximumReplyAddressLength)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -870,7 +952,7 @@ TEST_F(MockedTargetNode, ValidIncomingWriteWithMaximumReplyAddressLength)
     struct rmap_node_target_request write_request;
     EXPECT_CALL(mock_callbacks, WriteRequest)
         .WillOnce(testing::DoAll(
-            testing::SaveArgPointee<1>(&write_request),
+            testing::SaveArgPointee<2>(&write_request),
             testing::Return(RMAP_STATUS_FIELD_CODE_SUCCESS)));
 
     void *reply_allocation_ptr;
@@ -879,15 +961,18 @@ TEST_F(MockedTargetNode, ValidIncomingWriteWithMaximumReplyAddressLength)
         SendReply(
             testing::_,
             testing::_,
+            testing::_,
             reply_address.size() + RMAP_WRITE_REPLY_HEADER_STATIC_SIZE))
         .WillOnce(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -941,9 +1026,11 @@ TEST_P(IncomingToTargetRejectParams, Check)
     testing::StrictMock<MockCallbacks> strict_mock_callbacks;
     custom_context->mock_callbacks = &strict_mock_callbacks;
 
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -1172,9 +1259,11 @@ TEST_P(IncomingToTargetWithEepImmediatelyFollowingHeaderParams, Check)
     custom_context->mock_callbacks = &strict_mock_callbacks;
 
     const bool has_eep_termination = true;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -1235,9 +1324,11 @@ TEST(
 
     {
         const bool has_eep_termination = false;
+        void *const transaction_custom_context = NULL;
         EXPECT_EQ(
             rmap_node_handle_incoming(
                 &node_context,
+                transaction_custom_context,
                 incoming_packet.data(),
                 incoming_packet.size(),
                 has_eep_termination),
@@ -1245,9 +1336,11 @@ TEST(
     }
     {
         const bool has_eep_termination = true;
+        void *const transaction_custom_context = NULL;
         EXPECT_EQ(
             rmap_node_handle_incoming(
                 &node_context,
+                transaction_custom_context,
                 incoming_packet.data(),
                 incoming_packet.size(),
                 has_eep_termination),
@@ -1320,8 +1413,10 @@ TEST(
         .Times(2)
         .WillRepeatedly([&allocation](
                             struct rmap_node_context *const node_context,
+                            void *const transaction_custom_context,
                             const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -1329,17 +1424,19 @@ TEST(
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .Times(2)
         .WillRepeatedly(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     {
         const bool has_eep_termination = false;
+        void *const transaction_custom_context = NULL;
         EXPECT_EQ(
             rmap_node_handle_incoming(
                 &node_context,
+                transaction_custom_context,
                 incoming_packet.data(),
                 incoming_packet.size(),
                 has_eep_termination),
@@ -1350,9 +1447,11 @@ TEST(
     }
     {
         const bool has_eep_termination = true;
+        void *const transaction_custom_context = NULL;
         EXPECT_EQ(
             rmap_node_handle_incoming(
                 &node_context,
+                transaction_custom_context,
                 incoming_packet.data(),
                 incoming_packet.size(),
                 has_eep_termination),
@@ -1382,9 +1481,11 @@ TEST_F(MockedTargetNode, AuthorizationRejectOfWriteCommandWithoutReply)
 
     {
         const bool has_eep_termination = false;
+        void *const transaction_custom_context = NULL;
         EXPECT_EQ(
             rmap_node_handle_incoming(
                 &node_context,
+                transaction_custom_context,
                 incoming_packet.data(),
                 incoming_packet.size(),
                 has_eep_termination),
@@ -1392,9 +1493,11 @@ TEST_F(MockedTargetNode, AuthorizationRejectOfWriteCommandWithoutReply)
     }
     {
         const bool has_eep_termination = true;
+        void *const transaction_custom_context = NULL;
         EXPECT_EQ(
             rmap_node_handle_incoming(
                 &node_context,
+                transaction_custom_context,
                 incoming_packet.data(),
                 incoming_packet.size(),
                 has_eep_termination),
@@ -1426,8 +1529,10 @@ TEST_P(IncomingToTargetRejectWithReplyParams, Check)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -1435,14 +1540,16 @@ TEST_P(IncomingToTargetRejectWithReplyParams, Check)
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -1791,8 +1898,10 @@ TEST_P(IncomingToTargetAuthorizationRejectWithReplyParams, Check)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -1800,14 +1909,16 @@ TEST_P(IncomingToTargetAuthorizationRejectWithReplyParams, Check)
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -1905,15 +2016,18 @@ TEST_F(MockedTargetNode, ReadError)
             testing::_,
             testing::_,
             testing::_,
+            testing::_,
             testing::Field(
                 &rmap_node_target_request::data_length,
                 requested_data_size)))
         .WillOnce([&source_data](
                       struct rmap_node_context *const context,
+                      void *const transaction_custom_context,
                       void *const data,
                       size_t *const data_size,
                       const struct rmap_node_target_request *const request) {
             (void)context;
+            (void)transaction_custom_context;
             (void)request;
             /* Provide one less byte than requested. */
             memcpy(data, source_data.data(), source_data.size() - 1);
@@ -1925,8 +2039,10 @@ TEST_F(MockedTargetNode, ReadError)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -1934,18 +2050,20 @@ TEST_F(MockedTargetNode, ReadError)
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .WillOnce(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     /* Not applicable with EEP termination, would have been discarded earlier
      * in that case.
      */
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -1980,6 +2098,7 @@ TEST_F(MockedTargetNode, RmwReadError)
             testing::_,
             testing::_,
             testing::_,
+            testing::_,
             testing::Field(
                 &rmap_node_target_request::data_length,
                 requested_data_size),
@@ -1988,11 +2107,13 @@ TEST_F(MockedTargetNode, RmwReadError)
         .WillRepeatedly(
             [&source_data](
                 struct rmap_node_context *const context,
+                void *const transaction_custom_context,
                 void *const read_data,
                 size_t *const read_data_size,
                 const struct rmap_node_target_request *const request,
                 const void *const data) {
                 (void)context;
+                (void)transaction_custom_context;
                 (void)request;
                 (void)data;
                 /* Provide one less byte than requested. */
@@ -2006,8 +2127,10 @@ TEST_F(MockedTargetNode, RmwReadError)
         .Times(2)
         .WillRepeatedly([&allocation](
                             struct rmap_node_context *const node_context,
+                            void *const transaction_custom_context,
                             const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -2015,17 +2138,19 @@ TEST_F(MockedTargetNode, RmwReadError)
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .Times(2)
         .WillRepeatedly(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     {
         const bool has_eep_termination = false;
+        void *const transaction_custom_context = NULL;
         EXPECT_EQ(
             rmap_node_handle_incoming(
                 &node_context,
+                transaction_custom_context,
                 incoming_packet.data(),
                 incoming_packet.size(),
                 has_eep_termination),
@@ -2036,9 +2161,11 @@ TEST_F(MockedTargetNode, RmwReadError)
     }
     {
         const bool has_eep_termination = true;
+        void *const transaction_custom_context = NULL;
         EXPECT_EQ(
             rmap_node_handle_incoming(
                 &node_context,
+                transaction_custom_context,
                 incoming_packet.data(),
                 incoming_packet.size(),
                 has_eep_termination),
@@ -2075,6 +2202,7 @@ TEST_F(MockedTargetNode, RmwWriteError)
             testing::_,
             testing::_,
             testing::_,
+            testing::_,
             testing::Field(
                 &rmap_node_target_request::data_length,
                 requested_data_size),
@@ -2083,11 +2211,13 @@ TEST_F(MockedTargetNode, RmwWriteError)
         .WillRepeatedly(
             [&source_data](
                 struct rmap_node_context *const context,
+                void *const transaction_custom_context,
                 void *const read_data,
                 size_t *const read_data_size,
                 const struct rmap_node_target_request *const request,
                 const void *const data) {
                 (void)context;
+                (void)transaction_custom_context;
                 (void)request;
                 (void)data;
                 /* Provide all requested data and indicate write error via
@@ -2103,8 +2233,10 @@ TEST_F(MockedTargetNode, RmwWriteError)
         .Times(2)
         .WillRepeatedly([&allocation](
                             struct rmap_node_context *const node_context,
+                            void *const transaction_custom_context,
                             const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -2112,17 +2244,19 @@ TEST_F(MockedTargetNode, RmwWriteError)
     void *reply_allocation_ptr;
     EXPECT_CALL(
         mock_callbacks,
-        SendReply(testing::_, testing::_, expected_reply.size()))
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
         .Times(2)
         .WillRepeatedly(testing::DoAll(
-            testing::SaveArg<1>(&reply_allocation_ptr),
+            testing::SaveArg<2>(&reply_allocation_ptr),
             testing::Return(RMAP_OK)));
 
     {
         const bool has_eep_termination = false;
+        void *const transaction_custom_context = NULL;
         EXPECT_EQ(
             rmap_node_handle_incoming(
                 &node_context,
+                transaction_custom_context,
                 incoming_packet.data(),
                 incoming_packet.size(),
                 has_eep_termination),
@@ -2133,9 +2267,11 @@ TEST_F(MockedTargetNode, RmwWriteError)
     }
     {
         const bool has_eep_termination = true;
+        void *const transaction_custom_context = NULL;
         EXPECT_EQ(
             rmap_node_handle_incoming(
                 &node_context,
+                transaction_custom_context,
                 incoming_packet.data(),
                 incoming_packet.size(),
                 has_eep_termination),
@@ -2153,6 +2289,7 @@ TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
         mock_callbacks,
         ReceivedWriteReply(
             testing::_,
+            testing::_,
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS));
 
@@ -2160,9 +2297,11 @@ TEST_F(MockedInitiatorNode, TestPattern0IncomingReply)
     const std::vector<uint8_t> incoming_packet =
         pattern.packet_without_spacewire_address_prefix();
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -2182,15 +2321,18 @@ TEST_F(MockedInitiatorNode, TestPattern1IncomingReply)
         mock_callbacks,
         ReceivedReadReply(
             testing::_,
+            testing::_,
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS,
             incoming_data,
             rmap_get_data_length(incoming_packet.data())));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -2204,6 +2346,7 @@ TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
         mock_callbacks,
         ReceivedWriteReply(
             testing::_,
+            testing::_,
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS));
 
@@ -2212,9 +2355,11 @@ TEST_F(MockedInitiatorNode, TestPattern2IncomingReply)
     const std::vector<uint8_t> incoming_packet =
         pattern.packet_without_spacewire_address_prefix();
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -2235,15 +2380,18 @@ TEST_F(MockedInitiatorNode, TestPattern3IncomingReply)
         mock_callbacks,
         ReceivedReadReply(
             testing::_,
+            testing::_,
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS,
             incoming_data,
             rmap_get_data_length(incoming_packet.data())));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -2263,15 +2411,18 @@ TEST_F(MockedInitiatorNode, TestPattern4IncomingReply)
         mock_callbacks,
         ReceivedRmwReply(
             testing::_,
+            testing::_,
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS,
             incoming_data,
             rmap_get_data_length(incoming_packet.data())));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -2292,15 +2443,18 @@ TEST_F(MockedInitiatorNode, TestPattern5IncomingReply)
         mock_callbacks,
         ReceivedRmwReply(
             testing::_,
+            testing::_,
             expected_transaction_id,
             RMAP_STATUS_FIELD_CODE_SUCCESS,
             incoming_data,
             rmap_get_data_length(incoming_packet.data())));
 
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
@@ -2322,10 +2476,12 @@ TEST_P(IncomingCommandWithReplyFailure, ReplyAllocationFailure)
     EXPECT_CALL(mock_callbacks, ReadRequest)
         .WillRepeatedly(
             [](struct rmap_node_context *const node_context,
+               void *const transaction_custom_context,
                void *const data,
                size_t *const data_size,
                const struct rmap_node_target_request *const request) {
                 (void)node_context;
+                (void)transaction_custom_context;
                 const std::vector<uint8_t> source_data(
                     request->data_length,
                     0xDA);
@@ -2335,11 +2491,13 @@ TEST_P(IncomingCommandWithReplyFailure, ReplyAllocationFailure)
             });
     EXPECT_CALL(mock_callbacks, RmwRequest)
         .WillRepeatedly([](struct rmap_node_context *const node_context,
+                           void *const transaction_custom_context,
                            void *const read_data,
                            size_t *const read_data_size,
                            const struct rmap_node_target_request *const request,
                            const void *const data) {
             (void)node_context;
+            (void)transaction_custom_context;
             (void)data;
             const std::vector<uint8_t> source_data(
                 request->data_length / 2,
@@ -2354,9 +2512,11 @@ TEST_P(IncomingCommandWithReplyFailure, ReplyAllocationFailure)
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -2382,9 +2542,11 @@ TEST_P(IncomingCommandWithReplyFailure, RejectReplyAllocationFailure)
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -2400,10 +2562,12 @@ TEST_P(IncomingCommandWithReplyFailure, ReplySendFailure)
     EXPECT_CALL(mock_callbacks, ReadRequest)
         .WillRepeatedly(
             [](struct rmap_node_context *const node_context,
+               void *const transaction_custom_context,
                void *const data,
                size_t *const data_size,
                const struct rmap_node_target_request *const request) {
                 (void)node_context;
+                (void)transaction_custom_context;
                 const std::vector<uint8_t> source_data(
                     request->data_length,
                     0xDA);
@@ -2413,11 +2577,13 @@ TEST_P(IncomingCommandWithReplyFailure, ReplySendFailure)
             });
     EXPECT_CALL(mock_callbacks, RmwRequest)
         .WillRepeatedly([](struct rmap_node_context *const node_context,
+                           void *const transaction_custom_context,
                            void *const read_data,
                            size_t *const read_data_size,
                            const struct rmap_node_target_request *const request,
                            const void *const data) {
             (void)node_context;
+            (void)transaction_custom_context;
             (void)data;
             const std::vector<uint8_t> source_data(
                 request->data_length / 2,
@@ -2431,8 +2597,10 @@ TEST_P(IncomingCommandWithReplyFailure, ReplySendFailure)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -2443,9 +2611,11 @@ TEST_P(IncomingCommandWithReplyFailure, ReplySendFailure)
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -2470,8 +2640,10 @@ TEST_P(IncomingCommandWithReplyFailure, RejectReplySendFailure)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -2482,9 +2654,11 @@ TEST_P(IncomingCommandWithReplyFailure, RejectReplySendFailure)
     const std::vector<uint8_t> command_packet =
         command_pattern.packet_without_spacewire_address_prefix();
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -2508,9 +2682,11 @@ TEST_P(IncomingCommandWithReplyFailure, InvalidHeaderCrcReplyAllocationFailure)
             (RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY) << 2);
     rmap_calculate_and_set_header_crc(command_packet.data());
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -2523,8 +2699,10 @@ TEST_P(IncomingCommandWithReplyFailure, InvalidHeaderCrcReplySendFailure)
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -2544,9 +2722,11 @@ TEST_P(IncomingCommandWithReplyFailure, InvalidHeaderCrcReplySendFailure)
             (RMAP_COMMAND_CODE_VERIFY | RMAP_COMMAND_CODE_REPLY) << 2);
     rmap_calculate_and_set_header_crc(command_packet.data());
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -2577,9 +2757,11 @@ TEST_P(
     /* Flip a bit in data CRC field. */
     command_packet.back() ^= 1;
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -2594,8 +2776,10 @@ TEST_P(
     EXPECT_CALL(mock_callbacks, Allocate)
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
+                      void *const transaction_custom_context,
                       const size_t size) {
             (void)node_context;
+            (void)transaction_custom_context;
             allocation.resize(size);
             return allocation.data();
         });
@@ -2610,9 +2794,11 @@ TEST_P(
     /* Flip a bit in data CRC field. */
     command_packet.back() ^= 1;
     const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             command_packet.data(),
             command_packet.size(),
             has_eep_termination),
@@ -2652,9 +2838,11 @@ TEST_P(IncomingToInitiatorRejectParams, Check)
     testing::StrictMock<MockCallbacks> strict_mock_callbacks;
     custom_context->mock_callbacks = &strict_mock_callbacks;
 
+    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
+            transaction_custom_context,
             incoming_packet.data(),
             incoming_packet.size(),
             has_eep_termination),
