@@ -824,8 +824,14 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
     rmap_calculate_and_set_header_crc(incoming_packet.data());
     incoming_packet.resize(rmap_calculate_header_size(incoming_packet.data()));
 
+    /* Ensure transaction custom context is propagated to callbacks. */
+    int transaction_context = 12345;
+    void *const transaction_custom_context = &transaction_context;
+
     std::vector<uint8_t> allocation;
-    EXPECT_CALL(mock_callbacks, Allocate)
+    EXPECT_CALL(
+        mock_callbacks,
+        Allocate(testing::_, transaction_custom_context, testing::_))
         .WillOnce([&allocation](
                       struct rmap_node_context *const node_context,
                       void *const transaction_custom_context,
@@ -837,7 +843,14 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
         });
 
     struct rmap_node_target_request read_request;
-    EXPECT_CALL(mock_callbacks, ReadRequest)
+    EXPECT_CALL(
+        mock_callbacks,
+        ReadRequest(
+            testing::_,
+            transaction_custom_context,
+            testing::_,
+            testing::_,
+            testing::_))
         .WillOnce(testing::DoAll(
             testing::SaveArgPointee<4>(&read_request),
             [](struct rmap_node_context *const node_context,
@@ -857,7 +870,7 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
         mock_callbacks,
         SendReply(
             testing::_,
-            testing::_,
+            transaction_custom_context,
             testing::_,
             reply_address.size() + RMAP_READ_REPLY_HEADER_STATIC_SIZE + 234 +
                 1))
@@ -866,7 +879,6 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
             testing::Return(RMAP_OK)));
 
     const bool has_eep_termination = false;
-    void *const transaction_custom_context = NULL;
     EXPECT_EQ(
         rmap_node_handle_incoming(
             &node_context,
