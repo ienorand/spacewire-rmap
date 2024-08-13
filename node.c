@@ -350,7 +350,8 @@ static enum rmap_status handle_read_command(
     void *const transaction_custom_context,
     const uint8_t *const packet)
 {
-    enum rmap_status_field_code status_field_code;
+    uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
+    size_t reply_address_size;
     size_t reply_header_offset;
     size_t reply_data_size;
     enum rmap_status read_status;
@@ -366,17 +367,15 @@ static enum rmap_status handle_read_command(
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
-    /* TODO: Might make sense to avoid calculating header CRC here and then
-     * recalculate it later?
-     */
-    const enum rmap_status create_reply_status =
-        rmap_create_success_reply_from_command(
-            reply_buf,
-            &reply_header_offset,
-            reply_maximum_size,
-            packet);
-    assert(create_reply_status == RMAP_OK);
-    (void)create_reply_status;
+    const enum rmap_status reply_address_status = rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        packet);
+    assert(reply_address_status == RMAP_OK);
+    (void)reply_address_status;
+    const size_t data_offset =
+        reply_address_size + RMAP_READ_REPLY_HEADER_STATIC_SIZE;
 
     const struct rmap_node_target_request read_request = {
         .target_logical_address = rmap_get_target_logical_address(packet),
@@ -387,14 +386,13 @@ static enum rmap_status handle_read_command(
         .extended_address = rmap_get_extended_address(packet),
         .address = rmap_get_address(packet),
         .data_length = rmap_get_data_length(packet)};
-    const size_t data_offset = reply_header_offset +
-        rmap_calculate_header_size(reply_buf + reply_header_offset);
-    status_field_code = node->callbacks.target.read_request(
-        node,
-        transaction_custom_context,
-        reply_buf + data_offset,
-        &reply_data_size,
-        &read_request);
+    const enum rmap_status_field_code status_field_code =
+        node->callbacks.target.read_request(
+            node,
+            transaction_custom_context,
+            reply_buf + data_offset,
+            &reply_data_size,
+            &read_request);
     read_status = RMAP_OK;
     switch (status_field_code) {
     case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
@@ -416,6 +414,22 @@ static enum rmap_status handle_read_command(
         }
         break;
     }
+
+    /* TODO: Might make sense to avoid calculating header CRC here and then
+     * recalculate it later?
+     */
+    const enum rmap_status create_reply_status =
+        rmap_create_success_reply_from_command(
+            reply_buf,
+            &reply_header_offset,
+            reply_maximum_size,
+            packet);
+    assert(create_reply_status == RMAP_OK);
+    (void)create_reply_status;
+    assert(
+        reply_header_offset +
+            rmap_calculate_header_size(reply_buf + reply_header_offset) ==
+        data_offset);
 
     size_t reply_size;
     if (status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS) {
@@ -504,6 +518,8 @@ static enum rmap_status handle_rmw_command(
 {
     enum rmap_status_field_code status_field_code;
     enum rmap_status verify_status;
+    uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
+    size_t reply_address_size;
     size_t reply_header_offset;
     size_t reply_data_size;
     enum rmap_status rmw_status;
@@ -564,19 +580,15 @@ static enum rmap_status handle_rmw_command(
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
-    /* TODO: Might make sense to avoid calculating header CRC here and then
-     * recalculate it later?
-     */
-    const enum rmap_status create_reply_status =
-        rmap_create_success_reply_from_command(
-            reply_buf,
-            &reply_header_offset,
-            reply_maximum_size,
-            packet);
-    assert(create_reply_status == RMAP_OK);
-    (void)create_reply_status;
+    const enum rmap_status reply_address_status = rmap_get_reply_address(
+        reply_address,
+        &reply_address_size,
+        sizeof(reply_address),
+        packet);
+    assert(reply_address_status == RMAP_OK);
+    (void)reply_address_status;
     const size_t data_offset =
-        reply_header_offset + RMAP_READ_REPLY_HEADER_STATIC_SIZE;
+        reply_address_size + RMAP_READ_REPLY_HEADER_STATIC_SIZE;
 
     const struct rmap_node_target_request rmw_request = {
         .target_logical_address = rmap_get_target_logical_address(packet),
@@ -595,6 +607,23 @@ static enum rmap_status handle_rmw_command(
         &reply_data_size,
         &rmw_request,
         packet + rmap_calculate_header_size(packet));
+
+    /* TODO: Might make sense to avoid calculating header CRC here and then
+     * recalculate it later?
+     */
+    const enum rmap_status create_reply_status =
+        rmap_create_success_reply_from_command(
+            reply_buf,
+            &reply_header_offset,
+            reply_maximum_size,
+            packet);
+    assert(create_reply_status == RMAP_OK);
+    (void)create_reply_status;
+    assert(
+        reply_header_offset +
+            rmap_calculate_header_size(reply_buf + reply_header_offset) ==
+        data_offset);
+
     switch (status_field_code) {
     case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
         rmw_status = RMAP_NODE_INVALID_KEY;
