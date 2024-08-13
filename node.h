@@ -33,7 +33,7 @@ struct rmap_node_initialize_flags {
 };
 
 /* Forward declaration needed for callback signatures. */
-struct rmap_node_context;
+struct rmap_node;
 
 /** Generic request parameters for combined authorization and memory access
  *  callbacks.
@@ -75,14 +75,14 @@ struct rmap_node_target_request {
  * This callback temporarily transfers ownership of the allocation from the
  * user to the node, it will later be returned via the send reply callback.
  *
- * @param[in,out] context Node context object.
+ * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param size Number of bytes to allocate.
  *
  * @return Pointer to allocated memory or NULL on allocation failure.
  */
 typedef void *(*rmap_node_target_allocate_callback)(
-    struct rmap_node_context *context,
+    struct rmap_node *node,
     void *transaction_custom_context,
     size_t size);
 
@@ -109,7 +109,7 @@ typedef void *(*rmap_node_target_allocate_callback)(
  * rmap_node_target_allocate_callback(); this callback transfers the ownership
  * of this allocation to the user which must handle its deallocation.
  *
- * @param[in,out] context Node context object.
+ * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param[in] packet RMAP packet data to be sent.
  * @param size Number of bytes to be sent from @p packet.
@@ -118,7 +118,7 @@ typedef void *(*rmap_node_target_allocate_callback)(
  * @retval RMAP_OK Send success.
  */
 typedef enum rmap_status (*rmap_node_target_send_reply_callback)(
-    struct rmap_node_context *context,
+    struct rmap_node *node,
     void *transaction_custom_context,
     void *packet,
     size_t size);
@@ -159,7 +159,7 @@ typedef enum rmap_status (*rmap_node_target_send_reply_callback)(
  * @attention The callback @e must return one of the return values defined for
  *            this callback.
  *
- * @param[in,out] context Node context object.
+ * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param[in] request Generic request parameters.
  * @param[in] data Data to be written.
@@ -175,7 +175,7 @@ typedef enum rmap_status (*rmap_node_target_send_reply_callback)(
  * @retval RMAP_STATUS_FIELD_CODE_SUCCESS Write operation successful.
  */
 typedef enum rmap_status_field_code (*rmap_node_target_write_request_callback)(
-    struct rmap_node_context *context,
+    struct rmap_node *node,
     void *transaction_custom_context,
     const struct rmap_node_target_request *request,
     const void *data);
@@ -215,7 +215,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_write_request_callback)(
  * @attention The callback @e must return one of the return values defined for
  *            this callback.
  *
- * @param[in,out] context Node context object.
+ * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param[out] data Destination for read data.
  * @param[out] data_size Number of bytes stored into @p data.
@@ -233,7 +233,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_write_request_callback)(
  *         data length.
  */
 typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
-    struct rmap_node_context *context,
+    struct rmap_node *node,
     void *transaction_custom_context,
     void *data,
     size_t *data_size,
@@ -323,7 +323,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
  * the RMAP standard.
  * @endparblock
  *
- * @param[in,out] context Node context object.
+ * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param[out] read_data Destination for read data.
  * @param[out] read_data_size Number of bytes stored into @p read_data.
@@ -345,7 +345,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
  *         RMW operation. (Deliberate deviation from RMAP standard).
  */
 typedef enum rmap_status_field_code (*rmap_node_target_rmw_request_callback)(
-    struct rmap_node_context *context,
+    struct rmap_node *node,
     void *transaction_custom_context,
     void *read_data,
     size_t *read_data_size,
@@ -363,13 +363,13 @@ typedef enum rmap_status_field_code (*rmap_node_target_rmw_request_callback)(
  *
  * Access to the custom user context is available via the node context object.
  *
- * @param[in,out] context Node context object.
+ * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param transaction_identifier Transaction identifier of received reply.
  * @param status Status field code of reply.
  */
 typedef void (*rmap_node_initiator_received_write_reply_callback)(
-    struct rmap_node_context *context,
+    struct rmap_node *node,
     void *transaction_custom_context,
     uint16_t transaction_identifier,
     enum rmap_status_field_code status);
@@ -385,7 +385,7 @@ typedef void (*rmap_node_initiator_received_write_reply_callback)(
  *
  * Access to the custom user context is available via the node context object.
  *
- * @param[in,out] context Node context object.
+ * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param transaction_identifier Transaction identifier of received reply.
  * @param status Status field code of reply.
@@ -393,7 +393,7 @@ typedef void (*rmap_node_initiator_received_write_reply_callback)(
  * @param data_length Number of bytes in @p data.
  */
 typedef void (*rmap_node_initiator_received_read_reply_callback)(
-    struct rmap_node_context *context,
+    struct rmap_node *node,
     void *transaction_custom_context,
     uint16_t transaction_identifier,
     enum rmap_status_field_code status,
@@ -411,7 +411,7 @@ typedef void (*rmap_node_initiator_received_read_reply_callback)(
  *
  * Access to the custom user context is available via the node context object.
  *
- * @param[in,out] context Node context object.
+ * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param transaction_identifier Transaction identifier of received reply.
  * @param status Status field code of reply.
@@ -419,7 +419,7 @@ typedef void (*rmap_node_initiator_received_read_reply_callback)(
  * @param data_length Number of bytes in @p data.
  */
 typedef void (*rmap_node_initiator_received_rmw_reply_callback)(
-    struct rmap_node_context *context,
+    struct rmap_node *node,
     void *transaction_custom_context,
     uint16_t transaction_identifier,
     enum rmap_status_field_code status,
@@ -453,7 +453,7 @@ struct rmap_node_callbacks {
 };
 
 /** RMAP node context object. */
-struct rmap_node_context {
+struct rmap_node {
     /** Custom user context available to callbacks. */
     void *custom_context;
     /** Callbacks registered in node. */
@@ -487,7 +487,7 @@ struct rmap_node_context {
  * @pre If the node is configured as an initiator, each initiator callback in
  *      @p callbacks must be a valid function pointer.
  *
- * @param[out] context Destination for initialized node context object.
+ * @param[out] node Destination for initialized node context object.
  * @param[in] custom_context Custom user context available to callbacks of
  *            node.
  * @param[in] callbacks Callbacks to be registered in node.
@@ -498,7 +498,7 @@ struct rmap_node_context {
  * @retval RMAP_OK Node intialized successfully.
  */
 enum rmap_status rmap_node_initialize(
-    struct rmap_node_context *context,
+    struct rmap_node *node,
     void *custom_context,
     const struct rmap_node_callbacks *callbacks,
     struct rmap_node_initialize_flags flags);
@@ -522,7 +522,7 @@ enum rmap_status rmap_node_initialize(
  *
  * @pre @p size must indicate the exact number of bytes in the incoming packet.
  *
- * @param[in,out] context Node context object.
+ * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
  * @param[in] packet Incoming packet data.
  * @param size Number of bytes in incoming packet in @p packet (excluding the
@@ -594,7 +594,7 @@ enum rmap_status rmap_node_initialize(
  *         sent if applicable.
  */
 enum rmap_status rmap_node_handle_incoming(
-    struct rmap_node_context *context,
+    struct rmap_node *node,
     void *transaction_custom_context,
     const void *packet,
     size_t size,
