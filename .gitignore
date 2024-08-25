@@ -3,3 +3,6 @@
 *.gcno
 *.gcda
 html/
+examples/creating_a_reply_from_a_command
+examples/creating_a_write_command
+examples/print_packet_descriptions
