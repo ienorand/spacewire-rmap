@@ -303,7 +303,10 @@ static void print_reply_description(const void *const raw, const size_t size)
         "  Initiator logical address: 0x%02X\n",
         rmap_get_initiator_logical_address(raw));
 
-    printf("  Status: 0x%02X\n", rmap_get_status(raw));
+    printf(
+        "  Status: %s (0x%02X)\n",
+        rmap_status_text(rmap_get_status(raw)),
+        rmap_get_status(raw));
 
     printf(
         "  Target logical address: 0x%02X\n",
