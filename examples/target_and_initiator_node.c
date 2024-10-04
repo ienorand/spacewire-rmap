@@ -16,10 +16,13 @@ struct custom_context {
     uint8_t target_key;
 };
 
-static void *
-allocate(struct rmap_node_context *const context, const size_t size)
+static void *allocate(
+    struct rmap_node *const node,
+    void *const transaction_custom_context,
+    const size_t size)
 {
-    (void)context;
+    (void)node;
+    (void)transaction_custom_context;
 
     return malloc(size);
 }
@@ -34,21 +37,26 @@ static void print_data(const void *const data, const size_t size)
 }
 
 static enum rmap_status send_reply(
-    struct rmap_node_context *const context,
+    struct rmap_node *const node,
+    void *const transaction_custom_context,
     void *const packet,
     const size_t size)
 {
-    (void)context;
+    (void)node;
+    (void)transaction_custom_context;
 
     printf("Sending reply with size %zu:\n", size);
     print_data(packet, size);
     /* Strip known reply address and feed reply back into current node. */
     const size_t reply_address_size = 3;
     unsigned char *const packet_bytes = packet;
+    const bool has_eep_termination = false;
     const enum rmap_status rmap_status = rmap_node_handle_incoming(
-        context,
+        node,
+        transaction_custom_context,
         packet_bytes + reply_address_size,
-        size - reply_address_size);
+        size - reply_address_size,
+        has_eep_termination);
     free(packet);
     printf("Node status: %s\n", rmap_status_text(rmap_status));
     if (rmap_status != RMAP_OK) {
@@ -59,12 +67,15 @@ static enum rmap_status send_reply(
 }
 
 static enum rmap_status_field_code write_request(
-    struct rmap_node_context *const context,
+    struct rmap_node *const node,
+    void *const transaction_custom_context,
     const struct rmap_node_target_request *const request,
     const void *const data)
 {
+    (void)transaction_custom_context;
+
     printf("Processing write request\n");
-    struct custom_context *const custom_context = context->custom_context;
+    struct custom_context *const custom_context = node->custom_context;
 
     if (request->key != custom_context->target_key) {
         printf("Rejecting write request due to invalid key\n");
@@ -121,13 +132,16 @@ static enum rmap_status_field_code write_request(
 }
 
 static enum rmap_status_field_code read_request(
-    struct rmap_node_context *const context,
+    struct rmap_node *const node,
+    void *const transaction_custom_context,
     void *const data,
     size_t *const data_size,
     const struct rmap_node_target_request *const request)
 {
+    (void)transaction_custom_context;
+
     printf("Processing read request\n");
-    struct custom_context *const custom_context = context->custom_context;
+    struct custom_context *const custom_context = node->custom_context;
 
     if (request->key != custom_context->target_key) {
         printf("Rejecting read request due to invalid key\n");
@@ -178,14 +192,17 @@ static enum rmap_status_field_code read_request(
 }
 
 static enum rmap_status_field_code rmw_request(
-    struct rmap_node_context *const context,
+    struct rmap_node *const node,
+    void *const transaction_custom_context,
     void *const read_data,
     size_t *const read_data_size,
     const struct rmap_node_target_request *const request,
     const void *const data)
 {
+    (void)transaction_custom_context;
+
     printf("Processing RMW request\n");
-    struct custom_context *const custom_context = context->custom_context;
+    struct custom_context *const custom_context = node->custom_context;
 
     if (request->key != custom_context->target_key) {
         printf("Rejecting RMW request due to invalid key\n");
@@ -261,11 +278,13 @@ static enum rmap_status_field_code rmw_request(
 }
 
 static void received_write_reply(
-    struct rmap_node_context *const context,
+    struct rmap_node *const node,
+    void *const transaction_custom_context,
     const uint16_t transaction_identifier,
     const enum rmap_status_field_code status)
 {
-    (void)context;
+    (void)node;
+    (void)transaction_custom_context;
 
     printf(
         "Received write reply with transaction ID %u and status:\n"
@@ -275,13 +294,15 @@ static void received_write_reply(
 }
 
 static void received_read_reply(
-    struct rmap_node_context *const context,
+    struct rmap_node *const node,
+    void *const transaction_custom_context,
     const uint16_t transaction_identifier,
     const enum rmap_status_field_code status,
     const void *const data,
     const size_t data_length)
 {
-    (void)context;
+    (void)node;
+    (void)transaction_custom_context;
 
     printf(
         "Received read reply with transaction ID %u, status:\n"
@@ -293,13 +314,15 @@ static void received_read_reply(
 }
 
 static void received_rmw_reply(
-    struct rmap_node_context *const context,
+    struct rmap_node *const node,
+    void *const transaction_custom_context,
     const uint16_t transaction_identifier,
     const enum rmap_status_field_code status,
     const void *const data,
     const size_t data_length)
 {
-    (void)context;
+    (void)node;
+    (void)transaction_custom_context;
 
     printf(
         "Received RMW reply with transaction ID %u, status:\n"
@@ -319,7 +342,7 @@ int main(void)
     custom_context.target_logical_address = 0xFE;
     custom_context.target_key = 0;
 
-    struct rmap_node_context node_context;
+    struct rmap_node node;
     const struct rmap_node_callbacks callbacks = {
         .initiator =
             {
@@ -339,7 +362,11 @@ int main(void)
         .is_initiator = 1,
         .is_reply_for_unused_packet_type_enabled = 1,
     };
-    rmap_node_initialize(&node_context, &custom_context, &callbacks, flags);
+    rmap_node_initialize(&node, &custom_context, &callbacks, flags);
+
+    void *const transaction_custom_context = NULL;
+
+    const bool has_eep_termination = false;
 
     enum rmap_status rmap_status;
     uint8_t buf[RMAP_COMMAND_HEADER_STATIC_SIZE + 32];
@@ -389,7 +416,12 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(
+        &node,
+        transaction_custom_context,
+        buf,
+        packet_size,
+        has_eep_termination);
     printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Write to a subset of target memory. */
@@ -420,7 +452,12 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(
+        &node,
+        transaction_custom_context,
+        buf,
+        packet_size,
+        has_eep_termination);
     printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Read whole target memory. */
@@ -446,7 +483,12 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(
+        &node,
+        transaction_custom_context,
+        buf,
+        packet_size,
+        has_eep_termination);
     printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Write with invalid logical address. */
@@ -477,7 +519,12 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(
+        &node,
+        transaction_custom_context,
+        buf,
+        packet_size,
+        has_eep_termination);
     printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Write with invalid address before target memory. */
@@ -508,7 +555,12 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(
+        &node,
+        transaction_custom_context,
+        buf,
+        packet_size,
+        has_eep_termination);
     printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Write with invalid address and size moving past target memory end. */
@@ -542,7 +594,12 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(
+        &node,
+        transaction_custom_context,
+        buf,
+        packet_size,
+        has_eep_termination);
     printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Write with address and size reaching target memory end. */
@@ -576,7 +633,12 @@ int main(void)
     buf[header_size + sizeof(write_data)] =
         rmap_crc_calculate(buf + header_size, sizeof(write_data));
     packet_size = header_size + sizeof(write_data) + 1;
-    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(
+        &node,
+        transaction_custom_context,
+        buf,
+        packet_size,
+        has_eep_termination);
     printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Read whole target memory. */
@@ -602,7 +664,12 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(
+        &node,
+        transaction_custom_context,
+        buf,
+        packet_size,
+        has_eep_termination);
     printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* RMW. */
@@ -642,7 +709,12 @@ int main(void)
     buf[header_size + sizeof(rmw_data_and_mask)] =
         rmap_crc_calculate(buf + header_size, sizeof(rmw_data_and_mask));
     packet_size = header_size + sizeof(rmw_data_and_mask) + 1;
-    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(
+        &node,
+        transaction_custom_context,
+        buf,
+        packet_size,
+        has_eep_termination);
     printf("Node status: %s\n", rmap_status_text(rmap_status));
 
     /* Read whole target memory. */
@@ -668,6 +740,11 @@ int main(void)
     rmap_set_data_length(buf, custom_context.target_memory_size);
     rmap_calculate_and_set_header_crc(buf);
     packet_size = rmap_calculate_header_size(buf);
-    rmap_status = rmap_node_handle_incoming(&node_context, buf, packet_size);
+    rmap_status = rmap_node_handle_incoming(
+        &node,
+        transaction_custom_context,
+        buf,
+        packet_size,
+        has_eep_termination);
     printf("Node status: %s\n", rmap_status_text(rmap_status));
 }
