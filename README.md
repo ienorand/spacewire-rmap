@@ -21,7 +21,8 @@ spacewire-rmap is provided under the BSD-2-Clause license, see
 
 ## Compiling
 
-Running the default make target will produce a **`librmap.a`** file for linking.
+Running the default make target will produce the files **`librmap.a`** and
+**`librmap-node.a`** which can be used for linking.
 
 ## Tests
 
@@ -31,9 +32,9 @@ Tests are implemented using the
 In order to compile and run the test, the `test` make target can be used
 from the root directory.
 
-Alternatively, the test-suite binary can be compiled via the default make
+Alternatively, the test-suite binaries can be compiled via the default make
 target in the **`test/`** subdirectory and the test-suite can be run by
-executing the resulting **`test/rmap_test`** binary.
+executing the resulting **`test/rmap_test`** and **`test/node_test`** binaries.
 
 ## Doxygen
 
@@ -57,11 +58,82 @@ Errors are reported using the custom `enum rmap_status` type. The enum constant
 In order to produce a string representation of enum constants, the
 `rmap_status_text()` function can be used.
 
-### Pre-Conditions for Access Functions
+### Node Interface
 
-Most access functions provided by this library requires that the data they are
-applied to already have been confirmed to contain an RMAP header, otherwise
-this will result in undefined behaviour. Here, an "RMAP header" is defined as:
+This library provides a "node interface" for creating an RMAP node which can
+handle validation, parsing, execution, and reply sending based on incoming RMAP
+packets.
+
+The node interface is based on an `rmap_node_handle_incoming()` function and a
+set of callbacks registered at initialization.
+
+Detailed information for the node interface, including implementation
+requirements for its callbacks, is available as doxygen interface documentation
+in **`node.h`**.
+
+#### Initialization
+
+A `struct rmap_node` object is used to hold the configuration and context
+information of an initialized node, the node object storage must be handled by
+the library user and it must be initialized via `rmap_node_initialize()`.
+
+A set of initialization flags are used to define if the node is a target
+(accepts incoming commands), initiator (accepts incoming replies), or both.
+
+A target node must register the following set of callbacks:
+
+* `allocate()`.
+* `send_reply()`.
+* `write_request()`.
+* `read_request()`.
+* `rmw_request()`.
+
+An initiator node must register the following set of callbacks:
+
+* `received_write_reply()`.
+* `received_read_reply`.
+* `received_rmw_reply()`.
+
+(A node which is both a target and an initiator must register all callbacks.)
+
+A custom context pointer may be set at initialization which will be available
+to all callbacks via the node context object.
+
+#### Handling Incoming Packets
+
+The `rmap_node_handle_incoming()` function is used to handle incoming
+(potential) RMAP packets. It will perform:
+
+* Validation.
+* Command authorization and execution (if the node is a target).
+* Reply sending (if the node is a target).
+* Reply notifying (if the node is an initiator).
+
+Relevant callbacks will be activated as part of this handling.
+
+For each incoming packet, a transaction custom context may be registered which
+will be available for each callback relating to this specific packet (including
+its reply, if applicable).
+
+#### Sending Commands
+
+The node interface provides no additional support for creating or sending RMAP
+commands, this must be done using the direct protocol interface.
+
+### Direct Protocol Interface
+
+This library provides a "direct protocol interface" for validating, accessing,
+and creating RMAP packets directly.
+
+Detailed information for the direct protocol interface is available as doxygen
+interface documentation in **`rmap.h`**.
+
+#### Pre-Conditions for Access Functions
+
+Most access functions provided by the direct protocol interface requires that
+the data they are applied to already have been confirmed to contain an RMAP
+header, otherwise this will result in undefined behaviour. Here, an "RMAP
+header" is defined as:
 
 *   The part of an RMAP command starting with the target logical address and
     ending with the header CRC.
@@ -76,7 +148,7 @@ header types, based on if the field being accessed are available in the given
 header type or not. Using access functions on RMAP header types for which they
 are not valid will result in undefined behaviour.
 
-### Validating a Packet
+#### Validating a Packet
 
 When processing a potential RMAP packet from unknown data, it must first be
 verified to contain a complete RMAP header using
@@ -96,7 +168,7 @@ Failure when verifying the header instruction should sometimes result in the
 packet being discarded and sometimes result in a reply being sent according to
 the RMAP standard.
 
-#### Header Type
+##### Header Type
 
 In order to determine the RMAP header type, the following functions are
 available:
@@ -112,7 +184,7 @@ available:
 *   `rmap_is_increment_address()`
 *   `rmap_is_rmw()`
 
-#### Data
+##### Data
 
 For RMAP packets which contain data, the `rmap_verify_data()` function is
 available for verifying the data.
@@ -120,7 +192,7 @@ available for verifying the data.
 Failure when verifying the data should result in a reply being sent according
 to the RMAP standard.
 
-### Creating a Packet
+#### Creating a Packet
 
 When creating an RMAP header, it must first be initialized using one of the
 following functions
@@ -143,7 +215,7 @@ The function `rmap_initialize_header_before()` is a convenience function which
 allows initializing an RMAP header before already existing data, without
 needing to calculate the header size beforehand.
 
-#### Definition of "Initializing"
+##### Definition of "Initializing"
 
 The `rmap_initialize_header()` and `rmap_initialize_header_before()` functions
 initialize an RMAP header by setting the protocol and instruction fields; the
@@ -153,7 +225,7 @@ field fully defines the format and size of the RMAP header.
 Initializing the RMAP header is sufficient to allow setting all remaining
 fields in the header using access functions.
 
-#### Reply
+##### Reply
 
 When creating an RMAP reply, the convenience functions
 `rmap_create_success_reply_from_command()` and
@@ -178,7 +250,7 @@ The `rmap_create_success_reply_from_command_before()` function allows the data
 and CRC to be added first, with the rest of the packet being created
 immediately before the existing data.
 
-### Custom CRC implementation support
+## Custom CRC implementation support
 
 It is possible to use a different CRC implementation instead of the table-based
 implementation normally defined in the library via the following steps:
@@ -189,7 +261,7 @@ implementation normally defined in the library via the following steps:
 *   Provide a compatible definition of the `rmap_crc_calculate()` function at
     link time.
 
-#### Disabling CRC
+### Disabling CRC
 
 It is possible to effectively disable the CRC calculation and verification by
 providing a custom definition of the `rmap_crc_calculate()` function which
@@ -206,7 +278,13 @@ being created with a `0` header (and data) CRC.
 This can be useful if CRC calculation and verification is handled by other
 means.
 
-### Examples
+## Examples
+
+Examples showing the initialization and use of RMAP nodes using this library
+are available in the following files:
+
+*   [**`examples/target_node.c`**](examples/target_node.c)
+*   [**`examples/target_and_initiator_node.c`**](examples/target_and_initiator_node.c)
 
 Examples showing creation of RMAP commands and replies using this library are
 available in the following files:
@@ -230,7 +308,8 @@ verification of the library itself and are therefore removed via the
 
 If GCC gcov is available, the `coverage` make target can be run from the root
 directly in order to print a brief code coverage summary and to generate a
-detailed code coverage report in **`test/coverage-build/rmap.c.gcov`**.
+detailed code coverage report in **`test/coverage-build/rmap.c.gcov`** and
+**`test/coverage-build/node.c.gcov`**.
 
 Alternatively, the `coverage-run`, `coverage-gcov-report` and `coverage` make
 targets can be run from the **`test/`** subdirectory.
