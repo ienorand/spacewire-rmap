@@ -247,10 +247,10 @@ static enum rmap_status_field_code rmw_request(
     memcpy(read_data, custom_context->target_memory + offset, *read_data_size);
     const unsigned char *const data_bytes = data;
     const unsigned char *const read_data_bytes = read_data;
+    const unsigned char *const mask = data_bytes + *read_data_size;
     for (size_t i = 0; i < *read_data_size; ++i) {
-        const uint8_t mask = data_bytes[*read_data_size + i];
         const uint8_t write_data =
-            (mask & data_bytes[i]) | (~mask & read_data_bytes[i]);
+            (mask[i] & data_bytes[i]) | (~mask[i] & read_data_bytes[i]);
         custom_context->target_memory[offset + i] = write_data;
     }
 
