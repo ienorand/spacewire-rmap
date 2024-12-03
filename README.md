@@ -238,6 +238,6 @@ targets can be run from the **`test/`** subdirectory.
 ### gcovr
 
 If [gcovr](https://gcovr.com/) is available, the `coverage-gcovr-report` make
-target can be run from the the **`test/`** subdirectory to produce a gcovr HTML
+target can be run from the **`test/`** subdirectory to produce a gcovr HTML
 report with the main index file located at
 **`test/coverage-build/coverage-gcovr-report.html`**.
