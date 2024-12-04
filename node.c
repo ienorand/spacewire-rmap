@@ -855,9 +855,7 @@ static enum rmap_status handle_reply(
     case RMAP_UNUSED_PACKET_TYPE:
     case RMAP_NO_REPLY:
     case RMAP_UNUSED_COMMAND_CODE:
-        /* TODO: Is this merging really a good idea? It matches the standard,
-         * but would it make sense to provide more information?
-         */
+        /* Merged to match error defined in RMAP standard for replies. */
         return RMAP_NODE_PACKET_ERROR;
 
     default:
@@ -882,9 +880,7 @@ static enum rmap_status handle_reply(
     case RMAP_INSUFFICIENT_DATA:
     case RMAP_TOO_MUCH_DATA:
     case RMAP_INVALID_DATA_CRC:
-        /* TODO: Is this merging really a good idea? It matches the standard,
-         * but would it make sense to provide more information?
-         */
+        /* Merged to match error defined in RMAP standard for replies. */
         return RMAP_NODE_INVALID_REPLY;
 
     default:
