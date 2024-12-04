@@ -67,6 +67,11 @@ packets.
 The node interface is based on an `rmap_node_handle_incoming()` function and a
 set of callbacks registered at initialization.
 
+The main goal of the node interface is to handle all common RMAP protocol
+actions and to only delegate user-specific handling; the protocol actions
+defined by the RMAP standard are followed strictly and the user-specific
+handling is constrained in order to do likewise.
+
 Detailed information for the node interface, including implementation
 requirements for its callbacks, is available as doxygen interface documentation
 in **`node.h`**.
