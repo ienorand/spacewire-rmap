@@ -74,7 +74,7 @@ in **`node.h`**.
 #### Initialization
 
 A `struct rmap_node` object is used to hold the configuration and context
-information of an initialized node, the node object storage must be handled by
+information of an initialized node. The node object storage must be handled by
 the library user and it must be initialized via `rmap_node_initialize()`.
 
 A set of initialization flags are used to define if the node is a target
