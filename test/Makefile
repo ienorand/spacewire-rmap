@@ -37,7 +37,7 @@ CPPFLAGS += -I$(USER_DIR) -I$(USER_DIR)/test
 COVERAGE_CPPFLAGS += -DNDEBUG
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra -pthread -std=c++11
+CXXFLAGS += -g -Wall -Wextra -pthread
 COVERAGE_CXXFLAGS += -O0 --coverage
 
 # Flags passed to the C compiler.
