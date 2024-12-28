@@ -262,10 +262,8 @@ void rmap_set_reply_address(
     const uint8_t *const reply_address,
     const size_t reply_address_size)
 {
-    unsigned char *reply_address_padded;
-
     unsigned char *const header_bytes = header;
-    reply_address_padded =
+    unsigned char *const reply_address_padded =
         header_bytes + sizeof(struct command_header_first_static_part);
 
     const size_t padding_size =
@@ -524,8 +522,6 @@ void rmap_calculate_and_set_header_crc(void *const header)
 enum rmap_status
 rmap_verify_header_integrity(const void *const header, const size_t size)
 {
-    size_t header_size;
-
     if (size < RMAP_HEADER_MINIMUM_SIZE) {
         return RMAP_INCOMPLETE_HEADER;
     }
@@ -534,7 +530,7 @@ rmap_verify_header_integrity(const void *const header, const size_t size)
         return RMAP_NO_RMAP_PROTOCOL;
     }
 
-    header_size = rmap_calculate_header_size(header);
+    const size_t header_size = rmap_calculate_header_size(header);
 
     if (size < header_size) {
         return RMAP_INCOMPLETE_HEADER;
@@ -751,10 +747,9 @@ enum rmap_status rmap_initialize_header_before(
     const int command_code,
     const size_t reply_address_unpadded_size)
 {
-    enum rmap_status status;
     uint8_t instruction;
 
-    status = make_instruction(
+    const enum rmap_status status = make_instruction(
         &instruction,
         packet_type,
         command_code,
