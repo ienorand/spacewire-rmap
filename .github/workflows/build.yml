@@ -9,7 +9,10 @@ on:
 jobs:
   build:
 
-    runs-on: [ubuntu-latest, ubuntu-24.04]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v4
