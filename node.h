@@ -559,21 +559,20 @@ enum rmap_status rmap_node_initialize(
  * @retval RMAP_UNUSED_COMMAND_CODE Incoming packet rejected due to the command
  *         field containing a reserved command code. Corresponds to the "unused
  *         RMAP packet type or command code" error.
- * @retval RMAP_NODE_PACKET_ERROR Incoming reply packet rejected due to one of:
- *         * The packet type field having the reserved bit set.
- *         * The command field containing a reserved command code.
- *         * The command field not having the reply bit set.
- *         .
- *         Corresponds to the "Packet Error" error.
- * @retval RMAP_NODE_INVALID_REPLY Incoming reply packet rejected due to one
- *         of:
- *         * The packet being a RMW reply with a data length field value that
- *           is invalid for a RMW reply.
- *         * The packet being smaller than indicated by the data length field.
- *         * The packet being larger than indicated by the data length field.
- *         * The data CRC indicating errors in the data.
- *         .
- *         Corresponds to the "invalid reply" error.
+ * @retval RMAP_NODE_PACKET_ERROR
+ * * Incoming reply packet rejected due to one of:
+ *     * The packet type field having the reserved bit set.
+ *     * The command field containing a reserved command code.
+ *     * The command field not having the reply bit set.
+ * * Corresponds to the "Packet Error" error.
+ * @retval RMAP_NODE_INVALID_REPLY
+ * * Incoming reply packet rejected due to one of:
+ *     * The packet being a RMW reply with a data length field value that is
+ *       invalid for a RMW reply.
+ *     * The packet being smaller than indicated by the data length field.
+ *     * The packet being larger than indicated by the data length field.
+ *     * The data CRC indicating errors in the data.
+ * * Corresponds to the "invalid reply" error.
  * @retval RMAP_INSUFFICIENT_DATA Incoming write or RMW command packet rejected
  *         due to being smaller than indicated by the data length. An error
  *         reply has been sent if applicable. Corresponds to the "insufficient
