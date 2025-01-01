@@ -101,9 +101,6 @@ enum rmap_status_field_code {
      * Error description according to the RMAP standard:
      *
      * > EOP marker detected before the end of the data.
-     *
-     * This error can also be reported as error information to the target node
-     * according to the RMAP standard.
      */
     RMAP_STATUS_FIELD_CODE_EARLY_EOP = 5,
 
@@ -122,9 +119,6 @@ enum rmap_status_field_code {
      * > EEP marker detected immediately after the header CRC or during the
      * > transfer of data and Data CRC or immediately thereafter. Indicates that
      * > there was a communication failure of some sort on the network.
-     *
-     * This error can also be reported as error information to the target node
-     * according to the RMAP standard.
      */
     RMAP_STATUS_FIELD_CODE_EEP = 7,
 
@@ -251,7 +245,34 @@ enum rmap_status {
     RMAP_REPLY_ADDRESS_TOO_LONG = 269,
 
     /** Not enough space to initialize header. */
-    RMAP_NOT_ENOUGH_SPACE = 270
+    RMAP_NOT_ENOUGH_SPACE = 270,
+
+    /** @{
+     *  See return value documentation of rmap_node_handle_incoming() for
+     *  details.
+     *
+     * This status is only used by the RMAP node library.
+     */
+    RMAP_NODE_COMMAND_HEADER_FOLLOWED_BY_EEP = 271,
+    RMAP_NODE_INSUFFICIENT_DATA_WITH_EEP = 272,
+    RMAP_NODE_INVALID_KEY = 273,
+    RMAP_NODE_COMMAND_NOT_IMPLEMENTED_OR_NOT_AUTHORIZED = 274,
+    RMAP_NODE_VERIFY_BUFFER_OVERRUN = 275,
+    RMAP_NODE_MEMORY_ACCESS_ERROR = 276,
+    RMAP_NODE_INVALID_REPLY = 277,
+    RMAP_NODE_PACKET_ERROR = 278,
+    RMAP_NODE_COMMAND_RECEIVED_BY_INITIATOR = 279,
+    RMAP_NODE_REPLY_RECEIVED_BY_TARGET = 280,
+    RMAP_NODE_INVALID_TARGET_LOGICAL_ADDRESS = 281,
+    RMAP_NODE_ALLOCATION_FAILURE = 282,
+    RMAP_NODE_SEND_REPLY_FAILURE = 283,
+    /** @} */
+
+    /** See return value documentation of rmap_node_initialize() for details.
+     *
+     * This status is only used by the RMAP node library.
+     */
+    RMAP_NODE_NO_TARGET_OR_INITIATOR = 284,
 };
 
 /** Size constants for RMAP packets. */

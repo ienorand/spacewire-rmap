@@ -50,7 +50,10 @@ LDLIBS += -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = rmap_test rmap_test_with_custom_crc_implementation
+TESTS = \
+        rmap_test \
+        rmap_test_with_custom_crc_implementation \
+        node_test
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -130,8 +133,17 @@ rmap_custom_crc_implementation.o: rmap_custom_crc_implementation.c $(USER_DIR)/r
 rmap_shim.o: rmap_shim.c rmap_shim.h $(USER_DIR)/rmap.h
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 
+node_test: node_test.o test_patterns.o node.o rmap.o gmock_main.a
+	$(LINK.cc) $(OUTPUT_OPTION) $^
+
+node_test.o: node_test.cc $(USER_DIR)/test/test_patterns.h $(USER_DIR)/node.h $(USER_DIR)/rmap.h
+	$(COMPILE.cc) $(OUTPUT_OPTION) $<
+
+node.o: $(USER_DIR)/node.c $(USER_DIR)/node.h $(USER_DIR)/rmap.h
+	$(COMPILE.c) $(OUTPUT_OPTION) $<
+
 test: all
-	./rmap_test
+	./rmap_test && ./node_test
 
 test-with-custom-crc: all
 	./rmap_test_with_custom_crc_implementation
@@ -148,13 +160,20 @@ coverage-build/rmap.o: $(USER_DIR)/rmap.c $(USER_DIR)/rmap.h | coverage-build
 coverage-build/rmap_without_crc_calculate.o: $(USER_DIR)/rmap.c $(USER_DIR)/rmap.h | coverage-build
 	$(COMPILE.c) $(COVERAGE_CFLAGS) $(COVERAGE_CPPFLAGS) -DRMAP_CUSTOM_CRC_IMPLEMENTATION $(OUTPUT_OPTION) $<
 
+coverage-build/node.o: $(USER_DIR)/node.c $(USER_DIR)/node.h $(USER_DIR)/rmap.h | coverage-build
+	$(COMPILE.c) $(COVERAGE_CFLAGS) $(COVERAGE_CPPFLAGS) $(OUTPUT_OPTION) $<
+
+coverage-build/node_test: node_test.o test_patterns.o coverage-build/node.o coverage-build/rmap.o gmock_main.a | coverage-build
+	$(LINK.cc) $(COVERAGE_LDFLAGS) $(OUTPUT_OPTION) $^
+
 coverage-build:
 	mkdir -p $@
 
 .PHONY: coverage-run
-coverage-run: coverage-build/rmap_test coverage-build/rmap_test_with_custom_crc_implementation
+coverage-run: coverage-build/rmap_test coverage-build/rmap_test_with_custom_crc_implementation coverage-build/node_test
 	coverage-build/rmap_test --gtest_brief=1
 	coverage-build/rmap_test_with_custom_crc_implementation --gtest_brief=1
+	coverage-build/node_test --gtest_brief=1
 
 coverage-build/%.gcov: coverage-run
 	(cd coverage-build && gcov --all-blocks --branch-probabilities $(@:coverage-build/%.gcov=%))
@@ -163,7 +182,7 @@ coverage-build/coverage-gcovr-report.html: coverage-run
 	(cd coverage-build && gcovr --decisions --html-details $(@:coverage-build/%=%) --print-summary --root $(USER_DIR))
 
 .PHONY: coverage-gcov-report
-coverage-gcov-report: coverage-build/rmap.c.gcov
+coverage-gcov-report: coverage-build/rmap.c.gcov coverage-build/node.c.gcov
 
 .PHONY: coverage-gcovr-report
 coverage-gcovr-report: coverage-build/coverage-gcovr-report.html
