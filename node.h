@@ -105,9 +105,14 @@ typedef void *(*rmap_node_target_allocate_callback)(
  * The callback is expected to return RMAP_OK on success or if send failure is
  * not indicated.
  *
- * The data in @p packet will have been allocated via
- * rmap_node_target_allocate_callback(); this callback transfers the ownership
- * of this allocation to the user which must handle its deallocation.
+ * The ownership of the allocation previously obtained via
+ * rmap_node_target_allocate_callback() is returned back to the user by this
+ * callback, the user must handle its deallocation.
+ *
+ * @p packet is guaranteed to be equal to the allocation obtained via
+ * rmap_node_target_allocate_callback() only if the data destination was not
+ * modified via rmap_node_target_read_request_callback() or
+ * rmap_node_target_rmw_request_callback().
  *
  * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
@@ -204,6 +209,16 @@ typedef enum rmap_status_field_code (*rmap_node_target_write_request_callback)(
  * The callback is expected to then perform the read, storing the read data in
  * @p data and storing its size in @p data_size.
  *
+ * The callback may adjust the destination of @p data and give the new location
+ * via the output parameter.
+ *
+ * @attention If modified, the destination of @p data @e must still:
+ *            * Have at least (RMAP_REPLY_ADDRESS_LENGTH_MAX +
+ *              RMAP_READ_REPLY_HEADER_STATIC_SIZE) bytes of available space
+ *              before (for the reply address and header).
+ *            * Have at least 1 byte of available space after the read data
+ *              (for the CRC).
+ *
  * Read failure must be indicated by setting @p data_size to a value that is
  * less than the requested data length.
  *
@@ -217,7 +232,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_write_request_callback)(
  *
  * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
- * @param[out] data Destination for read data.
+ * @param[in,out] data Destination for read data.
  * @param[out] data_size Number of bytes stored into @p data.
  * @param[in] request Generic request parameters.
  *
@@ -235,7 +250,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_write_request_callback)(
 typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
     struct rmap_node *node,
     void *transaction_custom_context,
-    void *data,
+    void **data,
     size_t *data_size,
     const struct rmap_node_target_request *request);
 
@@ -263,6 +278,16 @@ typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
  * The callback is expected to then perform the read part of the RMW.
  *
  * The read data should be stored in @p read_data.
+ *
+ * The callback may adjust the destination of @p read_data and give the new
+ * location via the output parameter.
+ *
+ * @attention If modified, the destination of @p read_data @e must still:
+ *            * Have at least (RMAP_REPLY_ADDRESS_LENGTH_MAX +
+ *              RMAP_READ_REPLY_HEADER_STATIC_SIZE) bytes of available space
+ *              before (for the reply address and header).
+ *            * Have at least 1 byte of available space after the read data
+ *              (for the CRC).
  *
  * Read failure must be indicated by setting @p read_data_size to a value that
  * is less than the requested data length and by returning
@@ -325,7 +350,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
  *
  * @param[in,out] node Node context object.
  * @param[in,out] transaction_custom_context Transaction custom context object.
- * @param[out] read_data Destination for read data.
+ * @param[in,out] read_data Destination for read data.
  * @param[out] read_data_size Number of bytes stored into @p read_data.
  * @param[in] request Generic request parameters.
  * @param[in] data Data field of command with first half containing data and
@@ -347,7 +372,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
 typedef enum rmap_status_field_code (*rmap_node_target_rmw_request_callback)(
     struct rmap_node *node,
     void *transaction_custom_context,
-    void *read_data,
+    void **read_data,
     size_t *read_data_size,
     const struct rmap_node_target_request *request,
     const void *data);

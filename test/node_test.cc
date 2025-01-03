@@ -52,7 +52,7 @@ class MockCallbacks
         ReadRequest,
         (struct rmap_node * node,
          void *transaction_custom_context,
-         void *data,
+         void **data,
          size_t *data_size,
          const struct rmap_node_target_request *request));
     MOCK_METHOD(
@@ -60,7 +60,7 @@ class MockCallbacks
         RmwRequest,
         (struct rmap_node * node,
          void *transaction_custom_context,
-         void *read_data,
+         void **read_data,
          size_t *read_data_size,
          const struct rmap_node_target_request *request,
          const void *data));
@@ -138,7 +138,7 @@ static enum rmap_status_field_code write_request_mock_wrapper(
 static enum rmap_status_field_code read_request_mock_wrapper(
     struct rmap_node *const node,
     void *const transaction_custom_context,
-    void *const data,
+    void **const data,
     size_t *const data_size,
     const struct rmap_node_target_request *const request)
 {
@@ -156,7 +156,7 @@ static enum rmap_status_field_code read_request_mock_wrapper(
 static enum rmap_status_field_code rmw_request_mock_wrapper(
     struct rmap_node *const node,
     void *const transaction_custom_context,
-    void *const read_data,
+    void **const read_data,
     size_t *const read_data_size,
     const struct rmap_node_target_request *const request,
     const void *const data)
@@ -423,13 +423,13 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
             [&source_data](
                 struct rmap_node *const node,
                 void *const transaction_custom_context,
-                void *const data,
+                void **const data,
                 size_t *const data_size,
                 const struct rmap_node_target_request *const request) {
                 (void)node;
                 (void)transaction_custom_context;
                 (void)request;
-                memcpy(data, source_data.data(), source_data.size());
+                memcpy(*data, source_data.data(), source_data.size());
                 *data_size = source_data.size();
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             }));
@@ -569,13 +569,13 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
             [&source_data](
                 struct rmap_node *const node,
                 void *const transaction_custom_context,
-                void *const data,
+                void **const data,
                 size_t *const data_size,
                 const struct rmap_node_target_request *const request) {
                 (void)node;
                 (void)transaction_custom_context;
                 (void)request;
-                memcpy(data, source_data.data(), source_data.size());
+                memcpy(*data, source_data.data(), source_data.size());
                 *data_size = source_data.size();
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             }));
@@ -653,7 +653,7 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
             [&source_data](
                 struct rmap_node *const node,
                 void *const transaction_custom_context,
-                void *const read_data,
+                void **const read_data,
                 size_t *const read_data_size,
                 const struct rmap_node_target_request *const request,
                 const void *const data) {
@@ -661,7 +661,7 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
                 (void)transaction_custom_context;
                 (void)request;
                 (void)data;
-                memcpy(read_data, source_data.data(), source_data.size());
+                memcpy(*read_data, source_data.data(), source_data.size());
                 *read_data_size = source_data.size();
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             }));
@@ -741,7 +741,7 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
             [&source_data](
                 struct rmap_node *const node,
                 void *const transaction_custom_context,
-                void *const read_data,
+                void **const read_data,
                 size_t *const read_data_size,
                 const struct rmap_node_target_request *const request,
                 const void *const data) {
@@ -749,7 +749,7 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
                 (void)transaction_custom_context;
                 (void)request;
                 (void)data;
-                memcpy(read_data, source_data.data(), source_data.size());
+                memcpy(*read_data, source_data.data(), source_data.size());
                 *read_data_size = source_data.size();
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             }));
@@ -847,12 +847,12 @@ TEST_F(MockedTargetNode, ValidIncomingRead)
             testing::SaveArgPointee<4>(&read_request),
             [](struct rmap_node *const node,
                void *const transaction_custom_context,
-               void *const data,
+               void **const data,
                size_t *const data_size,
                const struct rmap_node_target_request *const request) {
                 (void)node;
                 (void)transaction_custom_context;
-                memset(data, 0xDA, request->data_length);
+                memset(*data, 0xDA, request->data_length);
                 *data_size = request->data_length;
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             }));
@@ -1014,6 +1014,390 @@ class IncomingToTargetRejectParams :
         enum rmap_status>>
 {
 };
+
+TEST_F(
+    MockedTargetNode,
+    ReadWithDataDestinationAdjustmentForwardWithinAllocation)
+{
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node *const node,
+                      void *const transaction_custom_context,
+                      const size_t size) {
+            (void)node;
+            (void)transaction_custom_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+    const size_t expected_reply_address_size =
+        test_pattern3_expected_read_reply_with_spacewire_addresses
+            .reply_address_length;
+    const size_t reply_offset =
+        RMAP_REPLY_ADDRESS_LENGTH_MAX - expected_reply_address_size;
+    ASSERT_GE(reply_offset, 1);
+
+    const auto command_pattern =
+        test_pattern3_incrementing_read_with_spacewire_addresses;
+    const std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    const auto reply_pattern =
+        test_pattern3_expected_read_reply_with_spacewire_addresses;
+    const std::vector<uint8_t> source_data = reply_pattern.data_field();
+    struct rmap_node_target_request request;
+    EXPECT_CALL(
+        mock_callbacks,
+        ReadRequest(
+            testing::_,
+            testing::_,
+            testing::_,
+            testing::_,
+            testing::Field(
+                &rmap_node_target_request::data_length,
+                source_data.size())))
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<4>(&request),
+            testing::SetArgPointee<3>(source_data.size()),
+            [&source_data, &reply_offset](
+                struct rmap_node *const node,
+                void *const transaction_custom_context,
+                void **const data,
+                size_t *const data_size,
+                const struct rmap_node_target_request *const request) {
+                (void)node;
+                (void)transaction_custom_context;
+                (void)request;
+                *data = (unsigned char *)*data + reply_offset;
+                memcpy(*data, source_data.data(), source_data.size());
+                *data_size = source_data.size();
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            }));
+
+    const std::vector<uint8_t> expected_reply = reply_pattern.data;
+
+    void *reply_packet;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<2>(&reply_packet),
+            testing::Return(RMAP_OK)));
+
+    const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node,
+            transaction_custom_context,
+            command_packet.data(),
+            command_packet.size(),
+            has_eep_termination),
+        RMAP_OK);
+
+    EXPECT_EQ(request.target_logical_address, 0xFE);
+    EXPECT_EQ(request.key, 0x00);
+    EXPECT_EQ(request.initiator_logical_address, 0x67);
+    EXPECT_EQ(request.transaction_identifier, 0x03);
+    EXPECT_EQ(request.extended_address, 0x00);
+    EXPECT_EQ(request.address, 0xA0000010);
+    EXPECT_EQ(request.data_length, 0x10);
+    EXPECT_EQ(reply_packet, allocation.data() + reply_offset);
+
+    allocation.erase(allocation.begin(), allocation.begin() + reply_offset);
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+TEST_F(MockedTargetNode, ReadWithDataDestinationAdjustmentToNewAllocation)
+{
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node *const node,
+                      void *const transaction_custom_context,
+                      const size_t size) {
+            (void)node;
+            (void)transaction_custom_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    const auto command_pattern =
+        test_pattern3_incrementing_read_with_spacewire_addresses;
+    const std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    const auto reply_pattern =
+        test_pattern3_expected_read_reply_with_spacewire_addresses;
+    const std::vector<uint8_t> source_data = reply_pattern.data_field();
+    struct rmap_node_target_request request;
+    std::vector<uint8_t> new_allocation;
+    EXPECT_CALL(
+        mock_callbacks,
+        ReadRequest(
+            testing::_,
+            testing::_,
+            testing::_,
+            testing::_,
+            testing::Field(
+                &rmap_node_target_request::data_length,
+                source_data.size())))
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<4>(&request),
+            testing::SetArgPointee<3>(source_data.size()),
+            [&source_data, &new_allocation](
+                struct rmap_node *const node,
+                void *const transaction_custom_context,
+                void **const data,
+                size_t *const data_size,
+                const struct rmap_node_target_request *const request) {
+                (void)node;
+                (void)transaction_custom_context;
+                (void)request;
+                const size_t data_offset = RMAP_REPLY_ADDRESS_LENGTH_MAX +
+                    RMAP_READ_REPLY_HEADER_STATIC_SIZE;
+                new_allocation.resize(data_offset + *data_size + 1);
+                *data = new_allocation.data() + data_offset;
+                memcpy(*data, source_data.data(), source_data.size());
+                *data_size = source_data.size();
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            }));
+
+    const std::vector<uint8_t> expected_reply = reply_pattern.data;
+
+    void *reply_packet;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<2>(&reply_packet),
+            testing::Return(RMAP_OK)));
+
+    const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node,
+            transaction_custom_context,
+            command_packet.data(),
+            command_packet.size(),
+            has_eep_termination),
+        RMAP_OK);
+
+    EXPECT_EQ(request.target_logical_address, 0xFE);
+    EXPECT_EQ(request.key, 0x00);
+    EXPECT_EQ(request.initiator_logical_address, 0x67);
+    EXPECT_EQ(request.transaction_identifier, 0x03);
+    EXPECT_EQ(request.extended_address, 0x00);
+    EXPECT_EQ(request.address, 0xA0000010);
+    EXPECT_EQ(request.data_length, 0x10);
+    const size_t expected_reply_offset = RMAP_REPLY_ADDRESS_LENGTH_MAX -
+        test_pattern3_expected_read_reply_with_spacewire_addresses
+            .reply_address_length;
+    EXPECT_EQ(reply_packet, new_allocation.data() + expected_reply_offset);
+
+    new_allocation.erase(
+        new_allocation.begin(),
+        new_allocation.begin() + expected_reply_offset);
+    new_allocation.resize(expected_reply.size());
+    EXPECT_EQ(new_allocation, expected_reply);
+}
+
+TEST_F(
+    MockedTargetNode,
+    RmwWithDataDestinationAdjustmentForwardWithinAllocation)
+{
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node *const node,
+                      void *const transaction_custom_context,
+                      const size_t size) {
+            (void)node;
+            (void)transaction_custom_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+    const size_t expected_reply_address_size =
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses
+            .reply_address_length;
+    const size_t reply_offset =
+        RMAP_REPLY_ADDRESS_LENGTH_MAX - expected_reply_address_size;
+    ASSERT_GE(reply_offset, 1);
+
+    const auto command_pattern = test_pattern5_rmw_with_spacewire_addresses;
+    const std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    const uint8_t *const incoming_data = command_packet.data() +
+        rmap_calculate_header_size(command_packet.data());
+    const auto reply_pattern =
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses;
+    const std::vector<uint8_t> source_data = reply_pattern.data_field();
+    struct rmap_node_target_request request;
+    std::vector<uint8_t> new_allocation;
+    EXPECT_CALL(
+        mock_callbacks,
+        RmwRequest(
+            testing::_,
+            testing::_,
+            testing::_,
+            testing::_,
+            testing::Field(
+                &rmap_node_target_request::data_length,
+                2 * source_data.size()),
+            incoming_data))
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<4>(&request),
+            testing::SetArgPointee<3>(source_data.size()),
+            [&source_data, &reply_offset](
+                struct rmap_node *const node,
+                void *const transaction_custom_context,
+                void **const read_data,
+                size_t *const read_data_size,
+                const struct rmap_node_target_request *const request,
+                const void *const data) {
+                (void)node;
+                (void)transaction_custom_context;
+                (void)request;
+                (void)data;
+                *read_data = (unsigned char *)*read_data + reply_offset;
+                memcpy(*read_data, source_data.data(), source_data.size());
+                *read_data_size = source_data.size();
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            }));
+
+    const std::vector<uint8_t> expected_reply = reply_pattern.data;
+
+    void *reply_packet;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<2>(&reply_packet),
+            testing::Return(RMAP_OK)));
+
+    const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node,
+            transaction_custom_context,
+            command_packet.data(),
+            command_packet.size(),
+            has_eep_termination),
+        RMAP_OK);
+
+    EXPECT_EQ(request.target_logical_address, 0xFE);
+    EXPECT_EQ(request.key, 0x00);
+    EXPECT_EQ(request.initiator_logical_address, 0x67);
+    EXPECT_EQ(request.transaction_identifier, 0x05);
+    EXPECT_EQ(request.extended_address, 0x00);
+    EXPECT_EQ(request.address, 0xA0000010);
+    EXPECT_EQ(request.data_length, 0x8);
+    EXPECT_EQ(reply_packet, allocation.data() + reply_offset);
+
+    allocation.erase(allocation.begin(), allocation.begin() + reply_offset);
+    allocation.resize(expected_reply.size());
+    EXPECT_EQ(allocation, expected_reply);
+}
+
+TEST_F(MockedTargetNode, RmwWithDataDestinationAdjustmentToNewAllocation)
+{
+    std::vector<uint8_t> allocation;
+    EXPECT_CALL(mock_callbacks, Allocate)
+        .WillOnce([&allocation](
+                      struct rmap_node *const node,
+                      void *const transaction_custom_context,
+                      const size_t size) {
+            (void)node;
+            (void)transaction_custom_context;
+            allocation.resize(size);
+            return allocation.data();
+        });
+
+    const auto command_pattern = test_pattern5_rmw_with_spacewire_addresses;
+    const std::vector<uint8_t> command_packet =
+        command_pattern.packet_without_spacewire_address_prefix();
+    const uint8_t *const incoming_data = command_packet.data() +
+        rmap_calculate_header_size(command_packet.data());
+    const auto reply_pattern =
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses;
+    const std::vector<uint8_t> source_data = reply_pattern.data_field();
+    struct rmap_node_target_request request;
+    std::vector<uint8_t> new_allocation;
+    EXPECT_CALL(
+        mock_callbacks,
+        RmwRequest(
+            testing::_,
+            testing::_,
+            testing::_,
+            testing::_,
+            testing::Field(
+                &rmap_node_target_request::data_length,
+                2 * source_data.size()),
+            incoming_data))
+        .WillOnce(testing::DoAll(
+            testing::SaveArgPointee<4>(&request),
+            testing::SetArgPointee<3>(source_data.size()),
+            [&source_data, &new_allocation](
+                struct rmap_node *const node,
+                void *const transaction_custom_context,
+                void **const read_data,
+                size_t *const read_data_size,
+                const struct rmap_node_target_request *const request,
+                const void *const data) {
+                (void)node;
+                (void)transaction_custom_context;
+                (void)request;
+                (void)data;
+                const size_t read_data_offset = RMAP_REPLY_ADDRESS_LENGTH_MAX +
+                    RMAP_READ_REPLY_HEADER_STATIC_SIZE;
+                new_allocation.resize(
+                    read_data_offset + request->data_length + 1);
+                *read_data = new_allocation.data() + read_data_offset;
+                memcpy(*read_data, source_data.data(), source_data.size());
+                *read_data_size = source_data.size();
+                return RMAP_STATUS_FIELD_CODE_SUCCESS;
+            }));
+
+    const std::vector<uint8_t> expected_reply = reply_pattern.data;
+
+    void *reply_packet;
+    EXPECT_CALL(
+        mock_callbacks,
+        SendReply(testing::_, testing::_, testing::_, expected_reply.size()))
+        .WillOnce(testing::DoAll(
+            testing::SaveArg<2>(&reply_packet),
+            testing::Return(RMAP_OK)));
+
+    const bool has_eep_termination = false;
+    void *const transaction_custom_context = NULL;
+    EXPECT_EQ(
+        rmap_node_handle_incoming(
+            &node,
+            transaction_custom_context,
+            command_packet.data(),
+            command_packet.size(),
+            has_eep_termination),
+        RMAP_OK);
+
+    EXPECT_EQ(request.target_logical_address, 0xFE);
+    EXPECT_EQ(request.key, 0x00);
+    EXPECT_EQ(request.initiator_logical_address, 0x67);
+    EXPECT_EQ(request.transaction_identifier, 0x05);
+    EXPECT_EQ(request.extended_address, 0x00);
+    EXPECT_EQ(request.address, 0xA0000010);
+    EXPECT_EQ(request.data_length, 0x8);
+    const size_t expected_reply_offset = RMAP_REPLY_ADDRESS_LENGTH_MAX -
+        test_pattern5_expected_rmw_reply_with_spacewire_addresses
+            .reply_address_length;
+    EXPECT_EQ(reply_packet, new_allocation.data() + expected_reply_offset);
+
+    new_allocation.erase(
+        new_allocation.begin(),
+        new_allocation.begin() + expected_reply_offset);
+    new_allocation.resize(expected_reply.size());
+    EXPECT_EQ(new_allocation, expected_reply);
+}
 
 TEST_P(IncomingToTargetRejectParams, Check)
 {
@@ -2027,14 +2411,14 @@ TEST_F(MockedTargetNode, ReadError)
         .WillOnce([&source_data](
                       struct rmap_node *const node,
                       void *const transaction_custom_context,
-                      void *const data,
+                      void **const data,
                       size_t *const data_size,
                       const struct rmap_node_target_request *const request) {
             (void)node;
             (void)transaction_custom_context;
             (void)request;
             /* Provide one less byte than requested. */
-            memcpy(data, source_data.data(), source_data.size() - 1);
+            memcpy(*data, source_data.data(), source_data.size() - 1);
             *data_size = source_data.size() - 1;
             return RMAP_STATUS_FIELD_CODE_SUCCESS;
         });
@@ -2112,7 +2496,7 @@ TEST_F(MockedTargetNode, RmwReadError)
             [&source_data](
                 struct rmap_node *const node,
                 void *const transaction_custom_context,
-                void *const read_data,
+                void **const read_data,
                 size_t *const read_data_size,
                 const struct rmap_node_target_request *const request,
                 const void *const data) {
@@ -2121,7 +2505,7 @@ TEST_F(MockedTargetNode, RmwReadError)
                 (void)request;
                 (void)data;
                 /* Provide one less byte than requested. */
-                memcpy(read_data, source_data.data(), source_data.size() - 1);
+                memcpy(*read_data, source_data.data(), source_data.size() - 1);
                 *read_data_size = source_data.size() - 1;
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             });
@@ -2216,7 +2600,7 @@ TEST_F(MockedTargetNode, RmwWriteError)
             [&source_data](
                 struct rmap_node *const node,
                 void *const transaction_custom_context,
-                void *const read_data,
+                void **const read_data,
                 size_t *const read_data_size,
                 const struct rmap_node_target_request *const request,
                 const void *const data) {
@@ -2227,7 +2611,7 @@ TEST_F(MockedTargetNode, RmwWriteError)
                 /* Provide all requested data and indicate write error via
                  * return value.
                  */
-                memcpy(read_data, source_data.data(), source_data.size());
+                memcpy(*read_data, source_data.data(), source_data.size());
                 *read_data_size = source_data.size();
                 return RMAP_STATUS_FIELD_CODE_GENERAL_ERROR_CODE;
             });
@@ -2481,7 +2865,7 @@ TEST_P(IncomingCommandWithReplyFailure, ReplyAllocationFailure)
         .WillRepeatedly(
             [](struct rmap_node *const node,
                void *const transaction_custom_context,
-               void *const data,
+               void **const data,
                size_t *const data_size,
                const struct rmap_node_target_request *const request) {
                 (void)node;
@@ -2489,14 +2873,14 @@ TEST_P(IncomingCommandWithReplyFailure, ReplyAllocationFailure)
                 const std::vector<uint8_t> source_data(
                     request->data_length,
                     0xDA);
-                memcpy(data, source_data.data(), source_data.size());
+                memcpy(*data, source_data.data(), source_data.size());
                 *data_size = source_data.size();
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             });
     EXPECT_CALL(mock_callbacks, RmwRequest)
         .WillRepeatedly([](struct rmap_node *const node,
                            void *const transaction_custom_context,
-                           void *const read_data,
+                           void **const read_data,
                            size_t *const read_data_size,
                            const struct rmap_node_target_request *const request,
                            const void *const data) {
@@ -2506,7 +2890,7 @@ TEST_P(IncomingCommandWithReplyFailure, ReplyAllocationFailure)
             const std::vector<uint8_t> source_data(
                 request->data_length / 2,
                 0xDA);
-            memcpy(read_data, source_data.data(), source_data.size());
+            memcpy(*read_data, source_data.data(), source_data.size());
             *read_data_size = source_data.size();
             return RMAP_STATUS_FIELD_CODE_SUCCESS;
         });
@@ -2567,7 +2951,7 @@ TEST_P(IncomingCommandWithReplyFailure, ReplySendFailure)
         .WillRepeatedly(
             [](struct rmap_node *const node,
                void *const transaction_custom_context,
-               void *const data,
+               void **const data,
                size_t *const data_size,
                const struct rmap_node_target_request *const request) {
                 (void)node;
@@ -2575,14 +2959,14 @@ TEST_P(IncomingCommandWithReplyFailure, ReplySendFailure)
                 const std::vector<uint8_t> source_data(
                     request->data_length,
                     0xDA);
-                memcpy(data, source_data.data(), source_data.size());
+                memcpy(*data, source_data.data(), source_data.size());
                 *data_size = source_data.size();
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             });
     EXPECT_CALL(mock_callbacks, RmwRequest)
         .WillRepeatedly([](struct rmap_node *const node,
                            void *const transaction_custom_context,
-                           void *const read_data,
+                           void **const read_data,
                            size_t *const read_data_size,
                            const struct rmap_node_target_request *const request,
                            const void *const data) {
@@ -2592,7 +2976,7 @@ TEST_P(IncomingCommandWithReplyFailure, ReplySendFailure)
             const std::vector<uint8_t> source_data(
                 request->data_length / 2,
                 0xDA);
-            memcpy(read_data, source_data.data(), source_data.size());
+            memcpy(*read_data, source_data.data(), source_data.size());
             *read_data_size = source_data.size();
             return RMAP_STATUS_FIELD_CODE_SUCCESS;
         });

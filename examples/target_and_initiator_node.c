@@ -134,7 +134,7 @@ static enum rmap_status_field_code write_request(
 static enum rmap_status_field_code read_request(
     struct rmap_node *const node,
     void *const transaction_custom_context,
-    void *const data,
+    void **const data,
     size_t *const data_size,
     const struct rmap_node_target_request *const request)
 {
@@ -185,7 +185,7 @@ static enum rmap_status_field_code read_request(
 
     const size_t offset =
         start_address - custom_context->target_memory_start_address;
-    memcpy(data, custom_context->target_memory + offset, request->data_length);
+    memcpy(*data, custom_context->target_memory + offset, request->data_length);
     *data_size = request->data_length;
 
     return RMAP_STATUS_FIELD_CODE_SUCCESS;
@@ -194,7 +194,7 @@ static enum rmap_status_field_code read_request(
 static enum rmap_status_field_code rmw_request(
     struct rmap_node *const node,
     void *const transaction_custom_context,
-    void *const read_data,
+    void **const read_data,
     size_t *const read_data_size,
     const struct rmap_node_target_request *const request,
     const void *const data)
@@ -258,9 +258,9 @@ static enum rmap_status_field_code rmw_request(
     const size_t offset =
         start_address - custom_context->target_memory_start_address;
     *read_data_size = request->data_length / 2;
-    memcpy(read_data, custom_context->target_memory + offset, *read_data_size);
+    memcpy(*read_data, custom_context->target_memory + offset, *read_data_size);
     const unsigned char *const data_bytes = data;
-    const unsigned char *const read_data_bytes = read_data;
+    const unsigned char *const read_data_bytes = *read_data;
     for (size_t i = 0; i < *read_data_size; ++i) {
         const uint8_t mask = data_bytes[*read_data_size + i];
         const uint8_t write_data =

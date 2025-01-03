@@ -352,6 +352,8 @@ static enum rmap_status handle_read_command(
 {
     uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
     size_t reply_address_size;
+    uint8_t *reply_data;
+    void *reply_data_void;
     size_t reply_header_offset;
     size_t reply_data_size;
     enum rmap_status read_status;
@@ -359,11 +361,11 @@ static enum rmap_status handle_read_command(
     const size_t reply_maximum_size = RMAP_REPLY_ADDRESS_LENGTH_MAX +
         RMAP_COMMAND_HEADER_STATIC_SIZE + rmap_get_data_length(packet) + 1;
 
-    uint8_t *const reply_buf = node->callbacks.target.allocate(
+    uint8_t *const reply_allocation = node->callbacks.target.allocate(
         node,
         transaction_custom_context,
         reply_maximum_size);
-    if (!reply_buf) {
+    if (!reply_allocation) {
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
@@ -374,9 +376,11 @@ static enum rmap_status handle_read_command(
         packet);
     assert(reply_address_status == RMAP_OK);
     (void)reply_address_status;
-    const size_t data_offset =
+    const size_t reply_data_offset =
         reply_address_size + RMAP_READ_REPLY_HEADER_STATIC_SIZE;
 
+    reply_data = reply_allocation + reply_data_offset;
+    reply_data_void = reply_data;
     const struct rmap_node_target_request read_request = {
         .target_logical_address = rmap_get_target_logical_address(packet),
         .instruction = rmap_get_instruction(packet),
@@ -390,7 +394,7 @@ static enum rmap_status handle_read_command(
         node->callbacks.target.read_request(
             node,
             transaction_custom_context,
-            reply_buf + data_offset,
+            &reply_data_void,
             &reply_data_size,
             &read_request);
     read_status = RMAP_OK;
@@ -414,6 +418,9 @@ static enum rmap_status handle_read_command(
         }
         break;
     }
+    /* Data offset may have been moved forwards by read request callback. */
+    reply_data = reply_data_void;
+    uint8_t *const reply_buf = reply_data - reply_data_offset;
 
     /* TODO: Might make sense to avoid calculating header CRC here and then
      * recalculate it later?
@@ -422,26 +429,27 @@ static enum rmap_status handle_read_command(
         rmap_create_success_reply_from_command(
             reply_buf,
             &reply_header_offset,
-            reply_maximum_size,
+            reply_data_offset,
             packet);
     assert(create_reply_status == RMAP_OK);
     (void)create_reply_status;
     assert(
         reply_header_offset +
             rmap_calculate_header_size(reply_buf + reply_header_offset) ==
-        data_offset);
+        reply_data_offset);
 
     size_t reply_size;
     if (status_field_code == RMAP_STATUS_FIELD_CODE_SUCCESS) {
-        reply_buf[data_offset + reply_data_size] =
-            rmap_crc_calculate(reply_buf + data_offset, reply_data_size);
-        reply_size = data_offset + reply_data_size + 1;
+        reply_buf[reply_data_offset + reply_data_size] =
+            rmap_crc_calculate(reply_buf + reply_data_offset, reply_data_size);
+        reply_size = reply_data_offset + reply_data_size + 1;
     } else {
         rmap_set_status(reply_buf + reply_header_offset, status_field_code);
         rmap_set_data_length(reply_buf + reply_header_offset, 0);
         rmap_calculate_and_set_header_crc(reply_buf + reply_header_offset);
-        reply_buf[data_offset] = rmap_crc_calculate(reply_buf + data_offset, 0);
-        reply_size = data_offset + 1;
+        reply_buf[reply_data_offset] =
+            rmap_crc_calculate(reply_buf + reply_data_offset, 0);
+        reply_size = reply_data_offset + 1;
     }
 
     const enum rmap_status send_status = node->callbacks.target.send_reply(
@@ -520,6 +528,8 @@ static enum rmap_status handle_rmw_command(
     enum rmap_status verify_status;
     uint8_t reply_address[RMAP_REPLY_ADDRESS_LENGTH_MAX];
     size_t reply_address_size;
+    uint8_t *reply_data;
+    void *reply_data_void;
     size_t reply_header_offset;
     size_t reply_data_size;
     enum rmap_status rmw_status;
@@ -572,11 +582,11 @@ static enum rmap_status handle_rmw_command(
     const size_t reply_maximum_size = RMAP_REPLY_ADDRESS_LENGTH_MAX +
         RMAP_COMMAND_HEADER_STATIC_SIZE + rmap_get_data_length(packet) / 2 + 1;
 
-    uint8_t *const reply_buf = node->callbacks.target.allocate(
+    uint8_t *const reply_allocation = node->callbacks.target.allocate(
         node,
         transaction_custom_context,
         reply_maximum_size);
-    if (!reply_buf) {
+    if (!reply_allocation) {
         return RMAP_NODE_ALLOCATION_FAILURE;
     }
 
@@ -587,9 +597,11 @@ static enum rmap_status handle_rmw_command(
         packet);
     assert(reply_address_status == RMAP_OK);
     (void)reply_address_status;
-    const size_t data_offset =
+    const size_t reply_data_offset =
         reply_address_size + RMAP_READ_REPLY_HEADER_STATIC_SIZE;
 
+    reply_data = reply_allocation + reply_data_offset;
+    reply_data_void = reply_data;
     const struct rmap_node_target_request rmw_request = {
         .target_logical_address = rmap_get_target_logical_address(packet),
         .instruction = rmap_get_instruction(packet),
@@ -603,10 +615,13 @@ static enum rmap_status handle_rmw_command(
     status_field_code = node->callbacks.target.rmw_request(
         node,
         transaction_custom_context,
-        reply_buf + data_offset,
+        &reply_data_void,
         &reply_data_size,
         &rmw_request,
         packet + rmap_calculate_header_size(packet));
+    /* Data offset may have been moved forwards by RMW request callback. */
+    reply_data = reply_data_void;
+    uint8_t *const reply_buf = reply_data - reply_data_offset;
 
     /* TODO: Might make sense to avoid calculating header CRC here and then
      * recalculate it later?
@@ -615,14 +630,14 @@ static enum rmap_status handle_rmw_command(
         rmap_create_success_reply_from_command(
             reply_buf,
             &reply_header_offset,
-            reply_maximum_size,
+            reply_data_offset,
             packet);
     assert(create_reply_status == RMAP_OK);
     (void)create_reply_status;
     assert(
         reply_header_offset +
             rmap_calculate_header_size(reply_buf + reply_header_offset) ==
-        data_offset);
+        reply_data_offset);
 
     switch (status_field_code) {
     case RMAP_STATUS_FIELD_CODE_INVALID_KEY:
@@ -657,9 +672,9 @@ static enum rmap_status handle_rmw_command(
 
     rmap_set_status(reply_buf + reply_header_offset, status_field_code);
     rmap_calculate_and_set_header_crc(reply_buf + reply_header_offset);
-    reply_buf[data_offset + reply_data_size] =
-        rmap_crc_calculate(reply_buf + data_offset, reply_data_size);
-    const size_t reply_size = data_offset + reply_data_size + 1;
+    reply_buf[reply_data_offset + reply_data_size] =
+        rmap_crc_calculate(reply_buf + reply_data_offset, reply_data_size);
+    const size_t reply_size = reply_data_offset + reply_data_size + 1;
 
     const enum rmap_status send_status = node->callbacks.target.send_reply(
         node,
