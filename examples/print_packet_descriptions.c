@@ -3,6 +3,12 @@
  * This example shows how RMAP commands and replies can be parsed and printed
  * using the spacewire-rmap library functions.
  *
+ * If stdin is not a terminal, packet data is read from stdin as raw binary
+ * bytes.
+ *
+ * If stdin is a terminal, a predefined set of source patterns are used as
+ * input packets.
+ *
  * Source patterns 0-3 corresponds to the RMAP CRC test patterns from section
  * A.4 in the RMAP standard (ECSS‐E‐ST‐50‐52C 5 February 2010).
  */
@@ -10,6 +16,14 @@
 #include <assert.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#ifdef _WIN32
+#include <io.h>
+#define isatty _isatty
+#else
+#include <unistd.h>
+#endif
 
 #include "rmap.h"
 
@@ -385,6 +399,21 @@ static void print_packet_description(const void *const raw, const size_t size)
 
 int main(void)
 {
+    if (!isatty(0)) {
+        FILE *const binary_stdin = freopen(NULL, "rb", stdin);
+        if (!binary_stdin) {
+            perror("Failed to open stdin as binary");
+            exit(EXIT_FAILURE);
+        }
+        static uint8_t buf[RMAP_HEADER_SIZE_MAX + RMAP_DATA_LENGTH_MAX + 1];
+        const size_t size = fread(buf, 1, sizeof(buf), binary_stdin);
+        print_data(buf, size);
+        print_packet_description(buf, size);
+        exit(EXIT_SUCCESS);
+    }
+
+    /* stdin is a terminal, print hardcoded packet examples. */
+
     for (size_t i = 0; i < sizeof(patterns) / sizeof(*patterns); ++i) {
         print_data(patterns[i].data, patterns[i].size);
         print_packet_description(patterns[i].data, patterns[i].size);
