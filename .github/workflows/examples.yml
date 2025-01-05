@@ -1,0 +1,28 @@
+name: examples
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  examples:
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: build examples
+      run: make examples
+    - name: run examples
+      run: examples/creating_a_reply_from_a_command
+      run: examples/creating_a_write_command
+      run: examples/print_packet_descriptions
+      run: examples/target_and_initiator_node
+      run: examples/target_node
+      run: echo "FE 01 4D 00 99 AA BB CC 67 00 03 00 A0 00 00 10 00 00 10 F7" | xxd -r -p | examples/print_packet_descriptions
+      run: echo "" | xxd -r -p | examples/print_packet_descriptions
