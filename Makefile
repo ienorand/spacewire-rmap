@@ -2,7 +2,7 @@
 ifdef RMAP_CUSTOM_CRC_IMPLEMENTATION
 CPPFLAGS += -DRMAP_CUSTOM_CRC_IMPLEMENTATION
 endif
-CPPFLAGS += -DNDEBUG -I.
+CPPFLAGS += -I.
 CFLAGS += -O2 -g -Wall -Wextra -Wpedantic -std=c99
 CFLAGS += -Wshadow -Wundef -Wcast-qual -Wcast-align -Wstrict-prototypes
 CFLAGS += -Wstrict-overflow -Wwrite-strings -Wunused-macros -Wredundant-decls
@@ -28,9 +28,11 @@ librmap.a: rmap.o
 librmap-node.a: rmap.o node.o
 	$(AR) $(ARFLAGS) $@ $^
 
-rmap.o: rmap.h
+rmap.o: rmap.c rmap.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -DNDEBUG -c -o $@ $<
 
-node.o: node.h rmap.h
+node.o: node.c node.h rmap.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -DNDEBUG -c -o $@ $<
 
 .PHONY: test
 test:
