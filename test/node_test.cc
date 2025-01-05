@@ -428,9 +428,9 @@ TEST_F(MockedTargetNode, TestPattern1IncomingCommand)
                 const struct rmap_node_target_request *const request) {
                 (void)node;
                 (void)transaction_custom_context;
-                (void)data_size;
                 (void)request;
                 memcpy(data, source_data.data(), source_data.size());
+                *data_size = source_data.size();
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             }));
 
@@ -574,9 +574,9 @@ TEST_F(MockedTargetNode, TestPattern3IncomingCommand)
                 const struct rmap_node_target_request *const request) {
                 (void)node;
                 (void)transaction_custom_context;
-                (void)data_size;
                 (void)request;
                 memcpy(data, source_data.data(), source_data.size());
+                *data_size = source_data.size();
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             }));
 
@@ -659,10 +659,10 @@ TEST_F(MockedTargetNode, TestPattern4IncomingCommand)
                 const void *const data) {
                 (void)node;
                 (void)transaction_custom_context;
-                (void)read_data_size;
                 (void)request;
                 (void)data;
                 memcpy(read_data, source_data.data(), source_data.size());
+                *read_data_size = source_data.size();
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             }));
 
@@ -747,10 +747,10 @@ TEST_F(MockedTargetNode, TestPattern5IncomingCommand)
                 const void *const data) {
                 (void)node;
                 (void)transaction_custom_context;
-                (void)read_data_size;
                 (void)request;
                 (void)data;
                 memcpy(read_data, source_data.data(), source_data.size());
+                *read_data_size = source_data.size();
                 return RMAP_STATUS_FIELD_CODE_SUCCESS;
             }));
 
