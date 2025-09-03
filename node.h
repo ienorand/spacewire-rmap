@@ -64,7 +64,7 @@ struct rmap_node_target_request {
  *
  * Access to the custom user context is available via the node context object.
  *
- * @p transaction_custom_context Contains the context for the incoming command
+ * @p transaction_custom_context contains the context for the incoming command
  * packet which generated this reply.
  *
  * This callback is expected to allocate memory with a size greater than or
@@ -92,7 +92,7 @@ typedef void *(*rmap_node_target_allocate_callback)(
  *
  * Access to the custom user context is available via the node context object.
  *
- * @p transaction_custom_context Contains the context for the incoming command
+ * @p transaction_custom_context contains the context for the incoming command
  * packet which generated this reply.
  *
  * This callback is expected to send the data given by @p packet and @p size as
@@ -135,7 +135,7 @@ typedef enum rmap_status (*rmap_node_target_send_reply_callback)(
  *
  * Access to the custom user context is available via the node context object.
  *
- * @p transaction_custom_context Contains the context for the incoming command
+ * @p transaction_custom_context contains the context for the incoming command
  * packet which generated this reply.
  *
  * This callback is expected to first perform authorization of the generic
@@ -192,7 +192,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_write_request_callback)(
  *
  * Access to the custom user context is available via the node context object.
  *
- * @p transaction_custom_context Contains the context for the incoming command
+ * @p transaction_custom_context contains the context for the incoming command
  * packet which generated this reply.
  *
  * This callback is expected to first perform authorization of the generic
@@ -261,7 +261,7 @@ typedef enum rmap_status_field_code (*rmap_node_target_read_request_callback)(
  *
  * Access to the custom user context is available via the node context object.
  *
- * @p transaction_custom_context Contains the context for the incoming command
+ * @p transaction_custom_context contains the context for the incoming command
  * packet which generated this reply.
  *
  * This callback is expected to first perform authorization of the generic
